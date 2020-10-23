@@ -1,0 +1,16 @@
+{
+  "environment": "development",
+
+  "server": {
+    "port": 8080
+  },
+
+  "logger": {
+    "level": "info"
+  },
+
+  "database": {
+    "uri": "mongodb://localhost:27017",
+    "name": "rustapi"
+  }
+}
