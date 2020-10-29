@@ -11,7 +11,8 @@ mod errors;
 mod logger;
 mod settings;
 
-use components::posts;
+use components::resource;
+
 use context::Context;
 use database::Database;
 use logger::Logger;
@@ -47,8 +48,8 @@ async fn main() {
             .wrap(middleware::Logger::default())
             .app_data(settings.clone())
             .app_data(context.clone())
-            .wrap(Cors::new().supports_credentials().finish())
-            .service(web::scope("/posts").configure(posts::route::create_router))
+            .wrap(Cors::default().supports_credentials())
+            .service(web::scope("/resources").configure(resource::route::create_router))
     })
     .bind(socket_address)
     .expect("Failed to bind server to specified port")

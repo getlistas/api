@@ -5,17 +5,17 @@ use wither::ModelCursor;
 use wither::{prelude::*, Result};
 
 #[derive(Debug, Model, Serialize, Deserialize)]
-pub struct Post {
+pub struct Resource {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
+    pub url: String,
     pub title: String,
-    pub body: String,
-    pub is_published: bool,
+    pub description: Option<String>,
 }
 
-impl Post {
-    pub async fn get(conn: &mongodb::Database) -> Result<ModelCursor<Post>> {
-        let cursor = Post::find(conn, None, None).await?;
+impl Resource {
+    pub async fn get(conn: &mongodb::Database) -> Result<ModelCursor<Self>> {
+        let cursor = Self::find(conn, None, None).await?;
         Ok(cursor)
     }
 }
