@@ -29,16 +29,25 @@ pub struct Settings {
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         let mut settings = Config::new();
+        let env = env::var("RUN_MODE").unwrap_or("development".into());
 
         settings.merge(config::File::with_name("config/default"))?;
-
-        let env = env::var("RUN_MODE").unwrap_or("development".into());
         settings.merge(config::File::with_name(&format!("config/{}", env)).required(false))?;
         settings.merge(config::File::with_name("config/local").required(false))?;
 
-        // Add in config from the environment (with a prefix of APP)
-        // Eg.. `APP_DEBUG=1 ./target/app` would set the `debug` key
-        settings.merge(config::Environment::with_prefix("app"))?;
+        // Merge config from the environment variables.
+        // Eg: `LOGGER_LEVEL=info ./target/rustapi` would set the `logger.level`
+        // value.
+        settings.merge(config::Environment::new().separator("_"))?;
+
+        // Some cloud services like Heroku expose a randomly assigned port in
+        // the PORT env var and there is no way to change the env var name.
+        if env::var("PORT").is_ok() {
+            let port = env::var("PORT").unwrap();
+            settings
+                .set("server.port", port)
+                .expect("Failed to set PORT env var to settings");
+        }
 
         settings.try_into()
     }

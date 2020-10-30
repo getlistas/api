@@ -14,12 +14,10 @@ impl Logger {
     pub fn new(settings: &Settings) -> Result<(), LoggerError> {
         let mut builder = env_logger::Builder::new();
         let level = LevelFilter::from_str(settings.logger.level.as_str())
-            .map_err(|err| LoggerError::ParseLevelError(err))?;
+            .map_err(LoggerError::ParseLevelError)?;
 
         builder.default_format();
         builder.filter_level(level);
-        builder
-            .try_init()
-            .map_err(|err| LoggerError::SetLoggerError(err))
+        builder.try_init().map_err(LoggerError::SetLoggerError)
     }
 }
