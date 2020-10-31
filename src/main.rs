@@ -1,6 +1,5 @@
 use actix_cors::Cors;
 use actix_web::{middleware, web, App, HttpServer};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 #[macro_use]
 extern crate log;
 
@@ -39,8 +38,7 @@ async fn main() {
         database: database.clone(),
     });
 
-    let localhost = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
-    let socket_address = SocketAddr::new(localhost, settings.server.port);
+    let port = settings.server.port;
 
     HttpServer::new(move || {
         App::new()
@@ -51,7 +49,7 @@ async fn main() {
             .wrap(Cors::default().supports_credentials())
             .service(web::scope("/resources").configure(resource::route::create_router))
     })
-    .bind(socket_address)
+    .bind(("0.0.0.0", port))
     .expect("Failed to bind server to specified port")
     .run()
     .await
