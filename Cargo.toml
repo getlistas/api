@@ -1,5 +1,5 @@
 [package]
-name = "rustapi"
+name = "doneq"
 version = "0.1.0"
 authors = ["ndelvalle <nicolas.delvalle@gmail.com>"]
 edition = "2018"
