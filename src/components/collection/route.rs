@@ -12,6 +12,7 @@ use crate::collection::model::CollectionCreate;
 use crate::collection::model::CollectionUpdate;
 use crate::errors::ApiError;
 use crate::lib::id::ID;
+use crate::resource::model::Resource;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
@@ -96,21 +97,29 @@ async fn update_collection(
 }
 
 async fn remove_collection(ctx: web::Data<Context>, id: ID) -> Response {
-    let collection =
-        Collection::find_one_and_delete(&ctx.database.conn, doc! { "_id": id.0 }, None)
-            .await
-            .map_err(ApiError::WitherError)?;
+    let list = Collection::find_one(&ctx.database.conn, doc! { "_id": &id.0 }, None)
+        .await
+        .map_err(ApiError::WitherError)?;
 
-    let res = match collection {
-        Some(_) => {
-            debug!("Collection removed, returning 204 status code to the client");
-            HttpResponse::NoContent().finish()
-        }
-        None => {
-            debug!("Collection not found, returning 404 status code to the client");
-            HttpResponse::NotFound().finish()
-        }
-    };
+    if list.is_none() {
+        debug!("Collection not found, returning 404 status code to the client");
+        return Ok(HttpResponse::NotFound().finish());
+    }
+
+    debug!("Removing resources associated to this collection");
+    Resource::collection(&ctx.database.conn)
+        .delete_many(doc! { "collection": &id.0 }, None)
+        .await
+        .map_err(ApiError::MongoError)?;
+
+    debug!("Removing collection");
+    list.unwrap()
+        .delete(&ctx.database.conn)
+        .await
+        .map_err(ApiError::WitherError)?;
+
+    debug!("Collection removed, returning 204 status code to the client");
+    let res = HttpResponse::NoContent().finish();
 
     Ok(res)
 }
