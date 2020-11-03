@@ -1,5 +1,5 @@
 use actix_web::{web, HttpResponse};
-use futures::stream::StreamExt;
+use futures::stream::TryStreamExt;
 use serde_json::json;
 use wither::bson;
 use wither::bson::doc;
@@ -44,10 +44,9 @@ async fn get_resources(ctx: web::Data<Context>) -> Response {
     let resources = Resource::find(&ctx.database.conn, None, None)
         .await
         .map_err(|err| ApiError::WitherError(err))?
-        // TODO: Collect to a Result<Vec>
-        .map(|post| post.unwrap())
-        .collect::<Vec<Resource>>()
-        .await;
+        .try_collect::<Vec<Resource>>()
+        .await
+        .map_err(|err| ApiError::WitherError(err))?;
 
     debug!("Returning resources to the client");
     let res = HttpResponse::Ok().json(resources);

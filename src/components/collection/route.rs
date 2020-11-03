@@ -1,5 +1,5 @@
 use actix_web::{web, HttpResponse};
-use futures::stream::StreamExt;
+use futures::stream::TryStreamExt;
 use serde_json::json;
 use wither::bson;
 use wither::bson::doc;
@@ -45,10 +45,9 @@ async fn get_collections(ctx: web::Data<Context>) -> Response {
     let collections = Collection::find(&ctx.database.conn, None, None)
         .await
         .map_err(|err| ApiError::WitherError(err))?
-        // TODO: Collect to a Result<Vec>
-        .map(|post| post.unwrap())
-        .collect::<Vec<Collection>>()
-        .await;
+        .try_collect::<Vec<Collection>>()
+        .await
+        .map_err(|err| ApiError::WitherError(err))?;
 
     debug!("Returning collections to the client");
     let res = HttpResponse::Ok().json(collections);
