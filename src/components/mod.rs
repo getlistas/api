@@ -1,2 +1,3 @@
-pub mod collection;
+pub mod index;
+pub mod list;
 pub mod resource;

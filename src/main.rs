@@ -11,7 +11,8 @@ mod lib;
 mod logger;
 mod settings;
 
-use components::collection;
+use components::index;
+use components::list;
 use components::resource;
 
 use context::Context;
@@ -49,7 +50,9 @@ async fn main() {
             .app_data(settings.clone())
             .app_data(context.clone())
             .wrap(Cors::default().supports_credentials())
-            .service(web::scope("/collections").configure(collection::route::create_router))
+            .service(actix_files::Files::new("/static", ".").show_files_listing())
+            .service(web::scope("/").configure(index::route::create_router))
+            .service(web::scope("/lists").configure(list::route::create_router))
             .service(web::scope("/resources").configure(resource::route::create_router))
     })
     .bind(("0.0.0.0", port))

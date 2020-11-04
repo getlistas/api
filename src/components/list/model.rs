@@ -3,7 +3,7 @@ use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
 
 #[derive(Debug, Model, Serialize, Deserialize)]
-pub struct Collection {
+pub struct List {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub title: String,
@@ -13,8 +13,8 @@ pub struct Collection {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-impl Collection {
-    pub fn new(body: CollectionCreate) -> Self {
+impl List {
+    pub fn new(body: ListCreate) -> Self {
         let now = chrono::Utc::now();
         Self {
             id: None,
@@ -29,14 +29,14 @@ impl Collection {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct CollectionCreate {
+pub struct ListCreate {
     pub url: String,
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
 #[derive(Debug, Serialize, Deserialize)]
-pub struct CollectionUpdate {
+pub struct ListUpdate {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -45,7 +45,7 @@ pub struct CollectionUpdate {
     pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-impl CollectionUpdate {
+impl ListUpdate {
     pub fn new(update: &mut Self) -> &mut Self {
         update.updated_at = Some(chrono::Utc::now());
         update
