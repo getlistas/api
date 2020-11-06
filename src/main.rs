@@ -1,8 +1,10 @@
 use actix_cors::Cors;
 use actix_web::{middleware, web, App, HttpServer};
+use actix_web_httpauth::middleware::HttpAuthentication;
 #[macro_use]
 extern crate log;
 
+mod auth;
 mod components;
 mod context;
 mod database;
@@ -47,13 +49,14 @@ async fn main() {
         App::new()
             .wrap(middleware::Compress::default())
             .wrap(middleware::Logger::default())
-            .app_data(settings.clone())
-            .app_data(context.clone())
             .wrap(Cors::default().supports_credentials())
+            .wrap(HttpAuthentication::bearer(auth::validator))
+            .app_data(web::Data::new(settings.clone()))
+            .app_data(context.clone())
             .service(actix_files::Files::new("/static", ".").show_files_listing())
-            .service(web::scope("/").configure(index::route::create_router))
             .service(web::scope("/lists").configure(list::route::create_router))
             .service(web::scope("/resources").configure(resource::route::create_router))
+            .service(web::scope("/").configure(index::route::create_router))
     })
     .bind(("0.0.0.0", port))
     .expect("Failed to bind server to specified port")
