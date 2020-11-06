@@ -17,6 +17,10 @@ pub struct Database {
     pub uri: String,
     pub name: String,
 }
+#[derive(Debug, Clone, Deserialize)]
+pub struct Auth {
+    pub authority: String,
+}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
@@ -24,6 +28,7 @@ pub struct Settings {
     pub server: Server,
     pub logger: Logger,
     pub database: Database,
+    pub auth: Auth,
 }
 
 impl Settings {
