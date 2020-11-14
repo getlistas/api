@@ -5,6 +5,10 @@
     "port": 8080
   },
 
+  "auth": {
+    "authority": "https://doneq.us.auth0.com/"
+  },
+
   "logger": {
     "level": "debug"
   },

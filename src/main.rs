@@ -16,6 +16,8 @@ mod settings;
 use components::index;
 use components::list;
 use components::resource;
+use components::user;
+use components::webhooks;
 
 use context::Context;
 use database::Database;
@@ -44,18 +46,27 @@ async fn main() {
     });
 
     let port = settings.server.port;
+    let auth = || HttpAuthentication::bearer(auth::validator);
 
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Compress::default())
             .wrap(middleware::Logger::default())
             .wrap(Cors::default().supports_credentials())
-            .wrap(HttpAuthentication::bearer(auth::validator))
             .app_data(web::Data::new(settings.clone()))
             .app_data(context.clone())
-            .service(actix_files::Files::new("/static", ".").show_files_listing())
-            .service(web::scope("/lists").configure(list::route::create_router))
-            .service(web::scope("/resources").configure(resource::route::create_router))
+            .service(actix_files::Files::new("/static", "."))
+            .service(web::scope("/webhooks").configure(webhooks::route::create_router))
+            .service(
+                web::scope("/lists")
+                    .wrap(auth())
+                    .configure(list::route::create_router),
+            )
+            .service(
+                web::scope("/resources")
+                    .wrap(auth())
+                    .configure(resource::route::create_router),
+            )
             .service(web::scope("/").configure(index::route::create_router))
     })
     .bind(("0.0.0.0", port))

@@ -12,7 +12,7 @@ pub enum ApiError {
     #[error("Failed to read application shared Data")]
     ReadAppData(),
 
-    // An error from the underlying `wither` library.
+    // An error from the underlying wither library.
     #[error("{0}")]
     WitherError(#[from] WitherError),
 
