@@ -33,6 +33,23 @@ impl User {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ReqUser {
+    pub id: String,
+    pub email: String,
+    pub external_id: String, // Auth0 ID
+}
+
+impl ReqUser {
+    pub fn from_user(user: User) -> Self {
+        Self {
+            id: user.id.unwrap().to_string(),
+            email: user.email,
+            external_id: user.external_id,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UserCreate {
     pub email: String,
     pub external_id: String, // Auth0 ID

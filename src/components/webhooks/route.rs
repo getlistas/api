@@ -3,6 +3,7 @@ use wither::bson::doc;
 use wither::Model;
 
 use crate::errors::ApiError;
+use crate::user::model::ReqUser;
 use crate::user::model::User;
 use crate::user::model::UserCreate;
 use crate::webhooks::model::Auth0User;
@@ -25,7 +26,7 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<Auth0User>) -> Res
             "User with email {} found, returning 200 status code to the client",
             &body.email
         );
-        let res = HttpResponse::Accepted().finish();
+        let res = HttpResponse::Ok().json(ReqUser::from_user(user.unwrap()));
         return Ok(res);
     }
 
@@ -42,9 +43,9 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<Auth0User>) -> Res
         .map_err(ApiError::WitherError)?;
 
     debug!(
-        "User with email {} create, returning 200 status code to the client",
+        "User with email {} created, returning 200 status code to the client",
         &body.email
     );
-    let res = HttpResponse::Accepted().finish();
+    let res = HttpResponse::Ok().json(ReqUser::from_user(user));
     Ok(res)
 }

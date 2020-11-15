@@ -1,9 +1,12 @@
+use actix_web::dev::Payload;
 use actix_web::dev::ServiceRequest;
 use actix_web_httpauth::extractors::bearer::{BearerAuth, Config};
 use actix_web_httpauth::extractors::AuthenticationError;
 use alcoholic_jwt::{token_kid, validate, Validation, JWKS};
+use futures::future;
 use serde::{Deserialize, Serialize};
 
+use crate::components::user::model::ReqUser;
 use crate::errors::ApiError;
 use crate::settings::Settings;
 
@@ -15,6 +18,7 @@ struct Claims {
     exp: usize,  // Expiration time (as UTC timestamp)
     iat: usize,  // Issued at (as UTC timestamp)
     iss: String, // Issuer
+    user: ReqUser,
 }
 
 pub async fn validator(req: ServiceRequest, credentials: BearerAuth) -> ActixValidationResult {
@@ -61,4 +65,36 @@ async fn get_jwks() -> Result<JWKS, reqwest::Error> {
         .await?
         .json::<JWKS>()
         .await
+}
+
+impl actix_web::FromRequest for ReqUser {
+    type Config = ();
+    type Error = ApiError;
+    type Future = future::Ready<Result<Self, ApiError>>;
+
+    fn from_request(req: &actix_web::HttpRequest, _payload: &mut Payload) -> Self::Future {
+        let token_result: Result<String, ApiError> = req
+            .headers()
+            .get("authorization")
+            .and_then(|header| header.to_str().ok())
+            .map(|header| header.replace("Bearer ", ""))
+            .ok_or_else(|| ApiError::MissingAuthorizationToken {});
+
+        let token = match token_result {
+            Ok(token) => token,
+            Err(err) => return future::err(err),
+        };
+
+        let decoded_token_result =
+            jsonwebtoken::dangerous_insecure_decode_with_validation::<Claims>(
+                &token,
+                &jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256),
+            )
+            .map_err(ApiError::JWT);
+
+        match decoded_token_result {
+            Ok(token_decoded) => future::ok(token_decoded.claims.user),
+            Err(err) => return future::err(err),
+        }
+    }
 }
