@@ -6,11 +6,12 @@ use wither::Model;
 pub struct User {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
+
+    pub password: String,
     pub email: String,
-    pub external_id: String, // Auth0 ID
+    pub slug: String,
     pub name: String,
-    pub nickname: String,
-    pub picture: String,
+    pub avatar: Option<String>,
 
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
@@ -19,32 +20,30 @@ pub struct User {
 impl User {
     pub fn new(body: UserCreate) -> Self {
         let now = chrono::Utc::now();
+        let password = bcrypt::hash(body.password, bcrypt::DEFAULT_COST).unwrap();
+
         Self {
             id: None,
+            password,
             email: body.email.clone(),
-            external_id: body.external_id.clone(), // Auth0 ID
             name: body.name.clone(),
-            nickname: body.nickname.clone(),
-            picture: body.picture.clone(),
+            slug: body.slug.clone(),
+            avatar: None,
             created_at: now,
             updated_at: now,
         }
     }
-}
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ReqUser {
-    pub id: String,
-    pub email: String,
-    pub external_id: String, // Auth0 ID
-}
+    pub fn is_password_match(&self, password: &str) -> bool {
+        bcrypt::verify(password, &self.password).unwrap_or(false)
+    }
 
-impl ReqUser {
-    pub fn from_user(user: User) -> Self {
-        Self {
-            id: user.id.unwrap().to_string(),
-            email: user.email,
-            external_id: user.external_id,
+    pub fn to_display(&self) -> UserPublic {
+        UserPublic {
+            id: self.id.clone().unwrap().to_string(),
+            email: self.email.clone(),
+            name: self.name.clone(),
+            slug: self.slug.clone(),
         }
     }
 }
@@ -52,8 +51,21 @@ impl ReqUser {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserCreate {
     pub email: String,
-    pub external_id: String, // Auth0 ID
+    pub password: String,
     pub name: String,
-    pub nickname: String,
-    pub picture: String,
+    pub slug: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserPublic {
+    pub id: String,
+    pub email: String,
+    pub name: String,
+    pub slug: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserAuthenticate {
+    pub email: String,
+    pub password: String,
 }

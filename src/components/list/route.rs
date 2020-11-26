@@ -44,10 +44,10 @@ async fn get_list_by_id(ctx: web::Data<Context>, id: ID) -> Response {
 async fn get_lists(ctx: web::Data<Context>) -> Response {
     let lists = List::find(&ctx.database.conn, None, None)
         .await
-        .map_err(|err| ApiError::WitherError(err))?
+        .map_err(ApiError::WitherError)?
         .try_collect::<Vec<List>>()
         .await
-        .map_err(|err| ApiError::WitherError(err))?;
+        .map_err(ApiError::WitherError)?;
 
     debug!("Returning lists to the client");
     let res = HttpResponse::Ok().json(lists);

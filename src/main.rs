@@ -17,7 +17,6 @@ use components::index;
 use components::list;
 use components::resource;
 use components::user;
-use components::webhooks;
 
 use context::Context;
 use database::Database;
@@ -31,7 +30,7 @@ async fn main() {
         Err(err) => panic!("Failed to setup configuration. Error: {}", err),
     };
 
-    match Logger::new(&settings) {
+    match Logger::setup(&settings) {
         Ok(value) => value,
         Err(_) => panic!("Failed to setup logger"),
     };
@@ -56,7 +55,7 @@ async fn main() {
             .app_data(web::Data::new(settings.clone()))
             .app_data(context.clone())
             .service(actix_files::Files::new("/static", "."))
-            .service(web::scope("/webhooks").configure(webhooks::route::create_router))
+            .service(web::scope("/users").configure(user::route::create_router))
             .service(
                 web::scope("/lists")
                     .wrap(auth())
