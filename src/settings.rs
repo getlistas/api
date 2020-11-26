@@ -34,7 +34,7 @@ pub struct Settings {
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         let mut settings = Config::new();
-        let env = env::var("RUN_MODE").unwrap_or("development".into());
+        let env = env::var("RUN_MODE").unwrap_or_else(|_| "development".into());
 
         settings.merge(config::File::with_name("config/default"))?;
         settings.merge(config::File::with_name(&format!("config/{}", env)).required(false))?;

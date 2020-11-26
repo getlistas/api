@@ -43,10 +43,10 @@ async fn get_resource_by_id(ctx: web::Data<Context>, id: ID) -> Response {
 async fn get_resources(ctx: web::Data<Context>) -> Response {
     let resources = Resource::find(&ctx.database.conn, None, None)
         .await
-        .map_err(|err| ApiError::WitherError(err))?
+        .map_err(ApiError::WitherError)?
         .try_collect::<Vec<Resource>>()
         .await
-        .map_err(|err| ApiError::WitherError(err))?;
+        .map_err(ApiError::WitherError)?;
 
     debug!("Returning resources to the client");
     let res = HttpResponse::Ok().json(resources);

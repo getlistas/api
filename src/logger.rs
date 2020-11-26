@@ -11,7 +11,7 @@ pub enum LoggerError {
 }
 
 impl Logger {
-    pub fn new(settings: &Settings) -> Result<(), LoggerError> {
+    pub fn setup(settings: &Settings) -> Result<(), LoggerError> {
         let mut builder = env_logger::Builder::new();
         let level = LevelFilter::from_str(settings.logger.level.as_str())
             .map_err(LoggerError::ParseLevelError)?;

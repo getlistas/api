@@ -1,73 +1,30 @@
 use actix_web::dev::Payload;
 use actix_web::dev::ServiceRequest;
-use actix_web_httpauth::extractors::bearer::{BearerAuth, Config};
-use actix_web_httpauth::extractors::AuthenticationError;
-use alcoholic_jwt::{token_kid, validate, Validation, JWKS};
+use actix_web_httpauth::extractors::bearer::BearerAuth;
 use futures::future;
-use serde::{Deserialize, Serialize};
 
-use crate::components::user::model::ReqUser;
+use crate::components::user::model::UserPublic;
 use crate::errors::ApiError;
+use crate::lib::token;
 use crate::settings::Settings;
 
-type ValidationResult = Result<bool, alcoholic_jwt::ValidationError>;
 type ActixValidationResult = Result<ServiceRequest, actix_web::Error>;
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    exp: usize,  // Expiration time (as UTC timestamp)
-    iat: usize,  // Issued at (as UTC timestamp)
-    iss: String, // Issuer
-    user: ReqUser,
-}
-
 pub async fn validator(req: ServiceRequest, credentials: BearerAuth) -> ActixValidationResult {
-    let token = credentials.token();
-    let settings = req
+    // TODO read secret key to decode token
+    let _settings = req
         .app_data::<actix_web::web::Data<Settings>>()
         .ok_or(ApiError::ReadAppData())?;
 
-    let jwks = get_jwks().await.expect("failed to fetch jwks");
-    let authority = settings.auth.authority.clone();
-    let is_valid_token = validate_token(jwks, token, authority).await;
+    let token_date = token::decode_token(credentials.token());
 
-    let config = Config::default()
-        .realm("Restricted area")
-        .scope("email photo");
-
-    match is_valid_token {
-        Ok(true) => Ok(req),
-        // TODO: Improve from config error handling
-        _ => Err(AuthenticationError::from(config).into()),
+    match token_date {
+        Ok(_) => Ok(req),
+        Err(err) => Err(actix_web::error::ErrorUnauthorized(err)),
     }
 }
 
-pub async fn validate_token(jwks: JWKS, token: &str, authority: String) -> ValidationResult {
-    let validations = vec![
-        Validation::Issuer(authority),
-        Validation::SubjectPresent,
-        Validation::NotExpired,
-    ];
-
-    let kid = token_kid(&token)?.ok_or(alcoholic_jwt::ValidationError::InvalidComponents)?;
-
-    let key = jwks
-        .find(&kid)
-        .ok_or(alcoholic_jwt::ValidationError::InvalidSignature)?;
-
-    let res = validate(token, key, validations);
-    Ok(res.is_ok())
-}
-
-async fn get_jwks() -> Result<JWKS, reqwest::Error> {
-    // TODO: Implement an in-memory cache
-    reqwest::get("https://doneq.us.auth0.com/.well-known/jwks.json")
-        .await?
-        .json::<JWKS>()
-        .await
-}
-
-impl actix_web::FromRequest for ReqUser {
+impl actix_web::FromRequest for UserPublic {
     type Config = ();
     type Error = ApiError;
     type Future = future::Ready<Result<Self, ApiError>>;
@@ -85,16 +42,11 @@ impl actix_web::FromRequest for ReqUser {
             Err(err) => return future::err(err),
         };
 
-        let decoded_token_result =
-            jsonwebtoken::dangerous_insecure_decode_with_validation::<Claims>(
-                &token,
-                &jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256),
-            )
-            .map_err(ApiError::JWT);
+        let token_payload = token::get_token_payload(token.as_str());
 
-        match decoded_token_result {
-            Ok(token_decoded) => future::ok(token_decoded.claims.user),
-            Err(err) => return future::err(err),
+        match token_payload.map_err(ApiError::JWT) {
+            Ok(payload) => future::ok(payload.claims.to_public_user()),
+            Err(err) => future::err(err),
         }
     }
 }
