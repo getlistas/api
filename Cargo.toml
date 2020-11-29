@@ -25,6 +25,8 @@ jsonwebtoken = "7.2.0"
 bcrypt = "0.9.0"
 lettre = "0.9"
 lettre_email = "0.9.4"
+maud = "0.22.1"
+nanoid = "0.3.0"
 
 
 [dev-dependencies.cargo-husky]

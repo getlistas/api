@@ -8,9 +8,11 @@ mod auth;
 mod components;
 mod context;
 mod database;
+mod emails;
 mod errors;
 mod lib;
 mod logger;
+mod mailer;
 mod settings;
 
 use components::index;
@@ -20,8 +22,8 @@ use components::user;
 
 use context::Context;
 use database::Database;
-use lib::mailer::Mailer;
 use logger::Logger;
+use mailer::Mailer;
 use settings::Settings;
 
 #[actix_web::main]
