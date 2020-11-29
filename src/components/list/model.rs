@@ -6,6 +6,7 @@ use wither::Model;
 pub struct List {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
+    pub user: ObjectId,
     pub title: String,
     pub description: Option<String>,
 
@@ -14,10 +15,11 @@ pub struct List {
 }
 
 impl List {
-    pub fn new(body: ListCreate) -> Self {
+    pub fn new(body: ListCreate, user_id: ObjectId) -> Self {
         let now = chrono::Utc::now();
         Self {
             id: None,
+            user: user_id,
 
             title: body.title.clone(),
             description: body.description.clone(),

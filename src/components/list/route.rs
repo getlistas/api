@@ -7,6 +7,7 @@ use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::Model;
 
+use crate::components::user::model::UserID;
 use crate::errors::ApiError;
 use crate::lib::id::ID;
 use crate::list::model::List;
@@ -16,6 +17,7 @@ use crate::resource::model::Resource;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
+type CTX = web::Data<Context>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -31,18 +33,25 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
     );
 }
 
-async fn get_list_by_id(ctx: web::Data<Context>, id: ID) -> Response {
-    let list = List::find_one(&ctx.database.conn, doc! { "_id": id.0 }, None)
-        .await
-        .map_err(ApiError::WitherError)?;
+async fn get_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
+    let list = List::find_one(
+        &ctx.database.conn,
+        doc! {
+            "_id": id.0,
+            "user": user.0
+        },
+        None,
+    )
+    .await
+    .map_err(ApiError::WitherError)?;
 
     debug!("Returning list to the client");
     let res = HttpResponse::Ok().json(list);
     Ok(res)
 }
 
-async fn get_lists(ctx: web::Data<Context>) -> Response {
-    let lists = List::find(&ctx.database.conn, None, None)
+async fn get_lists(ctx: web::Data<Context>, user: UserID) -> Response {
+    let lists = List::find(&ctx.database.conn, doc! { "user": user.0 }, None)
         .await
         .map_err(ApiError::WitherError)?
         .try_collect::<Vec<List>>()
@@ -54,8 +63,8 @@ async fn get_lists(ctx: web::Data<Context>) -> Response {
     Ok(res)
 }
 
-async fn create_list(ctx: web::Data<Context>, body: web::Json<ListCreate>) -> Response {
-    let mut list = List::new(body.into_inner());
+async fn create_list(ctx: CTX, body: web::Json<ListCreate>, user: UserID) -> Response {
+    let mut list = List::new(body.into_inner(), user.0);
 
     list.save(&ctx.database.conn, None)
         .await
@@ -90,10 +99,17 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
     Ok(res)
 }
 
-async fn remove_list(ctx: web::Data<Context>, id: ID) -> Response {
-    let list = List::find_one(&ctx.database.conn, doc! { "_id": &id.0 }, None)
-        .await
-        .map_err(ApiError::WitherError)?;
+async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
+    let list = List::find_one(
+        &ctx.database.conn,
+        doc! {
+            "_id": &id.0,
+            "user": user.0
+        },
+        None,
+    )
+    .await
+    .map_err(ApiError::WitherError)?;
 
     if list.is_none() {
         debug!("List not found, returning 404 status code to the client");
