@@ -7,6 +7,7 @@ use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::Model;
 
+use crate::components::user::model::UserID;
 use crate::errors::ApiError;
 use crate::lib::id::ID;
 use crate::resource::model::Resource;
@@ -15,6 +16,7 @@ use crate::resource::model::ResourceUpdate;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
+type CTX = web::Data<Context>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -30,18 +32,22 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
     );
 }
 
-async fn get_resource_by_id(ctx: web::Data<Context>, id: ID) -> Response {
-    let resource = Resource::find_one(&ctx.database.conn, doc! { "_id": id.0 }, None)
-        .await
-        .map_err(ApiError::WitherError)?;
+async fn get_resource_by_id(ctx: CTX, id: ID, user: UserID) -> Response {
+    let resource = Resource::find_one(
+        &ctx.database.conn,
+        doc! { "_id": id.0, "user": user.0 },
+        None,
+    )
+    .await
+    .map_err(ApiError::WitherError)?;
 
     debug!("Returning resource to the client");
     let res = HttpResponse::Ok().json(resource);
     Ok(res)
 }
 
-async fn get_resources(ctx: web::Data<Context>) -> Response {
-    let resources = Resource::find(&ctx.database.conn, None, None)
+async fn get_resources(ctx: CTX, user: UserID) -> Response {
+    let resources = Resource::find(&ctx.database.conn, doc! { "user": user.0 }, None)
         .await
         .map_err(ApiError::WitherError)?
         .try_collect::<Vec<Resource>>()
@@ -53,8 +59,8 @@ async fn get_resources(ctx: web::Data<Context>) -> Response {
     Ok(res)
 }
 
-async fn create_resource(ctx: web::Data<Context>, body: web::Json<ResourceCreate>) -> Response {
-    let mut resource = Resource::new(body.into_inner());
+async fn create_resource(ctx: CTX, body: web::Json<ResourceCreate>, user: UserID) -> Response {
+    let mut resource = Resource::new(body.into_inner(), user.0);
 
     resource
         .save(&ctx.database.conn, None)
@@ -66,11 +72,7 @@ async fn create_resource(ctx: web::Data<Context>, body: web::Json<ResourceCreate
     Ok(res)
 }
 
-async fn update_resource(
-    ctx: web::Data<Context>,
-    id: ID,
-    body: web::Json<ResourceUpdate>,
-) -> Response {
+async fn update_resource(ctx: CTX, id: ID, body: web::Json<ResourceUpdate>) -> Response {
     let mut body = body.into_inner();
     let body = ResourceUpdate::new(&mut body);
     let update = json!({ "$set": body });
@@ -94,10 +96,14 @@ async fn update_resource(
     Ok(res)
 }
 
-async fn remove_resource(ctx: web::Data<Context>, id: ID) -> Response {
-    let resource = Resource::find_one_and_delete(&ctx.database.conn, doc! { "_id": id.0 }, None)
-        .await
-        .map_err(ApiError::WitherError)?;
+async fn remove_resource(ctx: CTX, id: ID, user: UserID) -> Response {
+    let resource = Resource::find_one_and_delete(
+        &ctx.database.conn,
+        doc! { "_id": id.0, "user": user.0 },
+        None,
+    )
+    .await
+    .map_err(ApiError::WitherError)?;
 
     let res = match resource {
         Some(_) => {
