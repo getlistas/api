@@ -10,7 +10,7 @@ type TokenResult = Result<jsonwebtoken::TokenData<Claims>, jsonwebtoken::errors:
 pub struct Claims {
     exp: usize, // Expiration time (as UTC timestamp). validate_exp defaults to true in validation
     iat: usize, // Issued at (as UTC timestamp)
-    user: UserPublic,
+    pub user: UserPublic,
 }
 
 impl Claims {
