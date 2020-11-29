@@ -6,7 +6,8 @@ use wither::Model;
 pub struct Resource {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
-    pub collection: ObjectId,
+    pub user: ObjectId,
+    pub list: ObjectId,
 
     pub url: String,
     pub title: String,
@@ -18,11 +19,12 @@ pub struct Resource {
 }
 
 impl Resource {
-    pub fn new(body: ResourceCreate) -> Self {
+    pub fn new(body: ResourceCreate, user_id: ObjectId) -> Self {
         let now = chrono::Utc::now();
         Self {
             id: None,
-            collection: body.collection.clone(),
+            list: body.list.clone(),
+            user: user_id,
 
             url: body.url.clone(),
             title: body.title.clone(),
@@ -37,7 +39,7 @@ impl Resource {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResourceCreate {
-    pub collection: ObjectId,
+    pub list: ObjectId,
     pub url: String,
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -46,7 +48,7 @@ pub struct ResourceCreate {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResourceUpdate {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub collection: Option<ObjectId>,
+    pub list: Option<ObjectId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
