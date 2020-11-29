@@ -20,6 +20,7 @@ use components::user;
 
 use context::Context;
 use database::Database;
+use lib::mailer::Mailer;
 use logger::Logger;
 use settings::Settings;
 
@@ -40,8 +41,14 @@ async fn main() {
         Err(_) => panic!("Failed to setup database connection"),
     };
 
+    let mailer = match Mailer::new() {
+        Ok(value) => value,
+        Err(_) => panic!("Failed to setup mailer"),
+    };
+
     let context = web::Data::new(Context {
         database: database.clone(),
+        mailer: mailer.clone(),
     });
 
     let port = settings.server.port;
