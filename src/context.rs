@@ -1,5 +1,5 @@
 use crate::database::Database;
-use crate::lib::mailer::Mailer;
+use crate::mailer::Mailer;
 
 #[derive(Clone)]
 pub struct Context {
