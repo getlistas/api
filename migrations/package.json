@@ -1,0 +1,18 @@
+{
+  "name": "doneq-api",
+  "version": "0.1.0",
+  "description": "",
+  "scripts": {
+    "nomad": "nomad",
+    "nomad:downall": "nomad down create-users" 
+  },
+  "engines": {
+    "node": "14"
+  },
+  "dependencies": {
+    "cli-progress": "3.8.2",
+    "config": "^3.3.2",
+    "mongoose": "^5.10.11",
+    "nomad-cli": "^1.1.2"
+  }
+}
