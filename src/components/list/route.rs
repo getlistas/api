@@ -5,11 +5,13 @@ use wither::bson;
 use wither::bson::doc;
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
+use wither::mongodb::options::FindOptions;
 use wither::Model;
 
 use crate::components::user::model::UserID;
 use crate::errors::ApiError;
 use crate::lib::id::ID;
+use crate::lib::pagination::Pagination;
 use crate::list::model::List;
 use crate::list::model::ListCreate;
 use crate::list::model::ListUpdate;
@@ -25,6 +27,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
             .route(web::get().to(get_lists))
             .route(web::post().to(create_list)),
     );
+    cfg.service(web::resource("discover").route(web::get().to(discover)));
     cfg.service(
         web::resource("/{id}")
             .route(web::get().to(get_list_by_id))
@@ -49,6 +52,24 @@ async fn get_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respon
 
 async fn get_lists(ctx: web::Data<Context>, user: UserID) -> Response {
     let lists = List::find(&ctx.database.conn, doc! { "user": user.0 }, None)
+        .await
+        .map_err(ApiError::WitherError)?
+        .try_collect::<Vec<List>>()
+        .await
+        .map_err(ApiError::WitherError)?;
+
+    debug!("Returning lists to the client");
+    let res = HttpResponse::Ok().json(lists);
+    Ok(res)
+}
+
+async fn discover(ctx: web::Data<Context>, pagination: web::Query<Pagination>) -> Response {
+    let find_options = FindOptions::builder()
+        .limit(pagination.limit)
+        .skip(pagination.skip)
+        .build();
+
+    let lists = List::find(&ctx.database.conn, doc! {}, find_options)
         .await
         .map_err(ApiError::WitherError)?
         .try_collect::<Vec<List>>()
