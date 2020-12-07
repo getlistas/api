@@ -5,6 +5,10 @@
     "port": 8080
   },
 
+  "auth": {
+    "secret": "secret"
+  },
+
   "logger": {
     "level": "debug"
   },

@@ -38,17 +38,3 @@ impl Mailer {
         }
     }
 }
-
-// How to send emails
-// let email = lettre_email::EmailBuilder::new()
-//     .from("nicolas.delvalle@gmail.com")
-//     .to("nicolas.delvalle+1@gmail.com")
-//     .subject("Confirm your doneq email address")
-//     .html("<h1>Hello, world!</h1>")
-//     .build()
-//     .unwrap();
-
-// match mailer.send(email.into()).await {
-//     Ok(_) => println!("Email sent successfully!"),
-//     Err(e) => panic!("Could not send email: {:?}", e),
-// };

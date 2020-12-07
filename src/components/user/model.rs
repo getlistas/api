@@ -1,5 +1,6 @@
 use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
+use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
 
@@ -14,16 +15,16 @@ pub struct User {
     pub name: String,
     pub avatar: Option<String>,
 
-    pub verification_token: String,
+    pub verification_token: Option<String>,
 
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-    pub verified_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: DateTime,
+    pub updated_at: DateTime,
+    pub verified_at: Option<DateTime>,
 }
 
 impl User {
     pub fn new(body: UserCreate) -> Self {
-        let now = chrono::Utc::now();
+        let now = chrono::Utc::now().into();
         let password = bcrypt::hash(body.password, bcrypt::DEFAULT_COST).unwrap();
 
         Self {
@@ -33,7 +34,7 @@ impl User {
             name: body.name.clone(),
             slug: body.slug.clone(),
             avatar: None,
-            verification_token: nanoid!(),
+            verification_token: Some(nanoid!()),
             created_at: now,
             updated_at: now,
             verified_at: None,

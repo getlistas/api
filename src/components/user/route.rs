@@ -26,9 +26,10 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreate>) -> Re
         .await
         .map_err(ApiError::WitherError)?;
 
+    let verification_token = user.verification_token.clone().unwrap();
+
     debug!("Sending confirm email to the user {}", &user.email);
-    let confirm_email =
-        emails::create_confirm_email(&user.name, &user.email, &user.verification_token);
+    let confirm_email = emails::create_confirm_email(&user.name, &user.email, &verification_token);
     ctx.mailer.send(confirm_email.into()).await?;
 
     debug!("Returning created user to the client");
@@ -52,7 +53,7 @@ async fn verify_user(ctx: web::Data<Context>, token: web::Path<String>) -> Respo
     };
 
     debug!("Verifying user with email {}", &user.email);
-    user.verified_at = Some(chrono::Utc::now());
+    user.verified_at = Some(chrono::Utc::now().into());
     user.save(&ctx.database.conn, None)
         .await
         .map_err(ApiError::WitherError)?;

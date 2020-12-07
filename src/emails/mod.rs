@@ -20,13 +20,11 @@ pub fn create_confirm_email(name: &String, email: &String, token: &String) -> Em
         }
     };
 
-    let email = lettre_email::EmailBuilder::new()
+    lettre_email::EmailBuilder::new()
         .from("nicolas.delvalle@gmail.com")
         .to(email.as_str())
         .subject("Confirm your doneq email address")
         .html(html.into_string())
         .build()
-        .unwrap();
-
-    email
+        .unwrap()
 }
