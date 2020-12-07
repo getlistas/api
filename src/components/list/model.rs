@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
@@ -9,6 +10,7 @@ pub struct List {
     pub user: ObjectId,
     pub title: String,
     pub description: Option<String>,
+    pub tags: Vec<String>,
 
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
@@ -17,12 +19,24 @@ pub struct List {
 impl List {
     pub fn new(body: ListCreate, user_id: ObjectId) -> Self {
         let now = chrono::Utc::now();
+        let tags = body
+            .tags
+            .map(|tags| {
+                tags.into_iter()
+                    .map(|tag| tag.to_lowercase().trim().to_owned())
+                    .filter(|tag| tag.len() >= 1)
+                    .unique()
+                    .collect()
+            })
+            .unwrap_or(vec![]);
+
         Self {
             id: None,
             user: user_id,
 
             title: body.title.clone(),
             description: body.description.clone(),
+            tags,
 
             created_at: now,
             updated_at: now,
@@ -35,7 +49,10 @@ pub struct ListCreate {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
 }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListUpdate {
     #[serde(skip_serializing_if = "Option::is_none")]
