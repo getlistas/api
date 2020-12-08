@@ -24,12 +24,18 @@ pub struct Auth {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct Mailer {
+    pub from: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
     pub environment: String,
     pub server: Server,
     pub logger: Logger,
     pub database: Database,
     pub auth: Auth,
+    pub mailer: Mailer,
 }
 
 impl Settings {

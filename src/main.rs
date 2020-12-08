@@ -51,6 +51,7 @@ async fn main() {
     let context = web::Data::new(Context {
         database: database.clone(),
         mailer: mailer.clone(),
+        settings: settings.clone(),
     });
 
     let port = settings.server.port;

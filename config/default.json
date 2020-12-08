@@ -16,5 +16,9 @@
   "database": {
     "uri": "mongodb://localhost:27017",
     "name": "doneq"
+  },
+
+  "mailer": {
+    "from": "nicolas.delvalle@gmail.com"
   }
 }

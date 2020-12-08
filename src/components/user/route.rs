@@ -30,7 +30,7 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreate>) -> Re
 
     debug!("Sending confirm email to the user {}", &user.email);
     let confirm_email = emails::create_confirm_email(&user.name, &user.email, &verification_token);
-    ctx.mailer.send(confirm_email.into()).await?;
+    ctx.send_email(confirm_email).await;
 
     debug!("Returning created user to the client");
     let res = HttpResponse::Created().json(user.to_display());
