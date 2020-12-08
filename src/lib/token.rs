@@ -32,19 +32,17 @@ impl Claims {
     }
 }
 
-pub fn create_token(user: &User) -> String {
+pub fn create_token(user: &User, private_key: &str) -> String {
     let header = jsonwebtoken::Header::default();
-    // TODO: Save private key or secret somewhere safe
-    let encoding_key = jsonwebtoken::EncodingKey::from_secret("secret".as_ref());
+    let encoding_key = jsonwebtoken::EncodingKey::from_secret(private_key.as_ref());
     let claims = Claims::new(user);
 
     jsonwebtoken::encode(&header, &claims, &encoding_key).unwrap()
 }
 
-pub fn decode_token(token: &str) -> TokenResult {
+pub fn decode_token(token: &str, private_key: &str) -> TokenResult {
     let validation = jsonwebtoken::Validation::default();
-    // TODO: Save private key or secret somewhere safe
-    let decoding_key = jsonwebtoken::DecodingKey::from_secret("secret".as_ref());
+    let decoding_key = jsonwebtoken::DecodingKey::from_secret(private_key.as_ref());
 
     jsonwebtoken::decode::<Claims>(&token, &decoding_key, &validation)
 }

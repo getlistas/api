@@ -13,12 +13,13 @@ use crate::settings::Settings;
 type ActixValidationResult = Result<ServiceRequest, actix_web::Error>;
 
 pub async fn validator(req: ServiceRequest, credentials: BearerAuth) -> ActixValidationResult {
-    // TODO read secret key to decode token
-    let _settings = req
+    let settings = req
         .app_data::<actix_web::web::Data<Settings>>()
         .ok_or(ApiError::ReadAppData())?;
 
-    let token_date = token::decode_token(credentials.token());
+    let private_key = settings.auth.secret.as_str();
+    let token = credentials.token();
+    let token_date = token::decode_token(token, private_key);
 
     match token_date {
         Ok(_) => Ok(req),

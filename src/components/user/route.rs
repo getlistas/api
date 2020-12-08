@@ -88,7 +88,8 @@ async fn create_token(ctx: web::Data<Context>, body: web::Json<UserAuthenticate>
         return Ok(HttpResponse::Unauthorized().finish());
     }
 
-    let token = token::create_token(&user);
+    let private_key = ctx.settings.auth.secret.as_str();
+    let token = token::create_token(&user, private_key);
     let payload = json!({ "access_token": token });
 
     debug!("Returning created user token to the client");
