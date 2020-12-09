@@ -39,7 +39,10 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
 async fn get_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     let list = List::find_one(
         &ctx.database.conn,
-        doc! { "_id": id.0, "user": user.0 },
+        doc! {
+            "_id": id.0,
+            "user": user.0
+        },
         None,
     )
     .await
@@ -120,7 +123,10 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
 async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     let list = List::find_one(
         &ctx.database.conn,
-        doc! { "_id": &id.0, "user": user.0 },
+        doc! {
+            "_id": &id.0,
+            "user": user.0
+        },
         None,
     )
     .await
