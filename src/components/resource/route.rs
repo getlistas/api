@@ -9,6 +9,7 @@ use wither::Model;
 
 use crate::components::user::model::UserID;
 use crate::errors::ApiError;
+use crate::lib::id::ListID;
 use crate::lib::id::ID;
 use crate::resource::model::Resource;
 use crate::resource::model::ResourceCreate;
@@ -32,10 +33,14 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
     );
 }
 
-async fn get_resource_by_id(ctx: CTX, id: ID, user: UserID) -> Response {
+async fn get_resource_by_id(ctx: CTX, id: ID, list_id: ListID, user_id: UserID) -> Response {
     let resource = Resource::find_one(
         &ctx.database.conn,
-        doc! { "_id": id.0, "user": user.0 },
+        doc! {
+            "_id": id.0,
+            "user": user_id.0,
+            "list": list_id.0
+        },
         None,
     )
     .await
@@ -46,21 +51,33 @@ async fn get_resource_by_id(ctx: CTX, id: ID, user: UserID) -> Response {
     Ok(res)
 }
 
-async fn get_resources(ctx: CTX, user: UserID) -> Response {
-    let resources = Resource::find(&ctx.database.conn, doc! { "user": user.0 }, None)
-        .await
-        .map_err(ApiError::WitherError)?
-        .try_collect::<Vec<Resource>>()
-        .await
-        .map_err(ApiError::WitherError)?;
+async fn get_resources(ctx: CTX, list_id: ListID, user_id: UserID) -> Response {
+    let resources = Resource::find(
+        &ctx.database.conn,
+        doc! {
+            "user": user_id.0,
+            "list": list_id.0
+        },
+        None,
+    )
+    .await
+    .map_err(ApiError::WitherError)?
+    .try_collect::<Vec<Resource>>()
+    .await
+    .map_err(ApiError::WitherError)?;
 
     debug!("Returning resources to the client");
     let res = HttpResponse::Ok().json(resources);
     Ok(res)
 }
 
-async fn create_resource(ctx: CTX, body: web::Json<ResourceCreate>, user: UserID) -> Response {
-    let mut resource = Resource::new(body.into_inner(), user.0);
+async fn create_resource(
+    ctx: CTX,
+    body: web::Json<ResourceCreate>,
+    list_id: ListID,
+    user_id: UserID,
+) -> Response {
+    let mut resource = Resource::new(body.into_inner(), user_id.0, list_id.0);
 
     resource
         .save(&ctx.database.conn, None)
@@ -72,7 +89,13 @@ async fn create_resource(ctx: CTX, body: web::Json<ResourceCreate>, user: UserID
     Ok(res)
 }
 
-async fn update_resource(ctx: CTX, id: ID, body: web::Json<ResourceUpdate>) -> Response {
+async fn update_resource(
+    ctx: CTX,
+    id: ID,
+    body: web::Json<ResourceUpdate>,
+    list_id: ListID,
+    user_id: UserID,
+) -> Response {
     let mut body = body.into_inner();
     let body = ResourceUpdate::new(&mut body);
     let update = json!({ "$set": body });
@@ -84,7 +107,11 @@ async fn update_resource(ctx: CTX, id: ID, body: web::Json<ResourceUpdate>) -> R
 
     let resource = Resource::find_one_and_update(
         &ctx.database.conn,
-        doc! { "_id": id.0 },
+        doc! {
+            "_id": id.0,
+            "user": user_id.0,
+            "list": list_id.0
+        },
         update,
         update_options,
     )
@@ -96,10 +123,14 @@ async fn update_resource(ctx: CTX, id: ID, body: web::Json<ResourceUpdate>) -> R
     Ok(res)
 }
 
-async fn remove_resource(ctx: CTX, id: ID, user: UserID) -> Response {
+async fn remove_resource(ctx: CTX, id: ID, list_id: ListID, user_id: UserID) -> Response {
     let resource = Resource::find_one_and_delete(
         &ctx.database.conn,
-        doc! { "_id": id.0, "user": user.0 },
+        doc! {
+            "_id": id.0,
+            "user": user_id.0,
+            "list": list_id.0,
+        },
         None,
     )
     .await

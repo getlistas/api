@@ -19,12 +19,12 @@ pub struct Resource {
 }
 
 impl Resource {
-    pub fn new(body: ResourceCreate, user_id: ObjectId) -> Self {
+    pub fn new(body: ResourceCreate, user_id: ObjectId, list_id: ObjectId) -> Self {
         let now = chrono::Utc::now();
         Self {
             id: None,
-            list: body.list.clone(),
             user: user_id,
+            list: list_id,
 
             url: body.url.clone(),
             title: body.title.clone(),

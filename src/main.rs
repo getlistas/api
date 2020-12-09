@@ -72,7 +72,7 @@ async fn main() {
                     .configure(list::route::create_router),
             )
             .service(
-                web::scope("/resources")
+                web::scope("/lists/{list_id}/resources")
                     .wrap(auth())
                     .configure(resource::route::create_router),
             )
