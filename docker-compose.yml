@@ -6,7 +6,7 @@ services:
     image: mongo
     restart: always
     environment:
-      MONGO_INITDB_DATABASE: doneq
+      MONGO_INITDB_DATABASE: listas
       MONGO_INITDB_ROOT_USERNAME: ''
       MONGO_INITDB_ROOT_PASSWORD: ''
     volumes:
