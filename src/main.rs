@@ -61,7 +61,7 @@ async fn main() {
         App::new()
             .wrap(middleware::Compress::default())
             .wrap(middleware::Logger::default())
-            .wrap(Cors::default().supports_credentials())
+            .wrap(Cors::permissive())
             .app_data(web::Data::new(settings.clone()))
             .app_data(context.clone())
             .service(actix_files::Files::new("/static", "."))
