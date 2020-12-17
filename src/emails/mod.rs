@@ -5,16 +5,16 @@ pub fn create_confirm_email(name: &String, email: &String, token: &String) -> Em
     let callback_url = format!("http://localhost:8080/users/verification/{}", token);
     let html = html! {
         head {
-            title { "Hello from Doneq" }
+            title { "Hello from Listas" }
             style type="text/css" {
                 "h2, h4 { font-family: Arial, Helvetica, sans-serif; }"
             }
         }
         div {
-            h2 { "Hello from doneq!" }
+            h2 { "Hello from Listas!" }
             p { "Dear " (name) "," }
             p {
-                "To use your account, please confirm your doneq email address "
+                "To use your account, please confirm your Listas email address "
                 a href={(callback_url)} { "here" }
             }
         }
@@ -22,6 +22,6 @@ pub fn create_confirm_email(name: &String, email: &String, token: &String) -> Em
 
     EmailBuilder::new()
         .to(email.as_str())
-        .subject("Confirm your doneq email address")
+        .subject("Confirm your Listas email address")
         .html(html.into_string())
 }
