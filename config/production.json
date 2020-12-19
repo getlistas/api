@@ -3,5 +3,7 @@
 
   "logger": {
     "level": "info"
-  }
+  },
+
+  "base_url": "https://doneq.herokuapp.com"
 }

@@ -29,7 +29,12 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreate>) -> Re
     let verification_token = user.verification_token.clone().unwrap();
 
     debug!("Sending confirm email to the user {}", &user.email);
-    let confirm_email = emails::create_confirm_email(&user.name, &user.email, &verification_token);
+    let confirm_email = emails::create_confirm_email(
+        &ctx.settings.base_url,
+        &user.name,
+        &user.email,
+        &verification_token,
+    );
     ctx.send_email(confirm_email).await;
 
     debug!("Returning created user to the client");
