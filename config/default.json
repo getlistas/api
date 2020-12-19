@@ -20,5 +20,7 @@
 
   "mailer": {
     "from": "hi@listas.io"
-  }
+  },
+
+  "base_url": "http://localhost:8080"
 }
