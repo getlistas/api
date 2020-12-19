@@ -1,8 +1,13 @@
 use lettre_email::EmailBuilder;
 use maud::html;
 
-pub fn create_confirm_email(name: &String, email: &String, token: &String) -> EmailBuilder {
-    let callback_url = format!("http://localhost:8080/users/verification/{}", token);
+pub fn create_confirm_email(
+    base_url: &String,
+    name: &String,
+    email: &String,
+    token: &String,
+) -> EmailBuilder {
+    let callback_url = format!("{}/users/verification/{}", base_url, token);
     let html = html! {
         head {
             title { "Hello from Listas" }
