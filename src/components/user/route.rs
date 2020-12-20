@@ -63,8 +63,7 @@ async fn verify_user(ctx: web::Data<Context>, token: web::Path<String>) -> Respo
         .await
         .map_err(ApiError::WitherError)?;
 
-    // TODO: Replace with frontend success page.
-    redirect_to("https://github.com/ndelvalle/doneq-api")
+    redirect_to("https://listas.io/verify-email/success")
 }
 
 async fn create_token(ctx: web::Data<Context>, body: web::Json<UserAuthenticate>) -> Response {
