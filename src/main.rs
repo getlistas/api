@@ -1,6 +1,5 @@
 use actix_cors::Cors;
 use actix_web::{middleware, web, App, HttpServer};
-use actix_web_httpauth::middleware::HttpAuthentication;
 #[macro_use]
 extern crate log;
 
@@ -55,7 +54,6 @@ async fn main() {
     });
 
     let port = settings.server.port;
-    let auth = || HttpAuthentication::bearer(auth::validator);
 
     HttpServer::new(move || {
         App::new()
@@ -65,17 +63,9 @@ async fn main() {
             .app_data(web::Data::new(settings.clone()))
             .app_data(context.clone())
             .service(actix_files::Files::new("/static", "."))
-            .service(web::scope("/users").configure(user::route::create_router))
-            .service(
-                web::scope("/lists")
-                    .wrap(auth())
-                    .configure(list::route::create_router),
-            )
-            .service(
-                web::scope("/lists/{list_id}/resources")
-                    .wrap(auth())
-                    .configure(resource::route::create_router),
-            )
+            .configure(user::route::create_router)
+            .configure(resource::route::create_router)
+            .configure(list::route::create_router)
             .service(web::scope("/").configure(index::route::create_router))
     })
     .bind(("0.0.0.0", port))

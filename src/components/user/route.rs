@@ -14,9 +14,9 @@ use crate::Context;
 type Response = actix_web::Result<HttpResponse>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::resource("").route(web::post().to(create_user)));
-    cfg.service(web::resource("/verification/{token}").route(web::get().to(verify_user)));
-    cfg.service(web::resource("/auth").route(web::post().to(create_token)));
+    cfg.service(web::resource("/users").route(web::post().to(create_user)));
+    cfg.service(web::resource("/users/verification/{token}").route(web::get().to(verify_user)));
+    cfg.service(web::resource("/users/auth").route(web::post().to(create_token)));
 }
 
 async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreate>) -> Response {

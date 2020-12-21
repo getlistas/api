@@ -39,7 +39,6 @@ impl Resource {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResourceCreate {
-    pub list: ObjectId,
     pub url: String,
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]

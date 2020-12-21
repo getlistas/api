@@ -1,4 +1,5 @@
 use actix_web::{web, HttpResponse};
+use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::stream::TryStreamExt;
 use serde_json::json;
 use wither::bson;
@@ -7,6 +8,7 @@ use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::Model;
 
+use crate::auth;
 use crate::components::user::model::UserID;
 use crate::errors::ApiError;
 use crate::lib::id::ListID;
@@ -20,16 +22,20 @@ type Response = actix_web::Result<HttpResponse>;
 type CTX = web::Data<Context>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
+    let auth = HttpAuthentication::bearer(auth::token_validator);
+
     cfg.service(
-        web::resource("")
-            .route(web::get().to(get_resources))
-            .route(web::post().to(create_resource)),
-    );
-    cfg.service(
-        web::resource("/{id}")
+        web::resource("/lists/{list_id}/resources/{id}")
             .route(web::get().to(get_resource_by_id))
             .route(web::put().to(update_resource))
-            .route(web::delete().to(remove_resource)),
+            .route(web::delete().to(remove_resource))
+            .wrap(auth.clone()),
+    );
+    cfg.service(
+        web::resource("/lists/{list_id}/resources")
+            .route(web::get().to(get_resources))
+            .route(web::post().to(create_resource))
+            .wrap(auth.clone()),
     );
 }
 
