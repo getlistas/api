@@ -1,1 +1,1 @@
-web: ./target/release/doneq
+web: ./target/release/listas
