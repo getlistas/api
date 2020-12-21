@@ -14,6 +14,7 @@ mod logger;
 mod mailer;
 mod settings;
 
+use components::discover;
 use components::index;
 use components::list;
 use components::resource;
@@ -66,6 +67,7 @@ async fn main() {
             .configure(user::route::create_router)
             .configure(resource::route::create_router)
             .configure(list::route::create_router)
+            .configure(discover::route::create_router)
             .service(web::scope("/").configure(index::route::create_router))
     })
     .bind(("0.0.0.0", port))
