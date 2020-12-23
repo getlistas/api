@@ -22,7 +22,7 @@ type Response = actix_web::Result<HttpResponse>;
 type CTX = web::Data<Context>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
-    let auth = HttpAuthentication::bearer(auth::validator);
+    let auth = HttpAuthentication::bearer(auth::token_validator);
 
     cfg.service(
         web::resource("/lists/{id}")

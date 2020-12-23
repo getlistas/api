@@ -22,13 +22,18 @@ type Response = actix_web::Result<HttpResponse>;
 type CTX = web::Data<Context>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
-    let auth = HttpAuthentication::bearer(auth::validator);
+    let auth = HttpAuthentication::bearer(auth::token_validator);
 
     cfg.service(
         web::resource("/lists/{list_id}/resources/{id}")
             .route(web::get().to(get_resource_by_id))
             .route(web::put().to(update_resource))
             .route(web::delete().to(remove_resource))
+            .wrap(auth.clone()),
+    );
+    cfg.service(
+        web::resource("/lists/{list_id}/resources/{id}/complete")
+            .route(web::post().to(complete_resource))
             .wrap(auth.clone()),
     );
     cfg.service(
@@ -153,5 +158,42 @@ async fn remove_resource(ctx: CTX, id: ID, list_id: ListID, user_id: UserID) -> 
         }
     };
 
+    Ok(res)
+}
+
+async fn complete_resource(ctx: CTX, id: ID, list_id: ListID, user_id: UserID) -> Response {
+    let resource = Resource::find_one(
+        &ctx.database.conn,
+        doc! {
+            "_id": id.0,
+            "user": user_id.0,
+            "list": list_id.0
+        },
+        None,
+    )
+    .await
+    .map_err(ApiError::WitherError)?;
+
+    let mut resource = match resource {
+        Some(resource) => resource,
+        None => {
+            debug!("Resource not found, returning 404 status code to the client");
+            return Ok(HttpResponse::NotFound().finish());
+        }
+    };
+
+    if resource.completed_at.is_some() {
+        debug!("Resource was already completed, returnig 400 status code to the client");
+        return Ok(HttpResponse::BadRequest().finish());
+    }
+
+    resource.completed_at = Some(chrono::Utc::now().into());
+    resource
+        .save(&ctx.database.conn, None)
+        .await
+        .map_err(ApiError::WitherError)?;
+
+    debug!("Resource marked as completed, returning 202 status code to the client");
+    let res = HttpResponse::Accepted().finish();
     Ok(res)
 }

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
 
@@ -13,14 +14,14 @@ pub struct Resource {
     pub title: String,
     pub description: Option<String>,
 
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-    pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: DateTime,
+    pub updated_at: DateTime,
+    pub completed_at: Option<DateTime>,
 }
 
 impl Resource {
     pub fn new(body: ResourceCreate, user_id: ObjectId, list_id: ObjectId) -> Self {
-        let now = chrono::Utc::now();
+        let now = chrono::Utc::now().into();
         Self {
             id: None,
             user: user_id,
@@ -55,12 +56,12 @@ pub struct ResourceUpdate {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub updated_at: Option<DateTime>,
 }
 
 impl ResourceUpdate {
     pub fn new(update: &mut Self) -> &mut Self {
-        update.updated_at = Some(chrono::Utc::now());
+        update.updated_at = Some(chrono::Utc::now().into());
         update
     }
 }
