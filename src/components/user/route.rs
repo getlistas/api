@@ -53,8 +53,12 @@ async fn verify_user(ctx: web::Data<Context>, token: web::Path<String>) -> Respo
 
     let mut user = match user {
         Some(user) => user,
-        // TODO: Replace with frontend 404 page.
-        None => return redirect_to("https://github.com/ndelvalle"),
+        None => {
+            return redirect_to(&format!(
+                "{}/verify-email/failure",
+                &ctx.settings.client_url
+            ))
+        }
     };
 
     debug!("Verifying user with email {}", &user.email);
@@ -63,7 +67,10 @@ async fn verify_user(ctx: web::Data<Context>, token: web::Path<String>) -> Respo
         .await
         .map_err(ApiError::WitherError)?;
 
-    redirect_to("https://listas.io/verify-email/success")
+    redirect_to(&format!(
+        "{}/verify-email/success",
+        &ctx.settings.client_url
+    ))
 }
 
 async fn create_token(ctx: web::Data<Context>, body: web::Json<UserAuthenticate>) -> Response {
