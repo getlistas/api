@@ -37,6 +37,7 @@ pub struct Settings {
     pub auth: Auth,
     pub mailer: Mailer,
     pub base_url: String,
+    pub client_url: String,
 }
 
 impl Settings {
