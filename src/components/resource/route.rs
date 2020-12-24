@@ -88,7 +88,15 @@ async fn create_resource(
     list_id: ListID,
     user_id: UserID,
 ) -> Response {
-    let mut resource = Resource::new(body.into_inner(), user_id.0, list_id.0);
+    let last_resource = Resource::find_last(&ctx.database.conn, &user_id.0, &list_id.0)
+        .await
+        .map_err(ApiError::WitherError)?;
+
+    let position = last_resource
+        .map(|resource| resource.position + 1)
+        .unwrap_or(0);
+
+    let mut resource = Resource::new(body.into_inner(), user_id.0, list_id.0, position);
 
     resource
         .save(&ctx.database.conn, None)

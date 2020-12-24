@@ -1,6 +1,6 @@
 use itertools::Itertools;
-use wither::bson::DateTime;
 use serde::{Deserialize, Serialize};
+use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
 

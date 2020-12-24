@@ -1,7 +1,9 @@
 use actix_web::dev::Payload;
 use actix_web::dev::ServiceRequest;
 use actix_web_httpauth::extractors::bearer::BearerAuth;
+// use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::future;
+// use futures::future::Future;
 use wither::bson::oid::ObjectId;
 
 use crate::components::user::model::UserID;
@@ -10,9 +12,20 @@ use crate::errors::ApiError;
 use crate::lib::token;
 use crate::settings::Settings;
 
-type ActixValidationResult = Result<ServiceRequest, actix_web::Error>;
+// type ActixValidationResult = Result<ServiceRequest, actix_web::Error>;
 
-pub async fn validator(req: ServiceRequest, credentials: BearerAuth) -> ActixValidationResult {
+// pub fn middleware<F, O>() -> HttpAuthentication<BearerAuth, F>
+// where
+//     F: Fn(ServiceRequest, BearerAuth) -> O,
+//     O: Future<Output = Result<ServiceRequest, actix_web::Error>>,
+// {
+//     HttpAuthentication::bearer(token_validator)
+// }
+
+pub async fn validator(
+    req: ServiceRequest,
+    credentials: BearerAuth,
+) -> Result<ServiceRequest, actix_web::Error> {
     let settings = req
         .app_data::<actix_web::web::Data<Settings>>()
         .ok_or(ApiError::ReadAppData())?;

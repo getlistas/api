@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
+use wither::mongodb;
+use wither::mongodb::options::FindOneOptions;
 use wither::Model;
 
 #[derive(Debug, Model, Serialize, Deserialize)]
@@ -12,6 +14,7 @@ pub struct Resource {
 
     pub url: String,
     pub title: String,
+    pub position: i32,
     pub description: Option<String>,
 
     pub created_at: DateTime,
@@ -20,13 +23,14 @@ pub struct Resource {
 }
 
 impl Resource {
-    pub fn new(body: ResourceCreate, user_id: ObjectId, list_id: ObjectId) -> Self {
+    pub fn new(body: ResourceCreate, user_id: ObjectId, list_id: ObjectId, position: i32) -> Self {
         let now = chrono::Utc::now().into();
         Self {
             id: None,
             user: user_id,
             list: list_id,
 
+            position,
             url: body.url.clone(),
             title: body.title.clone(),
             description: body.description.clone(),
@@ -35,6 +39,17 @@ impl Resource {
             updated_at: now,
             completed_at: None,
         }
+    }
+
+    pub async fn find_last(
+        conn: &mongodb::Database,
+        user_id: &ObjectId,
+        list_id: &ObjectId,
+    ) -> Result<Option<Self>, wither::WitherError> {
+        let query = doc! { "user": user_id, "list": list_id };
+        let sort = doc! { "position": -1 };
+        let options = FindOneOptions::builder().sort(Some(sort)).build();
+        Self::find_one(conn, query, options).await
     }
 }
 
