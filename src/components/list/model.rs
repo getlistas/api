@@ -12,6 +12,7 @@ pub struct List {
     pub title: String,
     pub description: Option<String>,
     pub tags: Vec<String>,
+    pub is_public: bool,
 
     pub created_at: DateTime,
     pub updated_at: DateTime,
@@ -28,6 +29,7 @@ impl List {
 
             title: body.title.clone(),
             description: body.description.clone(),
+            is_public: body.is_public.clone(),
             tags,
 
             created_at: now,
@@ -39,6 +41,7 @@ impl List {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListCreate {
     pub title: String,
+    pub is_public: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -53,6 +56,8 @@ pub struct ListUpdate {
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_public: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<DateTime>,
 }
