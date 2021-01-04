@@ -4,7 +4,6 @@ use actix_web::{middleware, web, App, HttpServer};
 extern crate log;
 
 mod auth;
-mod components;
 mod context;
 mod database;
 mod emails;
@@ -12,13 +11,9 @@ mod errors;
 mod lib;
 mod logger;
 mod mailer;
+mod models;
+mod routes;
 mod settings;
-
-use components::discover;
-use components::index;
-use components::list;
-use components::resource;
-use components::user;
 
 use context::Context;
 use database::Database;
@@ -64,11 +59,11 @@ async fn main() {
             .app_data(web::Data::new(settings.clone()))
             .app_data(context.clone())
             .service(actix_files::Files::new("/static", "."))
-            .configure(user::route::create_router)
-            .configure(resource::route::create_router)
-            .configure(list::route::create_router)
-            .configure(discover::route::create_router)
-            .service(web::scope("/").configure(index::route::create_router))
+            .configure(routes::user::create_router)
+            .configure(routes::resource::create_router)
+            .configure(routes::list::create_router)
+            .configure(routes::discover::create_router)
+            .service(web::scope("/").configure(routes::index::create_router))
     })
     .bind(("0.0.0.0", port))
     .expect("Failed to bind server to specified port")

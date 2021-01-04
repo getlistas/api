@@ -6,7 +6,7 @@ use wither::Model;
 
 use crate::errors::ApiError;
 use crate::lib::pagination::Pagination;
-use crate::list::model::List;
+use crate::models::list::List;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;

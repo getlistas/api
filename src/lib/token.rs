@@ -1,8 +1,8 @@
 use jsonwebtoken::dangerous_insecure_decode_with_validation;
 use serde::{Deserialize, Serialize};
 
-use crate::user::model::User;
-use crate::user::model::UserPublic;
+use crate::models::user::User;
+use crate::models::user::UserPublic;
 
 type TokenResult = Result<jsonwebtoken::TokenData<Claims>, jsonwebtoken::errors::Error>;
 

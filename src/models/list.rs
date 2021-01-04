@@ -1,8 +1,11 @@
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
+
+use crate::lib::date;
 
 #[derive(Debug, Model, Serialize, Deserialize)]
 pub struct List {
@@ -35,6 +38,20 @@ impl List {
             created_at: now,
             updated_at: now,
         }
+    }
+
+    pub fn to_json(&self) -> serde_json::Value {
+        let this = self.clone();
+        json!({
+            "id": this.id.clone().unwrap().to_hex(),
+            "user": this.user.to_hex(),
+            "title": this.title,
+            "description": this.description,
+            "tags": this.tags,
+            "is_public": this.is_public,
+            "created_at": date::to_rfc3339(this.created_at),
+            "updated_at": date::to_rfc3339(this.updated_at)
+        })
     }
 }
 
