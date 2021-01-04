@@ -9,13 +9,13 @@ use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::Model;
 
 use crate::auth;
-use crate::components::user::model::UserID;
 use crate::errors::ApiError;
 use crate::lib::id::ID;
-use crate::list::model::List;
-use crate::list::model::ListCreate;
-use crate::list::model::ListUpdate;
-use crate::resource::model::Resource;
+use crate::models::list::List;
+use crate::models::list::ListCreate;
+use crate::models::list::ListUpdate;
+use crate::models::resource::Resource;
+use crate::models::user::UserID;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
@@ -49,7 +49,8 @@ async fn get_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respon
         None,
     )
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(ApiError::WitherError)?
+    .map(|list| list.to_json());
 
     debug!("Returning list to the client");
     let res = HttpResponse::Ok().json(list);
@@ -64,6 +65,11 @@ async fn get_lists(ctx: web::Data<Context>, user: UserID) -> Response {
         .await
         .map_err(ApiError::WitherError)?;
 
+    let lists = lists
+        .iter()
+        .map(|list| list.to_json())
+        .collect::<Vec<serde_json::Value>>();
+
     debug!("Returning lists to the client");
     let res = HttpResponse::Ok().json(lists);
     Ok(res)
@@ -77,7 +83,7 @@ async fn create_list(ctx: CTX, body: web::Json<ListCreate>, user: UserID) -> Res
         .map_err(ApiError::WitherError)?;
 
     debug!("Returning created list to the client");
-    let res = HttpResponse::Created().json(list);
+    let res = HttpResponse::Created().json(list.to_json());
     Ok(res)
 }
 
@@ -98,7 +104,8 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
         update_options,
     )
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(ApiError::WitherError)?
+    .map(|list| list.to_json());
 
     debug!("Returning updated list to the client");
     let res = HttpResponse::Ok().json(list);

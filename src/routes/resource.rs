@@ -9,13 +9,13 @@ use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::Model;
 
 use crate::auth;
-use crate::components::user::model::UserID;
 use crate::errors::ApiError;
 use crate::lib::id::ListID;
 use crate::lib::id::ID;
-use crate::resource::model::Resource;
-use crate::resource::model::ResourceCreate;
-use crate::resource::model::ResourceUpdate;
+use crate::models::resource::Resource;
+use crate::models::resource::ResourceCreate;
+use crate::models::resource::ResourceUpdate;
+use crate::models::user::UserID;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;

@@ -6,9 +6,9 @@ use wither::Model;
 use crate::emails;
 use crate::errors::ApiError;
 use crate::lib::token;
-use crate::user::model::User;
-use crate::user::model::UserAuthenticate;
-use crate::user::model::UserCreate;
+use crate::models::user::User;
+use crate::models::user::UserAuthenticate;
+use crate::models::user::UserCreate;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;

@@ -6,10 +6,10 @@ use futures::future;
 // use futures::future::Future;
 use wither::bson::oid::ObjectId;
 
-use crate::components::user::model::UserID;
-use crate::components::user::model::UserPublic;
 use crate::errors::ApiError;
 use crate::lib::token;
+use crate::models::user::UserID;
+use crate::models::user::UserPublic;
 use crate::settings::Settings;
 
 // type ActixValidationResult = Result<ServiceRequest, actix_web::Error>;
