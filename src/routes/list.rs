@@ -49,11 +49,18 @@ async fn get_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respon
         None,
     )
     .await
-    .map_err(ApiError::WitherError)?
-    .map(|list| list.to_json());
+    .map_err(ApiError::WitherError)?;
+
+    let list = match list {
+        Some(list) => list,
+        None => {
+            debug!("List not found, returning 404 status code to the client");
+            return Ok(HttpResponse::NotFound().finish());
+        }
+    };
 
     debug!("Returning list to the client");
-    let res = HttpResponse::Ok().json(list);
+    let res = HttpResponse::Ok().json(list.to_json());
     Ok(res)
 }
 
@@ -104,11 +111,18 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
         update_options,
     )
     .await
-    .map_err(ApiError::WitherError)?
-    .map(|list| list.to_json());
+    .map_err(ApiError::WitherError)?;
+
+    let list = match list {
+        Some(list) => list,
+        None => {
+            debug!("List not found, returning 404 status code to the client");
+            return Ok(HttpResponse::NotFound().finish());
+        }
+    };
 
     debug!("Returning updated list to the client");
-    let res = HttpResponse::Ok().json(list);
+    let res = HttpResponse::Ok().json(list.to_json());
     Ok(res)
 }
 
