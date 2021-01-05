@@ -60,6 +60,7 @@ impl Resource {
         json!({
             "id": this.id.clone().unwrap().to_hex(),
             "user": this.user.to_hex(),
+            "list": this.list.to_hex(),
             "url": this.url,
             "title": this.title,
             "description": this.description,

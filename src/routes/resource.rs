@@ -1,6 +1,7 @@
 use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::stream::TryStreamExt;
+use serde::Deserialize;
 use serde_json::json;
 use wither::bson;
 use wither::bson::{doc, oid::ObjectId};
@@ -19,6 +20,11 @@ use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
 type CTX = web::Data<Context>;
+
+#[derive(Deserialize)]
+struct Query {
+    list: Option<String>,
+}
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
     let auth = HttpAuthentication::bearer(auth::validator);
@@ -68,8 +74,18 @@ async fn get_resource_by_id(ctx: CTX, id: ID, user_id: UserID) -> Response {
     Ok(res)
 }
 
-async fn get_resources(ctx: CTX, user_id: UserID) -> Response {
-    let resources = Resource::find(&ctx.database.conn, doc! { "user": user_id.0 }, None)
+async fn get_resources(ctx: CTX, user_id: UserID, qs: web::Query<Query>) -> Response {
+    let mut query = doc! { "user": user_id.0 };
+
+    // TODO: Remove unwrap
+    if qs.list.is_some() {
+        query.insert(
+            "list",
+            ObjectId::with_string(qs.list.clone().unwrap().as_str()).unwrap(),
+        );
+    }
+
+    let resources = Resource::find(&ctx.database.conn, query, None)
         .await
         .map_err(ApiError::WitherError)?
         .try_collect::<Vec<Resource>>()
