@@ -1,9 +1,12 @@
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::mongodb;
 use wither::mongodb::options::FindOneOptions;
 use wither::Model;
+
+use crate::lib::date;
 
 #[derive(Debug, Model, Serialize, Deserialize)]
 pub struct Resource {
@@ -51,10 +54,26 @@ impl Resource {
         let options = FindOneOptions::builder().sort(Some(sort)).build();
         Self::find_one(conn, query, options).await
     }
+
+    pub fn to_json(&self) -> serde_json::Value {
+        let this = self.clone();
+        json!({
+            "id": this.id.clone().unwrap().to_hex(),
+            "user": this.user.to_hex(),
+            "url": this.url,
+            "title": this.title,
+            "description": this.description,
+            "position": this.position,
+            "created_at": date::to_rfc3339(this.created_at),
+            "updated_at": date::to_rfc3339(this.updated_at),
+            "completed_at": this.completed_at.map(|date| date::to_rfc3339(date))
+        })
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResourceCreate {
+    pub list: String,
     pub url: String,
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
