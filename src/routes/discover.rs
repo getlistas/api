@@ -28,6 +28,11 @@ async fn discover_lists(ctx: web::Data<Context>, pagination: web::Query<Paginati
         .await
         .map_err(ApiError::WitherError)?;
 
+    let lists = lists
+        .iter()
+        .map(|list| list.to_json())
+        .collect::<Vec<serde_json::Value>>();
+
     debug!("Returning lists to the client");
     let res = HttpResponse::Ok().json(lists);
     Ok(res)
