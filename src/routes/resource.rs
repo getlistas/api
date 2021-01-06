@@ -4,9 +4,10 @@ use futures::stream::TryStreamExt;
 use serde::Deserialize;
 use serde_json::json;
 use wither::bson;
-use wither::bson::{doc, oid::ObjectId};
+use wither::bson::{doc, oid::ObjectId, Bson};
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
+use wither::mongodb::options::FindOptions;
 use wither::Model;
 
 use crate::auth;
@@ -24,6 +25,7 @@ type CTX = web::Data<Context>;
 #[derive(Deserialize)]
 struct Query {
     list: Option<String>,
+    completed: Option<bool>,
 }
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
@@ -76,16 +78,24 @@ async fn get_resource_by_id(ctx: CTX, id: ID, user_id: UserID) -> Response {
 
 async fn get_resources(ctx: CTX, user_id: UserID, qs: web::Query<Query>) -> Response {
     let mut query = doc! { "user": user_id.0 };
+    let sort = doc! { "position": -1 };
+    let options = FindOptions::builder().sort(Some(sort)).build();
 
-    // TODO: Remove unwrap
     if qs.list.is_some() {
-        query.insert(
-            "list",
-            ObjectId::with_string(qs.list.clone().unwrap().as_str()).unwrap(),
-        );
+        let list_id = ObjectId::with_string(qs.list.clone().unwrap().as_str())
+            .map_err(ApiError::ParseObjectID)?;
+        query.insert("list", list_id);
     }
 
-    let resources = Resource::find(&ctx.database.conn, query, None)
+    if qs.completed.is_some() {
+        let completed = qs.completed.unwrap();
+        // The { item : null } query matches documents that either contain the
+        // item field whose value is null or that do not contain the item field.
+        let key = if completed { "$ne" } else { "$eq" };
+        query.insert("completed_at", doc! { key: Bson::Null });
+    }
+
+    let resources = Resource::find(&ctx.database.conn, query, Some(options))
         .await
         .map_err(ApiError::WitherError)?
         .try_collect::<Vec<Resource>>()

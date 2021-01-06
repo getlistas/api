@@ -52,7 +52,7 @@ impl Resource {
         let query = doc! { "user": user_id, "list": list_id };
         let sort = doc! { "position": -1 };
         let options = FindOneOptions::builder().sort(Some(sort)).build();
-        Self::find_one(conn, query, options).await
+        Self::find_one(conn, query, Some(options)).await
     }
 
     pub fn to_json(&self) -> serde_json::Value {
