@@ -11,6 +11,9 @@ pub enum ApiError {
     #[error("Failed to read application shared Data")]
     ReadAppData(),
 
+    #[error("Failed to parse request body")]
+    ParseRequestBody(),
+
     #[error("{0}")]
     WitherError(#[from] WitherError),
 
@@ -37,6 +40,7 @@ impl actix_web::error::ResponseError for ApiError {
     fn status_code(&self) -> http::StatusCode {
         match *self {
             ApiError::ReadAppData() => http::StatusCode::INTERNAL_SERVER_ERROR,
+            ApiError::ParseRequestBody() => http::StatusCode::BAD_REQUEST,
             ApiError::WitherError(_) => http::StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::MongoError(_) => http::StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::ParseObjectID(_) => http::StatusCode::BAD_REQUEST,
