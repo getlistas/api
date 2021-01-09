@@ -19,6 +19,7 @@ pub struct Resource {
     pub title: String,
     pub position: i32,
     pub description: Option<String>,
+    pub thumbnail: Option<String>,
 
     pub created_at: DateTime,
     pub updated_at: DateTime,
@@ -37,6 +38,7 @@ impl Resource {
             url: body.url.clone(),
             title: body.title.clone(),
             description: body.description.clone(),
+            thumbnail: body.thumbnail.clone(),
 
             created_at: now,
             updated_at: now,
@@ -64,6 +66,7 @@ impl Resource {
             "url": this.url,
             "title": this.title,
             "description": this.description,
+            "thumbnail": this.thumbnail,
             "position": this.position,
             "created_at": date::to_rfc3339(this.created_at),
             "updated_at": date::to_rfc3339(this.updated_at),
@@ -79,6 +82,8 @@ pub struct ResourceCreate {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thumbnail: Option<String>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResourceUpdate {
