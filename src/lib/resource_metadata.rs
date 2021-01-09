@@ -4,16 +4,32 @@ use url::Url;
 
 // Read more about The Open Graph protocol at https://ogp.me
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Metadata {
+pub struct ResourceMetadata {
+    can_resolve: bool,
     title: Option<String>,
     description: Option<String>,
-    image: Option<String>,
+    thumbnail: Option<String>,
+}
+
+impl ResourceMetadata {
+    fn can_not_resolve() -> Self {
+        Self {
+            can_resolve: false,
+            title: None,
+            description: None,
+            thumbnail: None,
+        }
+    }
 }
 
 // Some websites like Twitter or Facebook has their own metatags format (Not OGP)
 // Read more at: https://css-tricks.com/essential-meta-tags-social-media/
-pub async fn get_website_ogp_metadata(url: &Url) -> Result<Metadata, reqwest::Error> {
-    let res = reqwest::get(url.as_ref()).await?.text().await?;
+pub async fn get_website_ogp_metadata(url: &Url) -> Result<ResourceMetadata, reqwest::Error> {
+    let res = match request(url).await {
+        Ok(res) => res,
+        // TODO: Handle Listas.io send request errors.
+        Err(_) => return Ok(ResourceMetadata::can_not_resolve()),
+    };
 
     let document = Document::from(res.as_str());
     let metas = document
@@ -33,17 +49,22 @@ pub async fn get_website_ogp_metadata(url: &Url) -> Result<Metadata, reqwest::Er
         .and_then(|meta| meta.attr("content"))
         .map(|value| value.to_owned());
 
-    let image: Option<String> = metas
+    let thumbnail: Option<String> = metas
         .iter()
         .find(|meta| meta.attr("property").unwrap() == "og:image")
         .and_then(|meta| meta.attr("content"))
         .map(|value| value.to_owned());
 
-    let metadata = Metadata {
+    let metadata = ResourceMetadata {
+        can_resolve: true,
         title,
         description,
-        image,
+        thumbnail,
     };
 
     Ok(metadata)
+}
+
+async fn request(url: &Url) -> Result<String, reqwest::Error> {
+    reqwest::get(url.as_ref()).await?.text().await
 }
