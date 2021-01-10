@@ -21,7 +21,8 @@ async fn discover_lists(ctx: web::Data<Context>, pagination: web::Query<Paginati
         .skip(pagination.skip)
         .build();
 
-    let lists = List::find(&ctx.database.conn, doc! {}, find_options)
+    let query = doc! { "is_public": true };
+    let lists = List::find(&ctx.database.conn, query, find_options)
         .await
         .map_err(ApiError::WitherError)?
         .try_collect::<Vec<List>>()
