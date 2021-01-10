@@ -12,7 +12,7 @@ use crate::models::user::UserID;
 use crate::models::user::UserPublic;
 use crate::settings::Settings;
 
-// type ActixValidationResult = Result<ServiceRequest, actix_web::Error>;
+type ActixValidationResult = Result<ServiceRequest, actix_web::Error>;
 
 // pub fn middleware<F, O>() -> HttpAuthentication<BearerAuth, F>
 // where
@@ -22,10 +22,7 @@ use crate::settings::Settings;
 //     HttpAuthentication::bearer(token_validator)
 // }
 
-pub async fn validator(
-    req: ServiceRequest,
-    credentials: BearerAuth,
-) -> Result<ServiceRequest, actix_web::Error> {
+pub async fn validator(req: ServiceRequest, credentials: BearerAuth) -> ActixValidationResult {
     let settings = req
         .app_data::<actix_web::web::Data<Settings>>()
         .ok_or(ApiError::ReadAppData())?;

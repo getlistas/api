@@ -7,6 +7,13 @@
 - [MongoDB](https://docs.mongodb.com/manual/installation)
 
 
+### Run
+
+#### Dev
+```bash
+cargo watch -x 'run --bin listas'
+```
+
 ### Migrations
 
 #### Up
