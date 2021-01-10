@@ -19,7 +19,7 @@ use crate::models::user::UserID;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
-type CTX = web::Data<Context>;
+type Ctx = web::Data<Context>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
     let auth = HttpAuthentication::bearer(auth::validator);
@@ -82,7 +82,7 @@ async fn get_lists(ctx: web::Data<Context>, user: UserID) -> Response {
     Ok(res)
 }
 
-async fn create_list(ctx: CTX, body: web::Json<ListCreate>, user: UserID) -> Response {
+async fn create_list(ctx: Ctx, body: web::Json<ListCreate>, user: UserID) -> Response {
     let mut list = List::new(body.into_inner(), user.0);
 
     list.save(&ctx.database.conn, None)
