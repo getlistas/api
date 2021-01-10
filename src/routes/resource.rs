@@ -20,7 +20,7 @@ use crate::models::user::UserID;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
-type CTX = web::Data<Context>;
+type Ctx = web::Data<Context>;
 
 #[derive(Deserialize)]
 struct Query {
@@ -51,7 +51,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
     );
 }
 
-async fn get_resource_by_id(ctx: CTX, id: ID, user_id: UserID) -> Response {
+async fn get_resource_by_id(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     let resource = Resource::find_one(
         &ctx.database.conn,
         doc! {
@@ -76,7 +76,7 @@ async fn get_resource_by_id(ctx: CTX, id: ID, user_id: UserID) -> Response {
     Ok(res)
 }
 
-async fn get_resources(ctx: CTX, user_id: UserID, qs: web::Query<Query>) -> Response {
+async fn get_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Response {
     let mut query = doc! { "user": user_id.0 };
     let sort = doc! { "position": -1 };
     let options = FindOptions::builder().sort(Some(sort)).build();
@@ -112,7 +112,7 @@ async fn get_resources(ctx: CTX, user_id: UserID, qs: web::Query<Query>) -> Resp
     Ok(res)
 }
 
-async fn create_resource(ctx: CTX, body: web::Json<ResourceCreate>, user_id: UserID) -> Response {
+async fn create_resource(ctx: Ctx, body: web::Json<ResourceCreate>, user_id: UserID) -> Response {
     let list_id = ObjectId::with_string(body.list.as_str()).map_err(ApiError::ParseObjectID)?;
 
     let last_resource = Resource::find_last(&ctx.database.conn, &user_id.0, &list_id)
@@ -136,7 +136,7 @@ async fn create_resource(ctx: CTX, body: web::Json<ResourceCreate>, user_id: Use
 }
 
 async fn update_resource(
-    ctx: CTX,
+    ctx: Ctx,
     id: ID,
     body: web::Json<ResourceUpdate>,
     user_id: UserID,
@@ -175,7 +175,7 @@ async fn update_resource(
     Ok(res)
 }
 
-async fn remove_resource(ctx: CTX, id: ID, user_id: UserID) -> Response {
+async fn remove_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     let resource = Resource::find_one_and_delete(
         &ctx.database.conn,
         doc! {
@@ -201,7 +201,7 @@ async fn remove_resource(ctx: CTX, id: ID, user_id: UserID) -> Response {
     Ok(res)
 }
 
-async fn complete_resource(ctx: CTX, id: ID, user_id: UserID) -> Response {
+async fn complete_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     let resource = Resource::find_one(
         &ctx.database.conn,
         doc! {

@@ -2,34 +2,18 @@ use select::document::Document;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-// Read more about The Open Graph protocol at https://ogp.me
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ResourceMetadata {
-    can_resolve: bool,
-    title: Option<String>,
-    description: Option<String>,
-    thumbnail: Option<String>,
-}
-
-impl ResourceMetadata {
-    fn can_not_resolve() -> Self {
-        Self {
-            can_resolve: false,
-            title: None,
-            description: None,
-            thumbnail: None,
-        }
-    }
+pub struct WebsiteMetadata {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub thumbnail: Option<String>,
 }
 
 // Some websites like Twitter or Facebook has their own metatags format (Not OGP)
-// Read more at: https://css-tricks.com/essential-meta-tags-social-media/
-pub async fn get_website_ogp_metadata(url: &Url) -> Result<ResourceMetadata, reqwest::Error> {
-    let res = match request(url).await {
-        Ok(res) => res,
-        // TODO: Handle Listas.io send request errors.
-        Err(_) => return Ok(ResourceMetadata::can_not_resolve()),
-    };
+// Read more about The Open Graph protocol https://ogp.me
+// Read more about meta tags https://css-tricks.com/essential-meta-tags-social-media/
+pub async fn get_website_metadata(url: &Url) -> Result<WebsiteMetadata, reqwest::Error> {
+    let res = reqwest::get(url.as_ref()).await?.text().await?;
 
     let document = Document::from(res.as_str());
     let metas = document
@@ -55,16 +39,11 @@ pub async fn get_website_ogp_metadata(url: &Url) -> Result<ResourceMetadata, req
         .and_then(|meta| meta.attr("content"))
         .map(|value| value.to_owned());
 
-    let metadata = ResourceMetadata {
-        can_resolve: true,
+    let metadata = WebsiteMetadata {
         title,
         description,
         thumbnail,
     };
 
     Ok(metadata)
-}
-
-async fn request(url: &Url) -> Result<String, reqwest::Error> {
-    reqwest::get(url.as_ref()).await?.text().await
 }

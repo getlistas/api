@@ -6,6 +6,7 @@ use wither::mongodb;
 use wither::mongodb::options::FindOneOptions;
 use wither::Model;
 
+use crate::errors::ApiError;
 use crate::lib::date;
 
 #[derive(Debug, Model, Serialize, Deserialize)]
@@ -55,6 +56,20 @@ impl Resource {
         let sort = doc! { "position": -1 };
         let options = FindOneOptions::builder().sort(Some(sort)).build();
         Self::find_one(conn, query, Some(options)).await
+    }
+
+    pub async fn is_unique_by_user(
+        conn: &mongodb::Database,
+        user_id: &ObjectId,
+        url: String,
+    ) -> Result<bool, ApiError> {
+        let query = doc! { "user": user_id, "url": url };
+        let count = Self::collection(conn)
+            .count_documents(query, None)
+            .await
+            .map_err(ApiError::MongoError)?;
+
+        Ok(count == 0)
     }
 
     pub fn to_json(&self) -> serde_json::Value {
