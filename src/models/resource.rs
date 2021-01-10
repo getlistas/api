@@ -58,18 +58,15 @@ impl Resource {
         Self::find_one(conn, query, Some(options)).await
     }
 
-    pub async fn is_unique_by_user(
+    pub async fn find_by_url(
         conn: &mongodb::Database,
         user_id: &ObjectId,
         url: String,
-    ) -> Result<bool, ApiError> {
+    ) -> Result<Option<Self>, ApiError> {
         let query = doc! { "user": user_id, "url": url };
-        let count = Self::collection(conn)
-            .count_documents(query, None)
+        Self::find_one(conn, query, None)
             .await
-            .map_err(ApiError::MongoError)?;
-
-        Ok(count == 0)
+            .map_err(ApiError::WitherError)
     }
 
     pub fn to_json(&self) -> serde_json::Value {

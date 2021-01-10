@@ -21,7 +21,7 @@ struct Body {
 #[derive(Debug, Serialize)]
 pub struct ResourceMetadata {
     can_resolve: bool,
-    is_unique: bool,
+    resource: Option<Resource>,
     title: Option<String>,
     description: Option<String>,
     thumbnail: Option<String>,
@@ -40,15 +40,14 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
 async fn get_resource_metadata(ctx: Ctx, body: web::Json<Body>, user: UserID) -> Response {
     let url = Url::parse(body.url.as_str()).map_err(|_| ApiError::ParseRequestBody())?;
     let website_metadata = resource_metadata::get_website_metadata(&url).await;
-    let is_unique =
-        Resource::is_unique_by_user(&ctx.database.conn, &user.0, url.to_string()).await?;
+    let resource = Resource::find_by_url(&ctx.database.conn, &user.0, url.to_string()).await?;
 
     let website_metadata = match website_metadata {
         Ok(website_metadata) => website_metadata,
         Err(_) => {
             debug!("Can not resolve url, returning metadata to the client");
             let metadata = ResourceMetadata {
-                is_unique,
+                resource,
                 can_resolve: false,
                 title: None,
                 description: None,
@@ -59,7 +58,7 @@ async fn get_resource_metadata(ctx: Ctx, body: web::Json<Body>, user: UserID) ->
     };
 
     let metadata = ResourceMetadata {
-        is_unique,
+        resource,
         can_resolve: true,
         title: website_metadata.title,
         description: website_metadata.description,
