@@ -1,8 +1,11 @@
-use nanoid::nanoid;
+use actix_web::web::block as to_future;
 use serde::{Deserialize, Serialize};
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
+
+use crate::errors;
+use crate::lib::util::create_random_string;
 
 #[derive(Debug, Model, Serialize, Deserialize)]
 pub struct User {
@@ -15,6 +18,9 @@ pub struct User {
     pub name: String,
     pub avatar: Option<String>,
 
+    // Oauth providers attributes
+    pub google_id: Option<String>,
+
     pub verification_token: Option<String>,
     pub password_reset_token: Option<String>,
 
@@ -23,30 +29,17 @@ pub struct User {
 
     pub verified_at: Option<DateTime>,
     pub locked_at: Option<DateTime>,
+    pub verification_token_set_at: Option<DateTime>,
     pub password_reset_token_set_at: Option<DateTime>,
 }
 
 impl User {
-    pub fn new(body: UserCreate) -> Self {
-        let now = chrono::Utc::now().into();
-        let password = bcrypt::hash(body.password, bcrypt::DEFAULT_COST).unwrap();
+    pub async fn hash_password(password: String) -> Result<String, errors::ApiError> {
+        let hash = to_future(move || bcrypt::hash(password, bcrypt::DEFAULT_COST));
 
-        Self {
-            id: None,
-            password,
-            email: body.email.clone(),
-            name: body.name.clone(),
-            slug: body.slug.clone(),
-            avatar: None,
-
-            verification_token: Some(create_random_token()),
-            password_reset_token: None,
-
-            created_at: now,
-            updated_at: now,
-            verified_at: None,
-            locked_at: None,
-            password_reset_token_set_at: None,
+        match hash.await {
+            Ok(hash) => Ok(hash),
+            Err(err) => Err(errors::ApiError::HashPassword(err)),
         }
     }
 
@@ -56,7 +49,7 @@ impl User {
 
     pub fn set_password_reset_token(&mut self) -> String {
         let now = chrono::Utc::now().into();
-        let token = create_random_token();
+        let token = create_random_string(40);
 
         self.password_reset_token = Some(token.clone());
         self.password_reset_token_set_at = Some(now);
@@ -89,27 +82,9 @@ impl User {
 pub struct UserID(pub ObjectId);
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct UserCreate {
-    pub email: String,
-    pub password: String,
-    pub name: String,
-    pub slug: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct UserPublic {
     pub id: String,
     pub email: String,
     pub name: String,
     pub slug: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UserAuthenticate {
-    pub email: String,
-    pub password: String,
-}
-
-pub fn create_random_token() -> String {
-    nanoid!(40, &nanoid::alphabet::SAFE)
 }
