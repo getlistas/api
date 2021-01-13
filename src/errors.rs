@@ -28,6 +28,12 @@ pub enum ApiError {
 
     #[error("{0}")]
     JWT(#[from] jsonwebtoken::errors::Error),
+
+    #[error("Failed authentication google token")]
+    GoogleAuthentication {},
+
+    #[error("{0}")]
+    HashPassword(#[from] actix_web::error::BlockingError<bcrypt::BcryptError>),
 }
 
 impl actix_web::error::ResponseError for ApiError {
@@ -40,12 +46,16 @@ impl actix_web::error::ResponseError for ApiError {
     fn status_code(&self) -> http::StatusCode {
         match *self {
             ApiError::ReadAppData() => http::StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::ParseRequestBody() => http::StatusCode::BAD_REQUEST,
             ApiError::WitherError(_) => http::StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::MongoError(_) => http::StatusCode::INTERNAL_SERVER_ERROR,
+            ApiError::HashPassword(_) => http::StatusCode::INTERNAL_SERVER_ERROR,
+
+            ApiError::ParseRequestBody() => http::StatusCode::BAD_REQUEST,
             ApiError::ParseObjectID(_) => http::StatusCode::BAD_REQUEST,
+
             ApiError::JWT(_) => http::StatusCode::UNAUTHORIZED,
             ApiError::MissingAuthorizationToken {} => http::StatusCode::UNAUTHORIZED,
+            ApiError::GoogleAuthentication {} => http::StatusCode::UNAUTHORIZED,
         }
     }
 }

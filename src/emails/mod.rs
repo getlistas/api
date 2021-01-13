@@ -3,12 +3,8 @@ use maud::html;
 
 use crate::models::user::User;
 
-pub fn create_confirm_email(
-    base_url: &String,
-    name: &String,
-    email: &String,
-    token: &String,
-) -> EmailBuilder {
+pub fn create_confirm_email(base_url: &String, user: &User) -> EmailBuilder {
+    let token = user.verification_token.as_ref().unwrap();
     let callback_url = format!("{}/users/verification/{}", base_url, token);
     let html = html! {
         head {
@@ -19,7 +15,7 @@ pub fn create_confirm_email(
         }
         div {
             h2 { "Hello from Listas!" }
-            p { "Dear " (name) "," }
+            p { "Dear " (user.name) "," }
             p {
                 "To use your account, please confirm your Listas email address "
                 a href={(callback_url)} { "here" }
@@ -28,7 +24,7 @@ pub fn create_confirm_email(
     };
 
     EmailBuilder::new()
-        .to(email.as_str())
+        .to(user.email.as_str())
         .subject("Confirm your Listas email address")
         .html(html.into_string())
 }
