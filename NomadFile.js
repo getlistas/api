@@ -1,10 +1,9 @@
-process.env["NODE_CONFIG_DIR"] = __dirname + "/../config/";
-
 const mongodb = require('mongodb')
 const config = require('config')
 
 const { MongoClient } = mongodb
 const { ObjectId } = mongodb
+
 
 module.exports = function nomadRunner(nomad) {
   nomad.context.config = config

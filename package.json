@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "nomad": "nomad",
-    "nomad:down": "nomad down create-users"
+    "migrate:up": "nomad up",
+    "migrate:down": "nomad down create-users"
   },
   "engines": {
     "node": "14"
