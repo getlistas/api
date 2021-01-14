@@ -6,7 +6,6 @@
 - [NodeJS](https://nodejs.org)
 - [MongoDB](https://docs.mongodb.com/manual/installation)
 
-
 ### Run
 
 #### Dev
@@ -18,10 +17,20 @@ cargo watch -x 'run --bin listas'
 
 #### Up
 ```bash
-$ ./scripts/up.sh
+$ npm run migrate:up
 ```
 
 #### Down
 ```bash
-$ ./scripts/down.sh
+$ npm run migrate:down
 ```
+
+### Scripts
+
+#### Sync indexes
+
+```bash
+./scripts/sync-indexes.js
+```
+
+
