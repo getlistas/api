@@ -19,6 +19,7 @@ user.index({ slug: 1 }, { unique: true });
 
 // List indexes
 list.index({ user: 1 });
+list.index({ user: 1, slug: 1 });
 
 // Resource indexes
 resource.index({ user: 1 })

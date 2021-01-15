@@ -18,6 +18,9 @@ pub struct List {
     pub tags: Vec<String>,
     pub is_public: bool,
 
+    pub forked_from: Option<ObjectId>,
+    pub forked_at: Option<DateTime>,
+
     pub created_at: DateTime,
     pub updated_at: DateTime,
 }
@@ -33,6 +36,8 @@ impl List {
             "tags": this.tags,
             "slug": this.slug,
             "is_public": this.is_public,
+            "forked_from": this.forked_from.clone().map(|id| id.to_hex()),
+            "forked_at": this.forked_at.map(date::to_rfc3339),
             "created_at": date::to_rfc3339(this.created_at),
             "updated_at": date::to_rfc3339(this.updated_at)
         })
