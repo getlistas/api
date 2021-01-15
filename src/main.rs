@@ -62,6 +62,7 @@ async fn main() {
             .configure(routes::user::create_router)
             .configure(routes::resource::create_router)
             .configure(routes::list::create_router)
+            .configure(routes::list_by_slug::create_router)
             .configure(routes::discover::create_router)
             .configure(routes::resource_metadata::create_router)
             .service(web::scope("/").configure(routes::index::create_router))

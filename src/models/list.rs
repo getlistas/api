@@ -13,6 +13,7 @@ pub struct List {
     pub id: Option<ObjectId>,
     pub user: ObjectId,
     pub title: String,
+    pub slug: String,
     pub description: Option<String>,
     pub tags: Vec<String>,
     pub is_public: bool,
@@ -22,24 +23,6 @@ pub struct List {
 }
 
 impl List {
-    pub fn new(body: ListCreate, user_id: ObjectId) -> Self {
-        let now = chrono::Utc::now().into();
-        let tags = body.tags.map(sanitize_tags).unwrap_or(vec![]);
-
-        Self {
-            id: None,
-            user: user_id,
-
-            title: body.title.clone(),
-            description: body.description.clone(),
-            is_public: body.is_public.clone(),
-            tags,
-
-            created_at: now,
-            updated_at: now,
-        }
-    }
-
     pub fn to_json(&self) -> serde_json::Value {
         let this = self.clone();
         json!({
@@ -48,21 +31,12 @@ impl List {
             "title": this.title,
             "description": this.description,
             "tags": this.tags,
+            "slug": this.slug,
             "is_public": this.is_public,
             "created_at": date::to_rfc3339(this.created_at),
             "updated_at": date::to_rfc3339(this.updated_at)
         })
     }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ListCreate {
-    pub title: String,
-    pub is_public: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -89,7 +63,7 @@ impl ListUpdate {
     }
 }
 
-fn sanitize_tags(tags: Vec<String>) -> Vec<String> {
+pub fn sanitize_tags(tags: Vec<String>) -> Vec<String> {
     tags.into_iter()
         .map(|tag| tag.to_lowercase().trim().to_owned())
         .filter(|tag| tag.len() >= 1)

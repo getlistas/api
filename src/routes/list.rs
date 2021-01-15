@@ -1,6 +1,7 @@
 use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::stream::TryStreamExt;
+use serde::Deserialize;
 use serde_json::json;
 use wither::bson;
 use wither::bson::doc;
@@ -10,9 +11,11 @@ use wither::Model;
 
 use crate::auth;
 use crate::errors::ApiError;
+use crate::lib::date;
 use crate::lib::id::ID;
+use crate::lib::util;
+use crate::models::list;
 use crate::models::list::List;
-use crate::models::list::ListCreate;
 use crate::models::list::ListUpdate;
 use crate::models::resource::Resource;
 use crate::models::user::UserID;
@@ -20,6 +23,14 @@ use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
 type Ctx = web::Data<Context>;
+
+#[derive(Deserialize)]
+struct ListCreateBody {
+    pub title: String,
+    pub is_public: bool,
+    pub description: Option<String>,
+    pub tags: Option<Vec<String>>,
+}
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
     let auth = HttpAuthentication::bearer(auth::validator);
@@ -82,8 +93,21 @@ async fn get_lists(ctx: web::Data<Context>, user: UserID) -> Response {
     Ok(res)
 }
 
-async fn create_list(ctx: Ctx, body: web::Json<ListCreate>, user: UserID) -> Response {
-    let mut list = List::new(body.into_inner(), user.0);
+async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) -> Response {
+    let now = date::now();
+    let tags = body.tags.clone().map(list::sanitize_tags).unwrap_or(vec![]);
+    let slug = util::to_slug_case(body.title.clone());
+    let mut list = List {
+        id: None,
+        user: user.0,
+        title: body.title.clone(),
+        description: body.description.clone(),
+        is_public: body.is_public.clone(),
+        tags,
+        slug,
+        created_at: now,
+        updated_at: now,
+    };
 
     list.save(&ctx.database.conn, None)
         .await
