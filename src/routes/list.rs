@@ -1,5 +1,6 @@
 use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
+use futures::stream::StreamExt;
 use futures::stream::TryStreamExt;
 use serde::Deserialize;
 use serde_json::json;
@@ -9,7 +10,6 @@ use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::Model;
 
-use crate::auth;
 use crate::errors::ApiError;
 use crate::lib::date;
 use crate::lib::id::ID;
@@ -20,6 +20,7 @@ use crate::models::list::ListUpdate;
 use crate::models::resource::Resource;
 use crate::models::user::UserID;
 use crate::Context;
+use crate::{auth, errors};
 
 type Response = actix_web::Result<HttpResponse>;
 type Ctx = web::Data<Context>;
@@ -40,12 +41,18 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
             .route(web::get().to(get_list_by_id))
             .route(web::delete().to(remove_list))
             .route(web::put().to(update_list))
+            .route(web::post().to(fork_list))
             .wrap(auth.clone()),
     );
     cfg.service(
         web::resource("/lists")
             .route(web::get().to(get_lists))
             .route(web::post().to(create_list))
+            .wrap(auth.clone()),
+    );
+    cfg.service(
+        web::resource("/lists/{id}/fork")
+            .route(web::post().to(fork_list))
             .wrap(auth.clone()),
     );
 }
@@ -65,12 +72,12 @@ async fn get_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respon
     let list = match list {
         Some(list) => list,
         None => {
-            debug!("List not found, returning 404 status code to the client");
+            debug!("List not found, returning 404 status code");
             return Ok(HttpResponse::NotFound().finish());
         }
     };
 
-    debug!("Returning list to the client");
+    debug!("Returning list");
     let res = HttpResponse::Ok().json(list.to_json());
     Ok(res)
 }
@@ -88,7 +95,7 @@ async fn get_lists(ctx: web::Data<Context>, user: UserID) -> Response {
         .map(|list| list.to_json())
         .collect::<Vec<serde_json::Value>>();
 
-    debug!("Returning lists to the client");
+    debug!("Returning lists");
     let res = HttpResponse::Ok().json(lists);
     Ok(res)
 }
@@ -105,6 +112,8 @@ async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) ->
         is_public: body.is_public.clone(),
         tags,
         slug,
+        forked_from: None,
+        forked_at: None,
         created_at: now,
         updated_at: now,
     };
@@ -113,7 +122,7 @@ async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) ->
         .await
         .map_err(ApiError::WitherError)?;
 
-    debug!("Returning created list to the client");
+    debug!("Returning created list");
     let res = HttpResponse::Created().json(list.to_json());
     Ok(res)
 }
@@ -140,13 +149,112 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
     let list = match list {
         Some(list) => list,
         None => {
-            debug!("List not found, returning 404 status code to the client");
+            debug!("List not found, returning 404 status code");
             return Ok(HttpResponse::NotFound().finish());
         }
     };
 
-    debug!("Returning updated list to the client");
+    debug!("Returning updated list");
     let res = HttpResponse::Ok().json(list.to_json());
+    Ok(res)
+}
+
+async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
+    let list = List::find_one(
+        &ctx.database.conn,
+        doc! {
+            "_id": id.0,
+            "is_public": true
+        },
+        None,
+    )
+    .await
+    .map_err(ApiError::WitherError)?;
+
+    let list = match list {
+        Some(list) => list,
+        None => {
+            debug!("List not found, returning 404 status code");
+            return Ok(HttpResponse::NotFound().finish());
+        }
+    };
+
+    if list.user == user.0 {
+        debug!("User can not fork its own list, returning 400 status code");
+        return Ok(HttpResponse::BadRequest().finish());
+    }
+
+    let now = date::now();
+    let mut forked_list = List {
+        id: None,
+        user: user.0,
+        title: list.title.clone(),
+        description: list.description.clone(),
+        is_public: list.is_public.clone(),
+        tags: list.tags.clone(),
+        slug: list.slug.clone(),
+        forked_from: list.id.clone(),
+        forked_at: Some(now),
+        created_at: now,
+        updated_at: now,
+    };
+
+    forked_list
+        .save(&ctx.database.conn, None)
+        .await
+        .map_err(ApiError::WitherError)?;
+
+    let resources = Resource::find(
+        &ctx.database.conn,
+        doc! { "list": list.id.clone().unwrap() },
+        None,
+    )
+    .await
+    .map_err(ApiError::WitherError)?
+    .try_collect::<Vec<Resource>>()
+    .await
+    .map_err(ApiError::WitherError)?;
+
+    debug!("Creating forked resources");
+    let mut forked_resources = resources
+        .into_iter()
+        .map(|resource| Resource {
+            id: None,
+            user: resource.user.clone(),
+            list: forked_list.id.clone().unwrap(),
+            position: resource.position.clone(),
+            url: resource.url.clone(),
+            title: resource.title.clone(),
+            description: resource.description.clone(),
+            thumbnail: resource.thumbnail.clone(),
+            created_at: now,
+            updated_at: now,
+            completed_at: None,
+        })
+        .collect::<Vec<Resource>>();
+
+    let mut resource_futures = vec![];
+    for resource in forked_resources.iter_mut() {
+        let conn = ctx.database.conn.clone();
+        let task = async move {
+            resource
+                .save(&conn, None)
+                .await
+                .map_err(ApiError::WitherError)
+        };
+        resource_futures.push(task);
+    }
+
+    debug!("Storing forked resources");
+    futures::stream::iter(resource_futures)
+        .buffer_unordered(20)
+        .collect::<Vec<Result<(), errors::ApiError>>>()
+        .await
+        .into_iter()
+        .collect::<Result<(), ApiError>>()?;
+
+    debug!("Returning forked list");
+    let res = HttpResponse::Ok().json(forked_list.to_json());
     Ok(res)
 }
 
@@ -163,7 +271,7 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
     .map_err(ApiError::WitherError)?;
 
     if list.is_none() {
-        debug!("List not found, returning 404 status code to the client");
+        debug!("List not found, returning 404 status code");
         return Ok(HttpResponse::NotFound().finish());
     }
 
@@ -179,7 +287,7 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
         .await
         .map_err(ApiError::WitherError)?;
 
-    debug!("List removed, returning 204 status code to the client");
+    debug!("List removed, returning 204 status code");
     let res = HttpResponse::NoContent().finish();
 
     Ok(res)
