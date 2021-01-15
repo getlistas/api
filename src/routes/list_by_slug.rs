@@ -38,12 +38,19 @@ async fn get_lists_by_slug(ctx: web::Data<Context>, params: web::Path<Params>) -
         }
     };
 
-    let lists = List::find(&ctx.database.conn, doc! { "user": user.id.unwrap(), }, None)
-        .await
-        .map_err(ApiError::WitherError)?
-        .try_collect::<Vec<List>>()
-        .await
-        .map_err(ApiError::WitherError)?;
+    let lists = List::find(
+        &ctx.database.conn,
+        doc! {
+            "user": user.id.unwrap(),
+            "is_public": true
+        },
+        None,
+    )
+    .await
+    .map_err(ApiError::WitherError)?
+    .try_collect::<Vec<List>>()
+    .await
+    .map_err(ApiError::WitherError)?;
 
     let lists = lists
         .iter()
@@ -73,7 +80,8 @@ async fn get_list_by_slug(ctx: web::Data<Context>, params: web::Path<Params>) ->
         &ctx.database.conn,
         doc! {
             "user": user.id.unwrap(),
-            "slug": list_slug
+            "slug": list_slug,
+            "is_public": true
         },
         None,
     )
