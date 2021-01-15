@@ -23,6 +23,7 @@ list.index({ user: 1, slug: 1 });
 
 // Resource indexes
 resource.index({ user: 1 })
+resource.index({ user: 1, list: 1 })
 
 
 async function runScript() {
