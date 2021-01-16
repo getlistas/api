@@ -45,7 +45,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
     );
     cfg.service(
         web::resource("/resources")
-            .route(web::get().to(get_resources))
+            .route(web::get().to(query_resources))
             .route(web::post().to(create_resource))
             .wrap(auth.clone()),
     );
@@ -76,7 +76,7 @@ async fn get_resource_by_id(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     Ok(res)
 }
 
-async fn get_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Response {
+async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Response {
     let mut query = doc! { "user": user_id.0 };
     let sort = doc! { "position": -1 };
     let options = FindOptions::builder().sort(Some(sort)).build();

@@ -4,6 +4,7 @@ use serde::Deserialize;
 use wither::bson::doc;
 use wither::Model;
 
+use crate::auth::AuthenticationMetadata;
 use crate::errors::ApiError;
 use crate::models::list::List;
 use crate::models::user::User;
@@ -18,14 +19,19 @@ struct Params {
 }
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::resource("users/{user_slug}/lists").route(web::get().to(get_lists_by_slug)));
+    cfg.service(web::resource("users/{user_slug}/lists").route(web::get().to(query_lists_by_slug)));
 
     cfg.service(
-        web::resource("users/{user_slug}/lists/{list_slug}").route(web::get().to(get_list_by_slug)),
+        web::resource("users/{user_slug}/lists/{list_slug}")
+            .route(web::get().to(find_list_by_slug)),
     );
 }
 
-async fn get_lists_by_slug(ctx: web::Data<Context>, params: web::Path<Params>) -> Response {
+async fn query_lists_by_slug(
+    ctx: web::Data<Context>,
+    params: web::Path<Params>,
+    auth: AuthenticationMetadata,
+) -> Response {
     let user = User::find_one(&ctx.database.conn, doc! { "slug": &params.user_slug }, None)
         .await
         .map_err(ApiError::WitherError)?;
@@ -38,19 +44,19 @@ async fn get_lists_by_slug(ctx: web::Data<Context>, params: web::Path<Params>) -
         }
     };
 
-    let lists = List::find(
-        &ctx.database.conn,
-        doc! {
-            "user": user.id.unwrap(),
-            "is_public": true
-        },
-        None,
-    )
-    .await
-    .map_err(ApiError::WitherError)?
-    .try_collect::<Vec<List>>()
-    .await
-    .map_err(ApiError::WitherError)?;
+    let is_authenticated = auth.is_authenticated;
+    let is_self = is_authenticated && auth.user_id.clone().unwrap() == user.id.clone().unwrap();
+    let mut lists_query = doc! { "user": user.id.unwrap() };
+    if !is_self {
+        lists_query.insert("is_public", true);
+    }
+
+    let lists = List::find(&ctx.database.conn, lists_query, None)
+        .await
+        .map_err(ApiError::WitherError)?
+        .try_collect::<Vec<List>>()
+        .await
+        .map_err(ApiError::WitherError)?;
 
     let lists = lists
         .iter()
@@ -62,7 +68,11 @@ async fn get_lists_by_slug(ctx: web::Data<Context>, params: web::Path<Params>) -
     Ok(res)
 }
 
-async fn get_list_by_slug(ctx: web::Data<Context>, params: web::Path<Params>) -> Response {
+async fn find_list_by_slug(
+    ctx: web::Data<Context>,
+    params: web::Path<Params>,
+    auth: AuthenticationMetadata,
+) -> Response {
     let list_slug = params.list_slug.clone().unwrap();
     let user = User::find_one(&ctx.database.conn, doc! { "slug": &params.user_slug }, None)
         .await
@@ -76,17 +86,19 @@ async fn get_list_by_slug(ctx: web::Data<Context>, params: web::Path<Params>) ->
         }
     };
 
-    let list = List::find_one(
-        &ctx.database.conn,
-        doc! {
-            "user": user.id.unwrap(),
-            "slug": list_slug,
-            "is_public": true
-        },
-        None,
-    )
-    .await
-    .map_err(ApiError::WitherError)?;
+    let is_authenticated = auth.is_authenticated;
+    let is_self = is_authenticated && auth.user_id.clone().unwrap() == user.id.clone().unwrap();
+    let mut list_query = doc! {
+        "user": user.id.unwrap(),
+        "slug": list_slug
+    };
+    if !is_self {
+        list_query.insert("is_public", true);
+    }
+
+    let list = List::find_one(&ctx.database.conn, list_query, None)
+        .await
+        .map_err(ApiError::WitherError)?;
 
     let list = match list {
         Some(list) => list,

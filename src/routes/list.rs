@@ -38,7 +38,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
 
     cfg.service(
         web::resource("/lists/{id}")
-            .route(web::get().to(get_list_by_id))
+            .route(web::get().to(find_list_by_id))
             .route(web::delete().to(remove_list))
             .route(web::put().to(update_list))
             .route(web::post().to(fork_list))
@@ -46,7 +46,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
     );
     cfg.service(
         web::resource("/lists")
-            .route(web::get().to(get_lists))
+            .route(web::get().to(query_lists))
             .route(web::post().to(create_list))
             .wrap(auth.clone()),
     );
@@ -57,7 +57,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
     );
 }
 
-async fn get_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
+async fn find_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     let list = List::find_one(
         &ctx.database.conn,
         doc! {
@@ -82,7 +82,7 @@ async fn get_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respon
     Ok(res)
 }
 
-async fn get_lists(ctx: web::Data<Context>, user: UserID) -> Response {
+async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
     let lists = List::find(&ctx.database.conn, doc! { "user": user.0 }, None)
         .await
         .map_err(ApiError::WitherError)?
