@@ -1,9 +1,7 @@
 use actix_web::dev::Payload;
 use actix_web::dev::ServiceRequest;
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-// use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::future;
-// use futures::future::Future;
 use wither::bson::oid::ObjectId;
 
 use crate::errors::ApiError;
@@ -70,27 +68,85 @@ impl actix_web::FromRequest for UserID {
     type Future = future::Ready<Result<Self, ApiError>>;
 
     fn from_request(req: &actix_web::HttpRequest, _payload: &mut Payload) -> Self::Future {
-        let token_result: Result<String, ApiError> = req
+        let token: Result<String, ApiError> = req
             .headers()
             .get("authorization")
             .and_then(|header| header.to_str().ok())
             .map(|header| header.replace("Bearer ", ""))
             .ok_or_else(|| ApiError::MissingAuthorizationToken {});
 
-        let token = match token_result {
+        let token = match token {
             Ok(token) => token,
             Err(err) => return future::err(err),
         };
 
-        let token_payload = token::get_token_payload(token.as_str());
+        let payload = token::get_token_payload(token.as_str());
 
-        match token_payload.map_err(ApiError::JWT) {
+        match payload.map_err(ApiError::JWT) {
             Ok(payload) => {
                 let claims = payload.claims;
                 let user_id = ObjectId::with_string(claims.user.id.as_str()).unwrap();
                 future::ok(UserID(user_id))
             }
             Err(err) => future::err(err),
+        }
+    }
+}
+
+pub struct AuthenticationMetadata {
+    pub is_authenticated: bool,
+    pub user_id: Option<ObjectId>,
+}
+
+impl AuthenticationMetadata {
+    fn unauthorized() -> Self {
+        Self {
+            is_authenticated: false,
+            user_id: None,
+        }
+    }
+}
+
+impl actix_web::FromRequest for AuthenticationMetadata {
+    type Config = ();
+    type Error = ApiError;
+    type Future = future::Ready<Result<Self, ApiError>>;
+
+    fn from_request(req: &actix_web::HttpRequest, _payload: &mut Payload) -> Self::Future {
+        let token: Result<String, ApiError> = req
+            .headers()
+            .get("authorization")
+            .and_then(|header| header.to_str().ok())
+            .map(|header| header.replace("Bearer ", ""))
+            .ok_or(ApiError::MissingAuthorizationToken {});
+
+        let token = match token {
+            Ok(token) => token,
+            Err(_) => return future::ok(AuthenticationMetadata::unauthorized()),
+        };
+
+        let settings = req
+            .app_data::<actix_web::web::Data<Settings>>()
+            .ok_or(ApiError::ReadAppData());
+
+        let private_key = match settings {
+            Ok(settings) => settings.auth.secret.as_str(),
+            Err(err) => return future::err(err),
+        };
+
+        let payload = token::decode_token(token.as_str(), private_key);
+
+        match payload.map_err(ApiError::JWT) {
+            Ok(payload) => {
+                let claims = payload.claims;
+                let user_id = ObjectId::with_string(claims.user.id.as_str()).unwrap();
+                let authentication = AuthenticationMetadata {
+                    is_authenticated: true,
+                    user_id: Some(user_id),
+                };
+                future::ok(authentication)
+            }
+            Err(_) => future::ok(AuthenticationMetadata::unauthorized()),
         }
     }
 }
