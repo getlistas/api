@@ -1,11 +1,14 @@
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use serde_json::Value as JSON;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
+use wither::mongodb::Database;
 use wither::Model;
 
-use crate::lib::date;
+use crate::models::resource::Resource;
+use crate::{errors::ApiError, lib::date};
 
 #[derive(Debug, Model, Serialize, Deserialize)]
 pub struct List {
@@ -26,7 +29,7 @@ pub struct List {
 }
 
 impl List {
-    pub fn to_json(&self) -> serde_json::Value {
+    pub fn to_json(&self) -> JSON {
         let this = self.clone();
         json!({
             "id": this.id.clone().unwrap().to_hex(),
@@ -41,6 +44,40 @@ impl List {
             "created_at": date::to_rfc3339(this.created_at),
             "updated_at": date::to_rfc3339(this.updated_at)
         })
+    }
+
+    pub async fn to_schema(&self, conn: &Database) -> Result<JSON, ApiError> {
+        let id = self.id.clone().unwrap();
+        let user_id = self.user.clone();
+        let mut res = self.to_json();
+
+        let resources_count: i64 = Resource::collection(conn)
+            .count_documents(doc! { "list": &id }, None)
+            .await
+            .map_err(ApiError::MongoError)?;
+
+        let completed_resources_count: i64 = Resource::collection(conn)
+            .count_documents(
+                doc! {
+                    "list": &id,
+                    "completed_at": doc! { "$exists": true }
+                },
+                None,
+            )
+            .await
+            .map_err(ApiError::MongoError)?;
+
+        let next_resource = Resource::find_next(conn, &user_id, &id)
+            .await
+            .map_err(ApiError::WitherError)?;
+
+        res["resource_metadata"] = json!({
+            "count": resources_count,
+            "completed_count": completed_resources_count,
+            "next": next_resource
+        });
+
+        Ok(res)
     }
 }
 

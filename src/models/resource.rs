@@ -58,6 +58,21 @@ impl Resource {
         Self::find_one(conn, query, Some(options)).await
     }
 
+    pub async fn find_next(
+        conn: &mongodb::Database,
+        user_id: &ObjectId,
+        list_id: &ObjectId,
+    ) -> Result<Option<Self>, wither::WitherError> {
+        let query = doc! {
+            "user": user_id,
+            "list": list_id,
+            "completed_at": doc! { "$exists": false }
+        };
+        let sort = doc! { "position": -1 };
+        let options = FindOneOptions::builder().sort(Some(sort)).build();
+        Self::find_one(conn, query, Some(options)).await
+    }
+
     pub async fn find_by_url(
         conn: &mongodb::Database,
         user_id: &ObjectId,
