@@ -10,6 +10,22 @@ use wither::Model;
 use crate::models::resource::Resource;
 use crate::{errors::ApiError, lib::date};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Fork {
+    pub from: ObjectId,
+    pub at: DateTime,
+}
+
+impl Fork {
+    pub fn to_json(&self) -> JSON {
+        let this = self.clone();
+        json!({
+            "from": this.from.clone().to_hex(),
+            "at": date::to_rfc3339(this.at)
+        })
+    }
+}
+
 #[derive(Debug, Model, Serialize, Deserialize)]
 pub struct List {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -20,10 +36,7 @@ pub struct List {
     pub description: Option<String>,
     pub tags: Vec<String>,
     pub is_public: bool,
-
-    pub forked_from: Option<ObjectId>,
-    pub forked_at: Option<DateTime>,
-
+    pub fork: Option<Fork>,
     pub created_at: DateTime,
     pub updated_at: DateTime,
 }
@@ -39,8 +52,7 @@ impl List {
             "tags": this.tags,
             "slug": this.slug,
             "is_public": this.is_public,
-            "forked_from": this.forked_from.clone().map(|id| id.to_hex()),
-            "forked_at": this.forked_at.map(date::to_rfc3339),
+            "fork": this.fork.clone().map(|fork| fork.to_json()),
             "created_at": date::to_rfc3339(this.created_at),
             "updated_at": date::to_rfc3339(this.updated_at)
         })
