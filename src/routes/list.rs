@@ -112,8 +112,7 @@ async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) ->
         is_public: body.is_public.clone(),
         tags,
         slug,
-        forked_from: None,
-        forked_at: None,
+        fork: None,
         created_at: now,
         updated_at: now,
     };
@@ -193,10 +192,13 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
         is_public: list.is_public.clone(),
         tags: list.tags.clone(),
         slug: list.slug.clone(),
-        forked_from: list.id.clone(),
-        forked_at: Some(now),
         created_at: now,
         updated_at: now,
+
+        fork: Some(list::Fork {
+            from: list.id.clone().unwrap(),
+            at: now,
+        }),
     };
 
     forked_list
