@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use wither::bson::DateTime;
-use wither::bson::{doc, oid::ObjectId};
+use wither::bson::{doc, oid::ObjectId, Bson};
 use wither::mongodb;
 use wither::mongodb::options::FindOneOptions;
 use wither::Model;
@@ -66,7 +66,7 @@ impl Resource {
         let query = doc! {
             "user": user_id,
             "list": list_id,
-            "completed_at": doc! { "$exists": false }
+            "completed_at": Bson::Null
         };
         let sort = doc! { "position": -1 };
         let options = FindOneOptions::builder().sort(Some(sort)).build();

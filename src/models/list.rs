@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value as JSON;
 use wither::bson::DateTime;
-use wither::bson::{doc, oid::ObjectId};
+use wither::bson::{doc, oid::ObjectId, Bson};
 use wither::mongodb::Database;
 use wither::Model;
 
@@ -68,11 +68,11 @@ impl List {
             .await
             .map_err(ApiError::MongoError)?;
 
-        let completed_resources_count: i64 = Resource::collection(conn)
+        let uncompleted_resources_count: i64 = Resource::collection(conn)
             .count_documents(
                 doc! {
                     "list": &id,
-                    "completed_at": doc! { "$exists": true }
+                    "completed_at": Bson::Null
                 },
                 None,
             )
@@ -85,7 +85,7 @@ impl List {
 
         res["resource_metadata"] = json!({
             "count": resources_count,
-            "completed_count": completed_resources_count,
+            "completed_count": resources_count - uncompleted_resources_count,
             "next": next_resource
         });
 
