@@ -16,7 +16,7 @@ pub struct Claims {
 impl Claims {
     pub fn new(user: &User) -> Self {
         Self {
-            exp: (chrono::Local::now() + chrono::Duration::days(7)).timestamp() as usize,
+            exp: (chrono::Local::now() + chrono::Duration::days(30)).timestamp() as usize,
             iat: chrono::Local::now().timestamp() as usize,
             user: user.to_display(),
         }

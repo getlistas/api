@@ -78,22 +78,33 @@ async fn find_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respo
     };
 
     debug!("Returning list");
-    let res = HttpResponse::Ok().json(list.to_json());
+    let list = list.to_schema(&ctx.database.conn).await?;
+    let res = HttpResponse::Ok().json(list);
     Ok(res)
 }
 
 async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
-    let lists = List::find(&ctx.database.conn, doc! { "user": user.0 }, None)
+    let mut lists = List::find(&ctx.database.conn, doc! { "user": user.0 }, None)
         .await
         .map_err(ApiError::WitherError)?
         .try_collect::<Vec<List>>()
         .await
         .map_err(ApiError::WitherError)?;
 
-    let lists = lists
-        .iter()
-        .map(|list| list.to_json())
-        .collect::<Vec<serde_json::Value>>();
+    let mut populated_lists = vec![];
+    for list in lists.iter_mut() {
+        let conn = ctx.database.conn.clone();
+        let task = async move { list.to_schema(&conn).await };
+        populated_lists.push(task);
+    }
+
+    debug!("Querying list resources metadata");
+    let lists = futures::stream::iter(populated_lists)
+        .buffer_unordered(40)
+        .collect::<Vec<Result<serde_json::Value, errors::ApiError>>>()
+        .await
+        .into_iter()
+        .collect::<Result<serde_json::Value, ApiError>>()?;
 
     debug!("Returning lists");
     let res = HttpResponse::Ok().json(lists);
