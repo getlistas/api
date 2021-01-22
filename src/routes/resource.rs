@@ -155,7 +155,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
         url: body.url.clone(),
         title: body.title.clone(),
         description: body.description.clone(),
-        thumbnail: body.description.clone(),
+        thumbnail: body.thumbnail.clone(),
         created_at: date::now(),
         updated_at: date::now(),
         completed_at: None,
