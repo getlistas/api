@@ -79,9 +79,7 @@ impl List {
             .await
             .map_err(ApiError::MongoError)?;
 
-        let next_resource = Resource::find_next(conn, &user_id, &id)
-            .await
-            .map_err(ApiError::WitherError)?;
+        let next_resource = Resource::find_next(conn, &user_id, &id).await?;
 
         res["resource_metadata"] = json!({
             "count": resources_count,

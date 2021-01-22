@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId, Bson};
-use wither::mongodb;
+use wither::bson::{DateTime, Document};
 use wither::mongodb::options::FindOneOptions;
+use wither::mongodb::Database;
 use wither::Model;
 
 use crate::errors::ApiError;
@@ -28,41 +28,25 @@ pub struct Resource {
 }
 
 impl Resource {
-    pub fn new(body: ResourceCreate, user_id: ObjectId, list_id: ObjectId, position: i32) -> Self {
-        let now = chrono::Utc::now().into();
-        Self {
-            id: None,
-            user: user_id,
-            list: list_id,
-
-            position,
-            url: body.url.clone(),
-            title: body.title.clone(),
-            description: body.description.clone(),
-            thumbnail: body.thumbnail.clone(),
-
-            created_at: now,
-            updated_at: now,
-            completed_at: None,
-        }
-    }
-
     pub async fn find_last(
-        conn: &mongodb::Database,
+        conn: &Database,
         user_id: &ObjectId,
         list_id: &ObjectId,
-    ) -> Result<Option<Self>, wither::WitherError> {
+    ) -> Result<Option<Self>, ApiError> {
         let query = doc! { "user": user_id, "list": list_id };
         let sort = doc! { "position": -1 };
         let options = FindOneOptions::builder().sort(Some(sort)).build();
-        Self::find_one(conn, query, Some(options)).await
+
+        Self::find_one(conn, query, Some(options))
+            .await
+            .map_err(ApiError::WitherError)
     }
 
     pub async fn find_next(
-        conn: &mongodb::Database,
+        conn: &Database,
         user_id: &ObjectId,
         list_id: &ObjectId,
-    ) -> Result<Option<Self>, wither::WitherError> {
+    ) -> Result<Option<Self>, ApiError> {
         let query = doc! {
             "user": user_id,
             "list": list_id,
@@ -70,15 +54,30 @@ impl Resource {
         };
         let sort = doc! { "position": -1 };
         let options = FindOneOptions::builder().sort(Some(sort)).build();
-        Self::find_one(conn, query, Some(options)).await
+
+        Self::find_one(conn, query, Some(options))
+            .await
+            .map_err(ApiError::WitherError)
+    }
+
+    pub async fn get_position(conn: &Database, query: Document) -> Result<Option<i32>, ApiError> {
+        let this = Self::find_one(conn, query, None)
+            .await
+            .map_err(ApiError::WitherError)?;
+
+        match this {
+            Some(this) => Ok(Some(this.position)),
+            None => Ok(None),
+        }
     }
 
     pub async fn find_by_url(
-        conn: &mongodb::Database,
+        conn: &Database,
         user_id: &ObjectId,
         url: String,
     ) -> Result<Option<Self>, ApiError> {
         let query = doc! { "user": user_id, "url": url };
+
         Self::find_one(conn, query, None)
             .await
             .map_err(ApiError::WitherError)
@@ -102,16 +101,6 @@ impl Resource {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResourceCreate {
-    pub list: String,
-    pub url: String,
-    pub title: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub thumbnail: Option<String>,
-}
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResourceUpdate {
     #[serde(skip_serializing_if = "Option::is_none")]
