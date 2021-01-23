@@ -3,6 +3,10 @@ use serde::Deserialize;
 use std::{env, fmt};
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct OAuthSettings {
+    pub client_id: String,
+}
+#[derive(Debug, Clone, Deserialize)]
 pub struct Server {
     pub port: u16,
 }
@@ -24,6 +28,11 @@ pub struct Auth {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct OAuth {
+    pub google: OAuthSettings,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct Mailer {
     pub from: String,
 }
@@ -35,6 +44,7 @@ pub struct Settings {
     pub logger: Logger,
     pub database: Database,
     pub auth: Auth,
+    pub oauth: OAuth,
     pub mailer: Mailer,
     pub base_url: String,
     pub client_url: String,

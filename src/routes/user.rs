@@ -38,9 +38,11 @@ pub struct AuthenticateBody {
 }
 
 #[derive(Deserialize)]
-pub struct GoogleAuthenticateBody {
+pub struct GoogleAuthenticate {
     pub token: String,
 }
+
+type GoogleAuthenticateBody = web::Json<GoogleAuthenticate>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
     cfg.service(web::resource("/users").route(web::post().to(create_user)));
@@ -170,13 +172,11 @@ async fn create_token(ctx: web::Data<Context>, body: web::Json<AuthenticateBody>
 
 async fn create_token_from_google(
     ctx: web::Data<Context>,
-    body: web::Json<GoogleAuthenticateBody>,
+    body: GoogleAuthenticateBody,
 ) -> Response {
-    // Client ID: 580260201094-fqnilnjt95lpl4clqe465cjhh0plde4v.apps.googleusercontent.com
-    // Client Secret: W0sgRNEGq9qIV98-IDuLC-zA
-
     let id_token = &body.token;
-    let google_token = google::validate(id_token).await;
+    let client_id = ctx.settings.oauth.google.client_id.as_str();
+    let google_token = google::validate(id_token, client_id).await;
 
     let google_token = match google_token {
         Ok(token) => token,
@@ -213,15 +213,11 @@ async fn create_token_from_google(
                 name,
                 slug,
                 avatar: Some(avatar),
-
                 google_id: Some(subject),
-
                 verification_token: None,
                 verification_token_set_at: None,
-
                 password_reset_token: None,
                 password_reset_token_set_at: None,
-
                 created_at: now,
                 updated_at: now,
                 verified_at: Some(now),
