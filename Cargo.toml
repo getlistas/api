@@ -39,7 +39,6 @@ version = "1"
 default-features = false
 features = [
   "run-for-all",
-  "prepush-hook",
   "precommit-hook",
   "run-cargo-check",
   "run-cargo-clippy",
