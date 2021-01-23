@@ -23,6 +23,7 @@ use crate::{auth, lib::date};
 struct Query {
     list: Option<String>,
     completed: Option<bool>,
+    sort: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -102,8 +103,17 @@ async fn get_resource_by_id(ctx: Ctx, id: ID, user_id: UserID) -> Response {
 }
 
 async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Response {
+    let sort_option = qs.sort.clone().unwrap_or("position_asc".into());
     let mut query = doc! { "user": user_id.0 };
-    let sort = doc! { "position": -1 };
+
+    let sort = match sort_option.as_str() {
+        "position_asc" => doc! { "position": 1 },
+        "position_des" => doc! { "position": -1 },
+        "date_asc" => doc! { "completed_at": 1, "created_at": 1 },
+        "date_des" => doc! { "completed_at": -1, "created_at": -1 },
+        _ => doc! { "position": 1 },
+    };
+
     let options = FindOptions::builder().sort(Some(sort)).build();
 
     if qs.list.is_some() {
