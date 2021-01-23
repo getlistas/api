@@ -9,6 +9,12 @@
     "secret": "secret"
   },
 
+  "oauth": {
+    "google": {
+      "client_id": ""
+    }
+  },
+
   "logger": {
     "level": "debug"
   },

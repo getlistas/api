@@ -6,8 +6,6 @@ use crate::errors::ApiError;
 // Read more about this implementation
 // https://developers.google.com/identity/sign-in/web/backend-auth
 
-const AUDIENCES: [&'static str; 1] =
-    ["580260201094-fqnilnjt95lpl4clqe465cjhh0plde4v.apps.googleusercontent.com"];
 const HOSTED_DOMAINS: [&'static str; 0] = [];
 
 // https://github.com/wyyerd/google-signin-rs/blob/master/src/token.rs
@@ -38,7 +36,7 @@ pub struct GoogleToken<EF = bool, TM = u64> {
 impl GoogleToken {
     // Check the issuer, audiences, and (optionally) hosted domains of the GoogleToken.
     // Returns false if the client has no configured audiences.
-    pub fn is_valid(&self) -> bool {
+    pub fn is_valid(&self, audiences: [&str; 1]) -> bool {
         // Check the id was authorized by google
         match self.iss.as_str() {
             "accounts.google.com" | "https://accounts.google.com" => {}
@@ -46,7 +44,7 @@ impl GoogleToken {
         }
 
         // Check the token belongs to the Listas application
-        if AUDIENCES.len() > 0 && !AUDIENCES.contains(&self.aud.as_str()) {
+        if audiences.len() > 0 && !audiences.contains(&self.aud.as_str()) {
             return false;
         }
 
@@ -77,7 +75,7 @@ struct Cert {
     r#use: String,
 }
 
-pub async fn validate(token: &str) -> Result<GoogleToken, ApiError> {
+pub async fn validate(token: &str, client_id: &str) -> Result<GoogleToken, ApiError> {
     let unverified_header = jsonwebtoken::decode_header(&token).unwrap();
     let kid = unverified_header.kid.unwrap();
     let certs = get_certs().await.unwrap();
@@ -91,8 +89,9 @@ pub async fn validate(token: &str) -> Result<GoogleToken, ApiError> {
         }
     };
 
+    let audiences = [client_id];
     let mut validation = Validation::new(Algorithm::RS256);
-    validation.set_audience(&AUDIENCES);
+    validation.set_audience(&audiences);
 
     let token_data = jsonwebtoken::decode::<GoogleToken>(
         &token,
@@ -109,7 +108,7 @@ pub async fn validate(token: &str) -> Result<GoogleToken, ApiError> {
 
     let google_token = token_data.claims;
 
-    if google_token.is_valid() {
+    if google_token.is_valid(audiences) {
         Ok(google_token)
     } else {
         return Err(ApiError::GoogleAuthentication {});
