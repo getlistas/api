@@ -62,7 +62,7 @@ impl Settings {
         // Merge config from the environment variables.
         // Eg: `LOGGER_LEVEL=info ./target/listas` would set the `logger.level`
         // value.
-        settings.merge(config::Environment::new().separator("_"))?;
+        settings.merge(config::Environment::new().separator("__"))?;
 
         // Some cloud services like Heroku expose a randomly assigned port in
         // the PORT env var and there is no way to change the env var name.
