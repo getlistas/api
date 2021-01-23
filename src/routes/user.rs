@@ -72,19 +72,16 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
         name: body.name.clone(),
         slug: body.slug.clone(),
         avatar: None,
-
         google_id: None,
-
         verification_token: Some(verification_token),
         verification_token_set_at: Some(now),
-
         password_reset_token: None,
         password_reset_token_set_at: None,
-
         created_at: now,
         updated_at: now,
         verified_at: None,
         locked_at: None,
+        subscription: None,
     };
 
     user.save(&ctx.database.conn, None)
@@ -222,6 +219,7 @@ async fn create_token_from_google(
                 updated_at: now,
                 verified_at: Some(now),
                 locked_at: None,
+                subscription: None,
             };
 
             if !is_google_email_verified {

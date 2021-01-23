@@ -5,7 +5,25 @@ use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
 
 use crate::errors;
+use crate::lib::date;
 use crate::lib::util::create_random_string;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Subscription {
+    pub id: String,
+    pub plan_id: String,
+    pub checkout_id: String,
+    pub status: String,
+    pub updated_at: DateTime,
+
+    // Subscription created attributes
+    pub next_bill_at: Option<DateTime>,
+    pub cancel_url: Option<String>,
+    pub update_url: Option<String>,
+
+    // Subscription cancelled attributes
+    pub cancellation_effective_at: Option<DateTime>,
+}
 
 #[derive(Debug, Model, Serialize, Deserialize)]
 pub struct User {
@@ -31,9 +49,27 @@ pub struct User {
     pub locked_at: Option<DateTime>,
     pub verification_token_set_at: Option<DateTime>,
     pub password_reset_token_set_at: Option<DateTime>,
+
+    pub subscription: Option<Subscription>,
 }
 
 impl User {
+    pub fn is_premium(&self) -> bool {
+        match self.subscription {
+            Some(subscription) => {
+                let expires_at = subscription.cancellation_effective_at;
+                if expires_at.is_none() {
+                    return true;
+                }
+                let now = date::now();
+                let expires_at = expires_at.unwrap();
+
+                expires_at > now
+            }
+            None => false,
+        }
+    }
+
     pub async fn hash_password(password: String) -> Result<String, errors::ApiError> {
         let hash = to_future(move || bcrypt::hash(password, bcrypt::DEFAULT_COST));
 
