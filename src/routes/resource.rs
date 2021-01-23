@@ -273,7 +273,6 @@ async fn complete_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     Ok(res)
 }
 
-// https://softwareengineering.stackexchange.com/questions/195308/storing-a-re-orderable-list-in-a-database
 async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdateBody) -> Response {
     let id = id.0;
     let list_id = to_object_id(body.list.clone())?;
