@@ -44,12 +44,14 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
             .route(web::post().to(fork_list))
             .wrap(auth.clone()),
     );
+
     cfg.service(
         web::resource("/lists")
             .route(web::get().to(query_lists))
             .route(web::post().to(create_list))
             .wrap(auth.clone()),
     );
+
     cfg.service(
         web::resource("/lists/{id}/fork")
             .route(web::post().to(fork_list))
