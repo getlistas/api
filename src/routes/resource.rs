@@ -120,7 +120,7 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
         query.insert("completed_at", doc! { key: Bson::Null });
     }
 
-    let resources = Resource::find(&ctx.database.conn, query, Some(options))
+    let resources = Resource::find(&ctx.database.conn, query, options)
         .await
         .map_err(ApiError::WitherError)?
         .try_collect::<Vec<Resource>>()
