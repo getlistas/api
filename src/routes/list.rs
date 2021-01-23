@@ -8,6 +8,7 @@ use wither::bson;
 use wither::bson::doc;
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
+use wither::mongodb::options::FindOptions;
 use wither::Model;
 
 use crate::errors::ApiError;
@@ -86,7 +87,9 @@ async fn find_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respo
 }
 
 async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
-    let mut lists = List::find(&ctx.database.conn, doc! { "user": user.0 }, None)
+    let sort = doc! { "created_at": 1 };
+    let options = FindOptions::builder().sort(Some(sort)).build();
+    let mut lists = List::find(&ctx.database.conn, doc! { "user": user.0 }, options)
         .await
         .map_err(ApiError::WitherError)?
         .try_collect::<Vec<List>>()

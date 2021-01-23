@@ -84,7 +84,7 @@ impl List {
         res["resource_metadata"] = json!({
             "count": resources_count,
             "completed_count": resources_count - uncompleted_resources_count,
-            "next": next_resource
+            "next": next_resource.map(|resource| resource.to_json())
         });
 
         Ok(res)

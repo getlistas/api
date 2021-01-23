@@ -52,7 +52,7 @@ impl Resource {
             "list": list_id,
             "completed_at": Bson::Null
         };
-        let sort = doc! { "position": -1 };
+        let sort = doc! { "position": 1 };
         let options = FindOneOptions::builder().sort(Some(sort)).build();
 
         Self::find_one(conn, query, Some(options))
