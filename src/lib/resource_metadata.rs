@@ -1,6 +1,7 @@
 use select::document::Document;
 use serde::{Deserialize, Serialize};
 use url::Url;
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WebsiteMetadata {
@@ -27,23 +28,34 @@ pub async fn get_website_metadata(url: &Url) -> Result<WebsiteMetadata, reqwest:
         .filter(|node| node.attr("property").is_some())
         .collect::<Vec<select::node::Node>>();
 
-    let meta_title: Option<String> = metas
+    let mut meta_title: Option<String> = metas
         .iter()
         .find(|meta| meta.attr("property").unwrap() == "og:title")
         .and_then(|meta| meta.attr("content"))
         .map(|value| value.to_owned());
 
-    let meta_description: Option<String> = metas
+    let mut meta_description: Option<String> = metas
         .iter()
         .find(|meta| meta.attr("property").unwrap() == "og:description")
         .and_then(|meta| meta.attr("content"))
         .map(|value| value.to_owned());
 
-    let meta_thumbnail: Option<String> = metas
+    let mut meta_thumbnail: Option<String> = metas
         .iter()
         .find(|meta| meta.attr("property").unwrap() == "og:image")
         .and_then(|meta| meta.attr("content"))
         .map(|value| value.to_owned());
+
+    // Fallback 1 if our basic scrapping was not successful.
+    if meta_title.is_none() || meta_description.is_none() || meta_thumbnail.is_none() {
+        let linkish_metadata = get_metadata_from_linkish(url).await;
+        if linkish_metadata.is_ok() {
+            let linkish_metadata = linkish_metadata.unwrap();
+            meta_title = meta_title.or(linkish_metadata.title);
+            meta_description = meta_description.or(linkish_metadata.description);
+            meta_thumbnail = meta_thumbnail.or(linkish_metadata.image);
+        }
+    }
 
     let metadata = WebsiteMetadata {
         title: meta_title.or(tag_title),
@@ -52,4 +64,25 @@ pub async fn get_website_metadata(url: &Url) -> Result<WebsiteMetadata, reqwest:
     };
 
     Ok(metadata)
+}
+
+
+#[derive(Deserialize, Debug)]
+struct LinkishResponse {
+    title: Option<String>,
+    description: Option<String>,
+    image: Option<String>,
+}
+
+async fn get_metadata_from_linkish(url: &Url) -> Result<LinkishResponse, reqwest::Error> {
+    let mut map = HashMap::new();
+    map.insert("link", url.as_ref());
+
+    let client = reqwest::Client::new();
+    client.post("https://api.linkish.io/scrape-link")
+        .json(&map)
+        .send()
+        .await?
+        .json::<LinkishResponse>()
+        .await
 }
