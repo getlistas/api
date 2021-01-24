@@ -10,7 +10,7 @@ use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::mongodb::options::FindOptions;
 use wither::Model;
 
-use crate::errors::ApiError;
+use crate::{errors::ApiError, lib::util};
 use crate::lib::id::ID;
 use crate::lib::util::to_object_id;
 use crate::models::resource::Resource;
@@ -150,6 +150,7 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
 async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) -> Response {
     let list_id = to_object_id(body.list.clone().into())?;
     let user_id = user_id.0;
+    let url = util::parse_url(body.url.clone().as_str())?;
 
     let last_resource = Resource::find_last(&ctx.database.conn, &user_id, &list_id).await?;
 
@@ -162,7 +163,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
         position,
         user: user_id,
         list: list_id,
-        url: body.url.clone(),
+        url: url.to_string(),
         title: body.title.clone(),
         description: body.description.clone(),
         thumbnail: body.thumbnail.clone(),
