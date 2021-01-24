@@ -1,10 +1,8 @@
 use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
-use crate::auth;
-use crate::errors::ApiError;
+use crate::{auth, lib::util};
 use crate::lib::resource_metadata;
 use crate::models::resource::Resource;
 use crate::models::user::UserID;
@@ -38,7 +36,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
 }
 
 async fn get_resource_metadata(ctx: Ctx, body: web::Json<Body>, user: UserID) -> Response {
-    let url = Url::parse(body.url.as_str()).map_err(|_| ApiError::ParseRequestBody())?;
+    let url = util::parse_url(body.url.as_str())?;
     let website_metadata = resource_metadata::get_website_metadata(&url).await;
     let resource = Resource::find_by_url(&ctx.database.conn, &user.0, url.to_string())
         .await?

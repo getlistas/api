@@ -38,6 +38,9 @@ pub enum ApiError {
 
     #[error("{0}")]
     HashPassword(#[from] actix_web::error::BlockingError<bcrypt::BcryptError>),
+
+    #[error("Failed to parse URL")]
+    ParseURL(),
 }
 
 impl ApiError {
@@ -54,7 +57,8 @@ impl ApiError {
                     }
                     _ => (StatusCode::INTERNAL_SERVER_ERROR, 4044),
                 }
-            }
+            },
+            ApiError::ParseURL() => (StatusCode::BAD_REQUEST, 4045),
 
             // 401
             ApiError::JWT(_) => (StatusCode::UNAUTHORIZED, 4015),
