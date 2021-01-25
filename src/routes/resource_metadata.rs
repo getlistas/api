@@ -2,11 +2,11 @@ use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use serde::{Deserialize, Serialize};
 
-use crate::{auth, lib::util};
 use crate::lib::resource_metadata;
 use crate::models::resource::Resource;
 use crate::models::user::UserID;
 use crate::Context;
+use crate::{auth, lib::util};
 
 type Response = actix_web::Result<HttpResponse>;
 type Ctx = web::Data<Context>;

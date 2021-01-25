@@ -118,7 +118,7 @@ async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
 
 async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) -> Response {
     let now = date::now();
-    let tags = body.tags.clone().map(list::sanitize_tags).unwrap_or(vec![]);
+    let tags = body.tags.clone().map(util::sanitize_tags).unwrap_or(vec![]);
     let slug = util::to_slug_case(body.title.clone());
     let mut list = List {
         id: None,
@@ -245,6 +245,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
             title: resource.title.clone(),
             description: resource.description.clone(),
             thumbnail: resource.thumbnail.clone(),
+            tags: resource.tags.clone(),
             created_at: now,
             updated_at: now,
             completed_at: None,
