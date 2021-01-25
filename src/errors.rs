@@ -15,9 +15,6 @@ pub enum ApiError {
     #[error("Failed to read application shared data")]
     ReadAppData(),
 
-    #[error("Failed to parse request body")]
-    ParseRequestBody(),
-
     #[error("{0}")]
     WitherError(#[from] WitherError),
 
@@ -47,7 +44,7 @@ impl ApiError {
     fn get_codes(&self) -> (StatusCode, u16) {
         match *self {
             // 4XX
-            ApiError::ParseRequestBody() => (StatusCode::BAD_REQUEST, 4041),
+            ApiError::ParseURL() => (StatusCode::BAD_REQUEST, 4041),
             ApiError::ParseObjectID(_) => (StatusCode::BAD_REQUEST, 4042),
             ApiError::WitherError(WitherError::Mongo(MongoError { ref kind, .. })) => {
                 let mongo_error = kind.as_ref();
@@ -57,8 +54,7 @@ impl ApiError {
                     }
                     _ => (StatusCode::INTERNAL_SERVER_ERROR, 4044),
                 }
-            },
-            ApiError::ParseURL() => (StatusCode::BAD_REQUEST, 4045),
+            }
 
             // 401
             ApiError::JWT(_) => (StatusCode::UNAUTHORIZED, 4015),

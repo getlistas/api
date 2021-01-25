@@ -4,8 +4,8 @@ use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
 
-use crate::errors;
 use crate::lib::util::create_random_string;
+use crate::{errors, lib::date};
 
 #[derive(Debug, Model, Serialize, Deserialize)]
 pub struct User {
@@ -48,7 +48,7 @@ impl User {
     }
 
     pub fn set_password_reset_token(&mut self) -> String {
-        let now = chrono::Utc::now().into();
+        let now = date::now();
         let token = create_random_string(40);
 
         self.password_reset_token = Some(token.clone());

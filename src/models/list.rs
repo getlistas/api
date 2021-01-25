@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value as JSON;
@@ -7,8 +6,8 @@ use wither::bson::{doc, oid::ObjectId, Bson};
 use wither::mongodb::Database;
 use wither::Model;
 
-use crate::models::resource::Resource;
 use crate::{errors::ApiError, lib::date};
+use crate::{lib::util, models::resource::Resource};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fork {
@@ -107,18 +106,17 @@ pub struct ListUpdate {
 
 impl ListUpdate {
     pub fn new(update: &mut Self) -> &mut Self {
-        let tags = update.tags.clone().map(sanitize_tags).unwrap_or(vec![]);
+        if update.tags.is_some() {
+            update.tags = Some(
+                update
+                    .tags
+                    .clone()
+                    .map(util::sanitize_tags)
+                    .unwrap_or(vec![]),
+            );
+        }
 
-        update.updated_at = Some(chrono::Utc::now().into());
-        update.tags = Some(tags);
+        update.updated_at = Some(date::now());
         update
     }
-}
-
-pub fn sanitize_tags(tags: Vec<String>) -> Vec<String> {
-    tags.into_iter()
-        .map(|tag| tag.to_lowercase().trim().to_owned())
-        .filter(|tag| tag.len() >= 1)
-        .unique()
-        .collect()
 }

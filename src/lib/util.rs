@@ -1,8 +1,9 @@
 use actix_web::{http, HttpResponse};
 use inflector::Inflector;
+use itertools::Itertools;
 use rand::Rng;
-use wither::bson::oid::ObjectId;
 use url;
+use wither::bson::oid::ObjectId;
 
 use crate::errors::ApiError;
 
@@ -32,12 +33,19 @@ pub fn to_object_id(id: String) -> Result<ObjectId, ApiError> {
 }
 
 pub fn parse_url(url: &str) -> Result<url::Url, ApiError> {
-    let mut url = url::Url::parse(url)
-        .map_err(|_| ApiError::ParseURL())?;
+    let mut url = url::Url::parse(url).map_err(|_| ApiError::ParseURL())?;
 
     url.path_segments_mut()
         .map_err(|_| ApiError::ParseURL())?
         .pop_if_empty();
 
     Ok(url)
+}
+
+pub fn sanitize_tags(tags: Vec<String>) -> Vec<String> {
+    tags.into_iter()
+        .map(|tag| tag.to_lowercase().trim().to_owned())
+        .filter(|tag| tag.len() >= 1)
+        .unique()
+        .collect()
 }

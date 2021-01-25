@@ -7,7 +7,7 @@ use wither::mongodb::Database;
 use wither::Model;
 
 use crate::errors::ApiError;
-use crate::lib::date;
+use crate::lib::{date, util};
 
 #[derive(Debug, Model, Serialize, Deserialize)]
 pub struct Resource {
@@ -15,13 +15,12 @@ pub struct Resource {
     pub id: Option<ObjectId>,
     pub user: ObjectId,
     pub list: ObjectId,
-
     pub url: String,
     pub title: String,
     pub position: i32,
     pub description: Option<String>,
     pub thumbnail: Option<String>,
-
+    pub tags: Vec<String>,
     pub created_at: DateTime,
     pub updated_at: DateTime,
     pub completed_at: Option<DateTime>,
@@ -94,6 +93,7 @@ impl Resource {
             "description": this.description,
             "thumbnail": this.thumbnail,
             "position": this.position,
+            "tags": this.tags,
             "created_at": date::to_rfc3339(this.created_at),
             "updated_at": date::to_rfc3339(this.updated_at),
             "completed_at": this.completed_at.map(|date| date::to_rfc3339(date))
@@ -112,12 +112,24 @@ pub struct ResourceUpdate {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<DateTime>,
 }
 
 impl ResourceUpdate {
     pub fn new(update: &mut Self) -> &mut Self {
-        update.updated_at = Some(chrono::Utc::now().into());
+        if update.tags.is_some() {
+            update.tags = Some(
+                update
+                    .tags
+                    .clone()
+                    .map(util::sanitize_tags)
+                    .unwrap_or(vec![]),
+            );
+        }
+
+        update.updated_at = Some(date::now());
         update
     }
 }

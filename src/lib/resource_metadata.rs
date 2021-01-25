@@ -1,7 +1,7 @@
 use select::document::Document;
 use serde::{Deserialize, Serialize};
-use url::Url;
 use std::collections::HashMap;
+use url::Url;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WebsiteMetadata {
@@ -66,7 +66,6 @@ pub async fn get_website_metadata(url: &Url) -> Result<WebsiteMetadata, reqwest:
     Ok(metadata)
 }
 
-
 #[derive(Deserialize, Debug)]
 struct LinkishResponse {
     title: Option<String>,
@@ -79,7 +78,8 @@ async fn get_metadata_from_linkish(url: &Url) -> Result<LinkishResponse, reqwest
     map.insert("link", url.as_ref());
 
     let client = reqwest::Client::new();
-    client.post("https://api.linkish.io/scrape-link")
+    client
+        .post("https://api.linkish.io/scrape-link")
         .json(&map)
         .send()
         .await?

@@ -10,7 +10,6 @@ use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::mongodb::options::FindOptions;
 use wither::Model;
 
-use crate::{errors::ApiError, lib::util};
 use crate::lib::id::ID;
 use crate::lib::util::to_object_id;
 use crate::models::resource::Resource;
@@ -18,6 +17,7 @@ use crate::models::resource::ResourceUpdate;
 use crate::models::user::UserID;
 use crate::Context;
 use crate::{auth, lib::date};
+use crate::{errors::ApiError, lib::util};
 
 #[derive(Deserialize)]
 struct Query {
@@ -33,6 +33,7 @@ pub struct ResourceCreate {
     pub title: String,
     pub description: Option<String>,
     pub thumbnail: Option<String>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Deserialize)]
@@ -92,7 +93,7 @@ async fn get_resource_by_id(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     let resource = match resource {
         Some(resource) => resource,
         None => {
-            debug!("Resource not found, returning 404");
+            debug!("Resource not found, returning 404 status code");
             return Ok(HttpResponse::NotFound().finish());
         }
     };
@@ -151,6 +152,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     let list_id = to_object_id(body.list.clone().into())?;
     let user_id = user_id.0;
     let url = util::parse_url(body.url.clone().as_str())?;
+    let tags = body.tags.clone().map(util::sanitize_tags).unwrap_or(vec![]);
 
     let last_resource = Resource::find_last(&ctx.database.conn, &user_id, &list_id).await?;
 
@@ -161,6 +163,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     let mut resource = Resource {
         id: None,
         position,
+        tags,
         user: user_id,
         list: list_id,
         url: url.to_string(),
@@ -212,7 +215,7 @@ async fn update_resource(
     let resource = match resource {
         Some(resource) => resource,
         None => {
-            debug!("Resource not found, returning 404");
+            debug!("Resource not found, returning 404 status code");
             return Ok(HttpResponse::NotFound().finish());
         }
     };
@@ -236,11 +239,11 @@ async fn remove_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
 
     let res = match resource {
         Some(_) => {
-            debug!("Resource removed, returning 204");
+            debug!("Resource removed, returning 204 status code");
             HttpResponse::NoContent().finish()
         }
         None => {
-            debug!("Resource not found, returning 404");
+            debug!("Resource not found, returning 404 status code");
             HttpResponse::NotFound().finish()
         }
     };
@@ -263,23 +266,23 @@ async fn complete_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     let mut resource = match resource {
         Some(resource) => resource,
         None => {
-            debug!("Resource not found, returning 404");
+            debug!("Resource not found, returning 404 status code");
             return Ok(HttpResponse::NotFound().finish());
         }
     };
 
     if resource.completed_at.is_some() {
-        debug!("Resource was already completed, returnig 400");
+        debug!("Resource was already completed, returnig 400 status code");
         return Ok(HttpResponse::BadRequest().finish());
     }
 
-    resource.completed_at = Some(chrono::Utc::now().into());
+    resource.completed_at = Some(date::now());
     resource
         .save(&ctx.database.conn, None)
         .await
         .map_err(ApiError::WitherError)?;
 
-    debug!("Resource marked as completed, returning 202");
+    debug!("Resource marked as completed, returning 202 status code");
     let res = HttpResponse::Accepted().finish();
     Ok(res)
 }
