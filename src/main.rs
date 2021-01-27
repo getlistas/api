@@ -14,6 +14,7 @@ mod mailer;
 mod models;
 mod routes;
 mod settings;
+mod integrations;
 
 use context::Context;
 use database::Database;
