@@ -2,10 +2,9 @@ use config::{Config, ConfigError};
 use serde::Deserialize;
 use std::{env, fmt};
 
-
 #[derive(Debug, Clone, Deserialize)]
-struct RSSAPI {
-    pub token: String
+pub struct RSS {
+    pub token: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -54,7 +53,7 @@ pub struct Settings {
     pub mailer: Mailer,
     pub base_url: String,
     pub client_url: String,
-    pub rss: RSSAPI,
+    pub rss: RSS,
 }
 
 impl Settings {

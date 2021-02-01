@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use url::Url;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct WebsiteMetadata {
+    pub can_resolve: bool,
     pub title: Option<String>,
     pub description: Option<String>,
     pub thumbnail: Option<String>,
@@ -13,10 +14,18 @@ pub struct WebsiteMetadata {
 // Some websites like Twitter or Facebook has their own metatags format (Not OGP)
 // Read more about The Open Graph protocol https://ogp.me
 // Read more about meta tags https://css-tricks.com/essential-meta-tags-social-media/
-pub async fn get_website_metadata(url: &Url) -> Result<WebsiteMetadata, reqwest::Error> {
-    let res = reqwest::get(url.as_ref()).await?.text().await?;
+pub async fn get_website_metadata(url: &Url) -> WebsiteMetadata {
+    let res = match reqwest::get(url.as_ref()).await {
+        Ok(res) => res,
+        Err(_) => return WebsiteMetadata::default(),
+    };
 
-    let document = Document::from(res.as_str());
+    let website = match res.text().await {
+        Ok(website) => website,
+        Err(_) => return WebsiteMetadata::default(),
+    };
+
+    let document = Document::from(website.as_str());
 
     let tag_title = document
         .find(select::predicate::Name("title"))
@@ -57,13 +66,12 @@ pub async fn get_website_metadata(url: &Url) -> Result<WebsiteMetadata, reqwest:
         }
     }
 
-    let metadata = WebsiteMetadata {
+    WebsiteMetadata {
+        can_resolve: true,
         title: meta_title.or(tag_title),
         description: meta_description,
         thumbnail: meta_thumbnail,
-    };
-
-    Ok(metadata)
+    }
 }
 
 #[derive(Deserialize, Debug)]

@@ -79,6 +79,7 @@ impl User {
 
 // This struct is used in actix extractors to retrieve the user ObjectID from
 // the authentication token.
+#[derive(Clone)]
 pub struct UserID(pub ObjectId);
 
 #[derive(Debug, Serialize, Deserialize)]

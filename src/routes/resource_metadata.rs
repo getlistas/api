@@ -42,24 +42,9 @@ async fn get_resource_metadata(ctx: Ctx, body: web::Json<Body>, user: UserID) ->
         .await?
         .map(|resource| resource.to_json());
 
-    let website_metadata = match website_metadata {
-        Ok(website_metadata) => website_metadata,
-        Err(_) => {
-            debug!("Can not resolve url, returning metadata to the client");
-            let metadata = ResourceMetadata {
-                resource,
-                can_resolve: false,
-                title: None,
-                description: None,
-                thumbnail: None,
-            };
-            return Ok(HttpResponse::Ok().json(metadata));
-        }
-    };
-
     let metadata = ResourceMetadata {
         resource,
-        can_resolve: true,
+        can_resolve: website_metadata.can_resolve,
         title: website_metadata.title,
         description: website_metadata.description,
         thumbnail: website_metadata.thumbnail,
