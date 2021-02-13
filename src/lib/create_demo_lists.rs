@@ -18,7 +18,7 @@ pub async fn create(database: &Database, user: ObjectId) -> Result<(), ApiError>
   let resource_description = "";
   let resource_thumbnail = "";
 
-  let tags = vec!["demo"];
+  let tags = vec!["demo".to_owned()];
 
   let now = date::now();
   let mut list = List {
@@ -48,7 +48,7 @@ pub async fn create(database: &Database, user: ObjectId) -> Result<(), ApiError>
     url: resource_url.to_owned(),
     title: resource_title.to_owned(),
     description: Some(resource_description.to_owned()),
-    thumbnail: resource_thumbnail.to_owned(),
+    thumbnail: Some(resource_thumbnail.to_owned()),
     created_at: now,
     updated_at: now,
     completed_at: None,
