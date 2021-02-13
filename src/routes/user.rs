@@ -92,8 +92,9 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
   ctx.send_email(confirm_email).await;
 
 
-  debug!("Creating demo lists and resources for new user");
-  create_demo_lists::create(&ctx.database.conn, user.id.clone().unwrap()).await?;
+  // TODO: Create demo resource on dev.to or medium.
+  // debug!("Creating demo lists and resources for new user");
+  // create_demo_lists::create(&ctx.database.conn, user.id.clone().unwrap()).await?;
 
   debug!("Returning created user");
   let res = HttpResponse::Created().json(user.to_display());
