@@ -17,7 +17,7 @@ pub fn create_confirm_email(base_url: &String, user: &User) -> EmailBuilder {
           h2 { "Hello from Listas!" }
           p { "Dear " (user.name) "," }
           p {
-              "To use your account, please confirm your Listas email address "
+              "To use your Listas account, please confirm your email address "
               a href={(callback_url)} { "here" }
           }
       }
@@ -44,7 +44,7 @@ pub fn create_password_reset_email(base_url: &String, user: &User) -> EmailBuild
           p { "Dear " (user.name) "," }
           p {
               "We received a request to reset the password for the Listas account "
-              "associated with your email. Click "
+              "associated with your email address. Click "
               a href={(callback_url)} { "here" }
               " to proceed."
           }

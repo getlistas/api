@@ -35,7 +35,6 @@ impl Resource {
     let query = doc! { "user": user_id, "list": list_id };
     let sort = doc! { "position": -1 };
     let options = FindOneOptions::builder().sort(Some(sort)).build();
-
     Self::find_one(conn, query, Some(options))
       .await
       .map_err(ApiError::WitherError)
@@ -53,6 +52,24 @@ impl Resource {
     };
     let sort = doc! { "position": 1 };
     let options = FindOneOptions::builder().sort(Some(sort)).build();
+
+    Self::find_one(conn, query, Some(options))
+      .await
+      .map_err(ApiError::WitherError)
+  }
+
+  pub async fn find_last_completed(
+    conn: &Database,
+    user_id: &ObjectId,
+    list_id: &ObjectId,
+  ) -> Result<Option<Self>, ApiError> {
+    let query = doc! {
+        "user": user_id,
+        "list": list_id,
+        "completed_at": doc! { "$exists": true }
+    };
+    let sort = doc! { "completed_at": -1 };
+    let options = FindOneOptions::builder().sort(sort).build();
 
     Self::find_one(conn, query, Some(options))
       .await

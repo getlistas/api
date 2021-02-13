@@ -88,7 +88,7 @@ async fn find_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respo
 
 async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
   let sort = doc! { "created_at": 1 };
-  let options = FindOptions::builder().sort(Some(sort)).build();
+  let options = FindOptions::builder().sort(sort).build();
   let mut lists = List::find(&ctx.database.conn, doc! { "user": user.0 }, options)
     .await
     .map_err(ApiError::WitherError)?
@@ -105,7 +105,7 @@ async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
 
   debug!("Querying list resources metadata");
   let lists = futures::stream::iter(populated_lists)
-    .buffer_unordered(40)
+    .buffered(50)
     .collect::<Vec<Result<serde_json::Value, errors::ApiError>>>()
     .await
     .into_iter()
@@ -267,7 +267,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
 
   debug!("Storing forked resources");
   futures::stream::iter(resource_futures)
-    .buffer_unordered(20)
+    .buffer_unordered(50)
     .collect::<Vec<Result<(), errors::ApiError>>>()
     .await
     .into_iter()

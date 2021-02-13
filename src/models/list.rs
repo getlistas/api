@@ -79,10 +79,15 @@ impl List {
       .map_err(ApiError::MongoError)?;
 
     let next_resource = Resource::find_next(conn, &user_id, &id).await?;
+    let last_completed_resource = Resource::find_last_completed(conn, &user_id, &id).await?;
+    let last_completed_at = last_completed_resource
+      .map(|resource| resource.completed_at)
+      .and_then(|completed_at| completed_at.map(date::to_rfc3339));
 
     res["resource_metadata"] = json!({
         "count": resources_count,
         "completed_count": resources_count - uncompleted_resources_count,
+        "last_completed_at": last_completed_at,
         "next": next_resource.map(|resource| resource.to_json())
     });
 
