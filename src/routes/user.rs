@@ -4,7 +4,7 @@ use serde_json::json;
 use wither::bson::doc;
 use wither::Model;
 
-use crate::lib::create_demo_lists;
+// use crate::lib::create_demo_lists;
 use crate::lib::date;
 use crate::lib::token;
 use crate::models::user::User;

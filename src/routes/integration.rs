@@ -1,17 +1,15 @@
 use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::stream::StreamExt;
-use itertools::Update;
 use serde::Deserialize;
 use wither::bson::doc;
 use wither::Model;
-use wither::WitherError;
 
 use crate::auth;
 use crate::errors::ApiError;
 use crate::lib::util::parse_url;
 use crate::lib::util::to_object_id;
-use crate::lib::{date, resource_metadata};
+use crate::lib::{date};
 use crate::models::integration::{Integration, RSS};
 use crate::models::list::List;
 use crate::models::{resource::Resource, user::UserID};
