@@ -7,7 +7,7 @@ use crate::lib::date;
 use crate::lib::resource_metadata;
 use crate::lib::util::parse_url;
 use crate::models::resource::Resource;
-use crate::{errors::ApiError as Error, models::list};
+use crate::errors::ApiError as Error;
 
 // https://rssapi.net/docs
 #[derive(Clone)]
@@ -18,6 +18,15 @@ pub struct RSS {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct Webhook {
+  pub webhook_reason: String,
+  pub subscription_id: String,
+  pub info: Option<String>,
+  pub new_entries_count: usize,
+  pub new_entries: Vec<Entry>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Entry {
   pub title: String,
   pub link: String,
@@ -107,18 +116,21 @@ impl RSS {
     }
   }
 
-  pub async fn unsuscribe(&self, id: String) -> Result<UnsuscribeResponse, Error> {
+  pub async fn unsuscribe(&self, subscription_id: &str) -> Result<(), Error> {
     let res = self
       .client
       .get(format!("{}/removeSubscription", self.base_url).as_str())
-      .query(&[("id", id.as_str())])
+      .query(&[("id", subscription_id)])
       .send()
       .await?
-      .json::<UnsuscribeResponse>()
+      .json::<Response<UnsuscribeResponse>>()
       .await
       .map_err(Error::ContactRSSIntegration)?;
 
-    Ok(res)
+    match res.ok {
+      true => Ok(()),
+      false => return Err(Error::RSSIntegration(res.error.unwrap())),
+    }
   }
 
   pub async fn is_valid_url(&self, url: &Url) -> Result<bool, Error> {
@@ -138,7 +150,7 @@ impl RSS {
     }
   }
 
-  async fn create_resource_from_entry(
+  pub async fn create_resource_from_entry(
     entry: &Entry,
     user: &ObjectId,
     list: &ObjectId,
