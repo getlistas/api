@@ -1,6 +1,7 @@
 use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::stream::StreamExt;
+use itertools::Update;
 use serde::Deserialize;
 use wither::bson::doc;
 use wither::Model;
@@ -11,6 +12,7 @@ use crate::errors::ApiError;
 use crate::lib::util::parse_url;
 use crate::lib::util::to_object_id;
 use crate::lib::{date, resource_metadata};
+use crate::models::integration::{Integration, RSS};
 use crate::models::list::List;
 use crate::models::{resource::Resource, user::UserID};
 use crate::Context;
@@ -37,18 +39,14 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
 
 async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) -> Response {
   let list_id = to_object_id(body.list.clone())?;
+  let user_id = user_id.0;
   let url = parse_url(body.url.as_str())?;
-
-  if !ctx.rss.is_valid_url(&url).await? {
-    debug!("Requested URL does not contains a valid RSS feed");
-    return Ok(HttpResponse::BadRequest().finish());
-  }
 
   let list = List::find_one(
     &ctx.database.conn,
     doc! {
         "_id": &list_id,
-        "user": &user_id.0,
+        "user": &user_id,
     },
     None,
   )
@@ -63,12 +61,39 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
     }
   };
 
+  if !ctx.rss.is_valid_url(&url).await? {
+    debug!("Requested URL does not contains a valid RSS feed");
+    return Ok(HttpResponse::BadRequest().finish());
+  }
+
+  let now = date::now();
+  let subscription = ctx.rss.subscribe(&url).await?;
+  let mut integration = Integration {
+    id: None,
+    user: user_id.clone(),
+    list: list_id.clone(),
+    created_at: now,
+    updated_at: now,
+    rss: Some(RSS {
+      url: subscription.url,
+      subscription_id: subscription.subscription_id,
+      status: subscription.status,
+      feed_type: subscription.feed_type,
+      metadata: subscription.info,
+    }),
+  };
+
+  integration
+    .save(&ctx.database.conn, None)
+    .await
+    .map_err(ApiError::WitherError)?;
+
   let mut resources = ctx
     .rss
-    .build_resources_from_feed(&url, &user_id.0, &list_id)
+    .build_resources_from_feed(&url, &user_id, &list_id)
     .await?;
 
-  let last_resource = Resource::find_last(&ctx.database.conn, &user_id.0, &list_id).await?;
+  let last_resource = Resource::find_last(&ctx.database.conn, &user_id, &list_id).await?;
   let position = last_resource
     .map(|resource| resource.position + 1)
     .unwrap_or(0);

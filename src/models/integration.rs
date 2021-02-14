@@ -7,23 +7,26 @@ use wither::Model;
 use crate::lib::util::create_random_string;
 use crate::{errors, lib::date};
 
-
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RSS {
   pub url: String,
-  pub external_subscription_id: String
+  pub subscription_id: String,
+  pub status: String,
+  pub feed_type: String,
+  pub metadata: Option<String>,
 }
 
 #[derive(Debug, Model, Serialize, Deserialize)]
 pub struct Integration {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
-    pub user: ObjectId,
-    pub list: ObjectId,
+  #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+  pub id: Option<ObjectId>,
+  pub user: ObjectId,
+  pub list: ObjectId,
 
-    pub rss: Option<RSS>,
+  pub rss: Option<RSS>,
 
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
+  pub created_at: DateTime,
+  pub updated_at: DateTime,
 }
 
 impl Integration {
