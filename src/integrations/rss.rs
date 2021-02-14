@@ -31,7 +31,14 @@ pub struct GetResponse {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct SubscribeResponse {}
+pub struct SubscribeResponse {
+  pub status: String,
+  pub subscription_id: String,
+  pub feed_type: String,
+  pub webhook_url: String,
+  pub url: String,
+  pub info: Option<String>,
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct UnsuscribeResponse {}
@@ -81,7 +88,7 @@ impl RSS {
     }
   }
 
-  pub async fn subscribe(&self, url: Url) -> Result<SubscribeResponse, Error> {
+  pub async fn subscribe(&self, url: &Url) -> Result<SubscribeResponse, Error> {
     let url_qs = ("url", url.as_str());
 
     let res = self
@@ -90,11 +97,14 @@ impl RSS {
       .query(&[url_qs])
       .send()
       .await?
-      .json::<SubscribeResponse>()
+      .json::<Response<SubscribeResponse>>()
       .await
       .map_err(Error::ContactRSSIntegration)?;
 
-    Ok(res)
+    match res.ok {
+      true => Ok(res.result.unwrap()),
+      false => return Err(Error::RSSIntegration(res.error.unwrap())),
+    }
   }
 
   pub async fn unsuscribe(&self, id: String) -> Result<UnsuscribeResponse, Error> {
