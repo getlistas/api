@@ -4,6 +4,7 @@ use futures::stream::StreamExt;
 use serde::Deserialize;
 use wither::bson::doc;
 use wither::Model;
+use wither::WitherError;
 
 use crate::auth;
 use crate::errors::ApiError;
@@ -29,14 +30,19 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
 
   cfg.service(
     web::resource("/integrations/rss")
-      .route(web::post().to(create_integration))
+      .route(web::post().to(create_rss_integration))
       .wrap(auth.clone()),
   );
 }
 
-async fn create_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) -> Response {
+async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) -> Response {
   let list_id = to_object_id(body.list.clone())?;
   let url = parse_url(body.url.as_str())?;
+
+  if !ctx.rss.is_valid_url(&url).await? {
+    debug!("Requested URL does not contains a valid RSS feed");
+    return Ok(HttpResponse::BadRequest().finish());
+  }
 
   let list = List::find_one(
     &ctx.database.conn,
@@ -57,71 +63,34 @@ async fn create_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) -> R
     }
   };
 
-  let mut rss_entries = ctx.rss.get_entries(&url).await?;
-  let conn = ctx.database.conn.clone();
-  let mut resources_from_entries_futures = vec![];
-  for entry in rss_entries.iter_mut() {
-    let conn = conn.clone();
-    let user_id = user_id.clone();
-    let list_id = list_id.clone();
-
-    let task = async move {
-      let url = parse_url(entry.link.as_str()).unwrap();
-      let metadata = resource_metadata::get_website_metadata(&url).await;
-
-      let resource = Resource {
-        id: None,
-        // Placeholder position, we are not saving the resource yet.
-        position: 0,
-        // TODO allow user to add custom tags to all integration
-        // resources.
-        tags: vec![],
-        user: user_id.0,
-        list: list_id,
-        url: url.to_string(),
-        title: entry.title.clone(),
-        // TODO Use metadata description if no description was found in
-        // the RSS response.
-        description: Some(entry.description.clone()),
-        thumbnail: metadata.thumbnail,
-        created_at: date::now(),
-        updated_at: date::now(),
-        completed_at: None,
-      };
-
-      resource
-    };
-
-    resources_from_entries_futures.push(task);
-  }
-
-  debug!("Fetching resources metadata from RSS feed");
-  let mut resources = futures::stream::iter(resources_from_entries_futures)
-    .buffer_unordered(10)
-    .collect::<Vec<Resource>>()
-    .await;
+  let mut resources = ctx
+    .rss
+    .build_resources_from_feed(&url, &user_id.0, &list_id)
+    .await?;
 
   let last_resource = Resource::find_last(&ctx.database.conn, &user_id.0, &list_id).await?;
   let position = last_resource
     .map(|resource| resource.position + 1)
     .unwrap_or(0);
 
-  let mut resource_futures = vec![];
-  for (index, resource) in resources.iter_mut().enumerate() {
-    let conn = ctx.database.conn.clone();
-    let task = async move {
+  let resources = resources
+    .iter_mut()
+    .enumerate()
+    .map(move |(index, resource)| {
+      let conn = ctx.database.conn.clone();
       resource.position = position + (index as i32);
-      resource
-        .save(&conn, None)
-        .await
-        .map_err(ApiError::WitherError)
-    };
-    resource_futures.push(task);
-  }
+
+      async move {
+        resource
+          .save(&conn, None)
+          .await
+          .map_err(ApiError::WitherError)
+      }
+    });
 
   debug!("Creating resources from RSS feed");
-  futures::stream::iter(resource_futures)
-    .buffer_unordered(20)
+  futures::stream::iter(resources)
+    .buffer_unordered(10)
     .collect::<Vec<Result<(), ApiError>>>()
     .await
     .into_iter()

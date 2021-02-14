@@ -4,9 +4,9 @@ use serde_json::json;
 use wither::bson::doc;
 use wither::Model;
 
+use crate::lib::create_demo_lists;
 use crate::lib::date;
 use crate::lib::token;
-use crate::lib::create_demo_lists;
 use crate::models::user::User;
 use crate::Context;
 use crate::{emails, lib::google};
@@ -90,7 +90,6 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
   debug!("Sending confirm email to the user {}", &user.email);
   let confirm_email = emails::create_confirm_email(&ctx.settings.base_url, &user);
   ctx.send_email(confirm_email).await;
-
 
   // TODO: Create demo resource on dev.to or medium.
   // debug!("Creating demo lists and resources for new user");

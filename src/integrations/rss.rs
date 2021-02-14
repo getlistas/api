@@ -1,7 +1,13 @@
+use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use url::Url;
+use wither::bson::oid::ObjectId;
 
-use crate::errors::ApiError as Error;
+use crate::lib::date;
+use crate::lib::resource_metadata;
+use crate::lib::util::parse_url;
+use crate::models::resource::Resource;
+use crate::{errors::ApiError as Error, models::list};
 
 // https://rssapi.net/docs
 #[derive(Clone)]
@@ -20,16 +26,10 @@ pub struct Entry {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Entries {
+pub struct GetResponse {
   entries: Vec<Entry>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct GetResponse {
-  ok: bool,
-  error: Option<String>,
-  result: Entries,
-}
 #[derive(Serialize, Deserialize)]
 pub struct SubscribeResponse {}
 
@@ -37,7 +37,19 @@ pub struct SubscribeResponse {}
 pub struct UnsuscribeResponse {}
 
 #[derive(Serialize, Deserialize)]
-pub struct ValidateResponse {}
+pub struct ValidateResponse {
+  valid_feed: bool,
+  feed_type: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Response<T> {
+  ok: bool,
+  // RSS API returns a human readable error message when ok is false. It is safe
+  // to unwrap error and result based on the ok value.
+  error: Option<String>,
+  result: Option<T>,
+}
 
 impl RSS {
   pub fn new(application_key: String) -> Self {
@@ -49,9 +61,9 @@ impl RSS {
   }
 
   pub async fn get_entries(&self, url: &Url) -> Result<Vec<Entry>, Error> {
-    let url_qs = ("url[]", url.as_str());
     let limit_qs = ("limit", "10");
     let sort_qs = ("sort", "asc");
+    let url_qs = ("url", url.as_str());
 
     let res = self
       .client
@@ -59,11 +71,14 @@ impl RSS {
       .query(&[url_qs, limit_qs, sort_qs])
       .send()
       .await?
-      .json::<GetResponse>()
+      .json::<Response<GetResponse>>()
       .await
-      .map_err(Error::SubscribeToRSS)?;
+      .map_err(Error::ContactRSSIntegration)?;
 
-    Ok(res.result.entries)
+    match res.ok {
+      true => Ok(res.result.unwrap().entries),
+      false => Err(Error::RSSIntegration(res.error.unwrap())),
+    }
   }
 
   pub async fn subscribe(&self, url: Url) -> Result<SubscribeResponse, Error> {
@@ -77,7 +92,7 @@ impl RSS {
       .await?
       .json::<SubscribeResponse>()
       .await
-      .map_err(Error::SubscribeToRSS)?;
+      .map_err(Error::ContactRSSIntegration)?;
 
     Ok(res)
   }
@@ -91,22 +106,76 @@ impl RSS {
       .await?
       .json::<UnsuscribeResponse>()
       .await
-      .map_err(Error::SubscribeToRSS)?;
+      .map_err(Error::ContactRSSIntegration)?;
 
     Ok(res)
   }
 
-  pub async fn validate(&self, url: Url) -> Result<ValidateResponse, Error> {
+  pub async fn is_valid_url(&self, url: &Url) -> Result<bool, Error> {
     let res = self
       .client
       .get(format!("{}/validate", self.base_url).as_str())
       .query(&[("url", url.as_str())])
       .send()
       .await?
-      .json::<ValidateResponse>()
+      .json::<Response<ValidateResponse>>()
       .await
-      .map_err(Error::SubscribeToRSS)?;
+      .map_err(Error::ContactRSSIntegration)?;
 
-    Ok(res)
+    match res.ok {
+      true => Ok(res.result.unwrap().valid_feed),
+      false => return Err(Error::RSSIntegration(res.error.unwrap())),
+    }
+  }
+
+  async fn create_resource_from_entry(
+    entry: &Entry,
+    user: &ObjectId,
+    list: &ObjectId,
+  ) -> Result<Resource, Error> {
+    let now = date::now();
+    let url = parse_url(entry.link.as_str())?;
+    let metadata = resource_metadata::get_website_metadata(&url).await?;
+
+    let resource = Resource {
+      id: None,
+      user: user.clone(),
+      list: list.clone(),
+      // Placeholder position, we are not saving the resource yet.
+      position: 0,
+      // TODO allow user to add custom tags to all integration resources.
+      tags: vec![],
+      url: url.to_string(),
+      title: entry.title.clone(),
+      // TODO Use metadata description if no description was found in
+      // the RSS response.
+      description: Some(entry.description.clone()),
+      thumbnail: metadata.thumbnail,
+      created_at: now,
+      updated_at: now,
+      completed_at: None,
+    };
+
+    Ok(resource)
+  }
+
+  pub async fn build_resources_from_feed(
+    &self,
+    url: &Url,
+    user: &ObjectId,
+    list: &ObjectId,
+  ) -> Result<Vec<Resource>, Error> {
+    let mut entries = self.get_entries(&url).await?;
+
+    let resources_futures = entries
+      .iter_mut()
+      .map(|entry| Self::create_resource_from_entry(entry, &user, &list));
+
+    futures::stream::iter(resources_futures)
+      .buffered(10)
+      .collect::<Vec<Result<Resource, Error>>>()
+      .await
+      .into_iter()
+      .collect::<Result<Vec<Resource>, Error>>()
   }
 }
