@@ -35,7 +35,6 @@ impl Resource {
     let query = doc! { "user": user_id, "list": list_id };
     let sort = doc! { "position": -1 };
     let options = FindOneOptions::builder().sort(Some(sort)).build();
-
     Self::find_one(conn, query, Some(options))
       .await
       .map_err(ApiError::WitherError)
@@ -78,12 +77,12 @@ impl Resource {
   }
 
   pub async fn get_position(conn: &Database, query: Document) -> Result<Option<i32>, ApiError> {
-    let this = Self::find_one(conn, query, None)
+    let resource = Self::find_one(conn, query, None)
       .await
       .map_err(ApiError::WitherError)?;
 
-    match this {
-      Some(this) => Ok(Some(this.position)),
+    match resource {
+      Some(resource) => Ok(Some(resource.position)),
       None => Ok(None),
     }
   }

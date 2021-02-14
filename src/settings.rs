@@ -3,6 +3,11 @@ use serde::Deserialize;
 use std::{env, fmt};
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct RSS {
+  pub token: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct OAuthSettings {
   pub client_id: String,
 }
@@ -48,6 +53,7 @@ pub struct Settings {
   pub mailer: Mailer,
   pub base_url: String,
   pub client_url: String,
+  pub rss: RSS,
 }
 
 impl Settings {

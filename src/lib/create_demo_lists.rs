@@ -2,13 +2,12 @@ use wither::bson::oid::ObjectId;
 use wither::mongodb::Database;
 use wither::Model;
 
+use crate::errors::ApiError;
+use crate::lib::date;
 use crate::models::list::List;
 use crate::models::resource::Resource;
-use crate::lib::date;
-use crate::errors::ApiError;
 
 pub async fn create(database: &Database, user: ObjectId) -> Result<(), ApiError> {
-
   let list_title = "Demo list";
   let list_description = "This is a demo list create automatically";
   let list_slug = "demo-list";

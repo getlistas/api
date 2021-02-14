@@ -8,6 +8,7 @@ mod context;
 mod database;
 mod emails;
 mod errors;
+mod integrations;
 mod lib;
 mod logger;
 mod mailer;
@@ -43,10 +44,13 @@ async fn main() {
     Err(_) => panic!("Failed to setup mailer"),
   };
 
+  let rss = integrations::rss::RSS::new(settings.rss.token.clone());
+
   let context = web::Data::new(Context {
     database: database.clone(),
     mailer: mailer.clone(),
     settings: settings.clone(),
+    rss: rss.clone(),
   });
 
   let port = settings.server.port;
@@ -65,6 +69,8 @@ async fn main() {
       .configure(routes::list_by_slug::create_router)
       .configure(routes::discover::create_router)
       .configure(routes::resource_metadata::create_router)
+      .configure(routes::integration::create_router)
+      .configure(routes::webhooks::rss::create_router)
       .service(web::scope("/").configure(routes::index::create_router))
   })
   .bind(("0.0.0.0", port))

@@ -1,6 +1,7 @@
 use lettre_email::EmailBuilder;
 
 use crate::database::Database;
+use crate::integrations::rss::RSS;
 use crate::mailer::Mailer;
 use crate::settings::Settings;
 
@@ -9,6 +10,7 @@ pub struct Context {
   pub database: Database,
   pub mailer: Mailer,
   pub settings: Settings,
+  pub rss: RSS,
 }
 
 impl Context {

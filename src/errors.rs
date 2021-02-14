@@ -38,6 +38,12 @@ pub enum ApiError {
 
   #[error("Failed to parse URL")]
   ParseURL(),
+
+  #[error("{0}")]
+  ContactRSSIntegration(#[from] reqwest::Error),
+
+  #[error("RSS Integration error: {0}")]
+  RSSIntegration(String),
 }
 
 impl ApiError {
@@ -66,6 +72,8 @@ impl ApiError {
       ApiError::ReadAppData() => (StatusCode::INTERNAL_SERVER_ERROR, 5002),
       ApiError::MongoError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5003),
       ApiError::HashPassword(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5004),
+      ApiError::ContactRSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5005),
+      ApiError::RSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
     }
   }
 }
