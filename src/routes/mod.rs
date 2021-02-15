@@ -1,5 +1,6 @@
 pub mod discover;
 pub mod index;
+pub mod integration;
 pub mod list;
 pub mod list_by_slug;
 pub mod resource;

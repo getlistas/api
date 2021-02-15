@@ -29,6 +29,9 @@
   },
 
   "base_url": "http://localhost:8080",
+  "client_url": "http://localhost:1234",
 
-  "client_url": "http://localhost:1234"
+  "rss": {
+    "token": "47b06074bad7738fd96c27d0b18ddbd8"
+  }
 }
