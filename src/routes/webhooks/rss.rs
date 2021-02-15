@@ -3,12 +3,12 @@ use futures::StreamExt;
 use wither::bson::doc;
 use wither::Model;
 
-use crate::errors::ApiError;
+use crate::errors::ApiError as Error;
 use crate::integrations::rss;
 use crate::models::integration::Integration;
 use crate::models::list::List;
-use crate::Context;
 use crate::models::resource::Resource;
+use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
 type WebhookBody = web::Json<rss::Webhook>;
@@ -33,7 +33,7 @@ async fn rssapi(ctx: web::Data<Context>, body: WebhookBody) -> Response {
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let integration = match integration {
     Some(integration) => integration,
@@ -53,7 +53,7 @@ async fn rssapi(ctx: web::Data<Context>, body: WebhookBody) -> Response {
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let list = match list {
     Some(list) => list,
@@ -71,11 +71,11 @@ async fn rssapi(ctx: web::Data<Context>, body: WebhookBody) -> Response {
     .map(|entry| rss::RSS::create_resource_from_entry(entry, &user_id, &list_id));
 
   let mut resources = futures::stream::iter(resources)
-      .buffered(10)
-      .collect::<Vec<Result<Resource, ApiError>>>()
-      .await
-      .into_iter()
-      .collect::<Result<Vec<Resource>, ApiError>>()?;
+    .buffered(10)
+    .collect::<Vec<Result<Resource, Error>>>()
+    .await
+    .into_iter()
+    .collect::<Result<Vec<Resource>, Error>>()?;
 
   let last_resource = Resource::find_last(&ctx.database.conn, &user_id, &list_id).await?;
   let position = last_resource
@@ -89,21 +89,16 @@ async fn rssapi(ctx: web::Data<Context>, body: WebhookBody) -> Response {
       let conn = ctx.database.conn.clone();
       resource.position = position + (index as i32);
 
-      async move {
-        resource
-          .save(&conn, None)
-          .await
-          .map_err(ApiError::WitherError)
-      }
+      async move { resource.save(&conn, None).await.map_err(Error::WitherError) }
     });
 
   debug!("Creating resources from RSS feed");
   futures::stream::iter(resources)
     .buffer_unordered(10)
-    .collect::<Vec<Result<(), ApiError>>>()
+    .collect::<Vec<Result<(), Error>>>()
     .await
     .into_iter()
-    .collect::<Result<(), ApiError>>()?;
+    .collect::<Result<(), Error>>()?;
 
   debug!("Returning 200 status code");
   let res = HttpResponse::Ok().finish();

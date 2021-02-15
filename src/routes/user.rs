@@ -10,7 +10,7 @@ use crate::lib::token;
 use crate::models::user::User;
 use crate::Context;
 use crate::{emails, lib::google};
-use crate::{errors::ApiError, lib::util};
+use crate::{errors::ApiError as Error, lib::util};
 
 type Response = actix_web::Result<HttpResponse>;
 
@@ -85,7 +85,7 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
   user
     .save(&ctx.database.conn, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   debug!("Sending confirm email to the user {}", &user.email);
   let confirm_email = emails::create_confirm_email(&ctx.settings.base_url, &user);
@@ -107,7 +107,7 @@ async fn verify_user_email(ctx: web::Data<Context>, token: web::Path<String>) ->
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let mut user = match user {
     Some(user) => user,
@@ -124,7 +124,7 @@ async fn verify_user_email(ctx: web::Data<Context>, token: web::Path<String>) ->
   user
     .save(&ctx.database.conn, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   util::redirect_to(&format!(
     "{}/verify-email/success",
@@ -137,7 +137,7 @@ async fn create_token(ctx: web::Data<Context>, body: web::Json<AuthenticateBody>
   let password = &body.password;
   let user = User::find_one(&ctx.database.conn, doc! { "email": email }, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   let user = match user {
     Some(user) => user,
@@ -197,7 +197,7 @@ async fn create_token_from_google(
 
   let user = User::find_one(&ctx.database.conn, doc! { "email": &email }, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   let user = match user {
     Some(user) => user,
@@ -240,7 +240,7 @@ async fn create_token_from_google(
       user
         .save(&ctx.database.conn, None)
         .await
-        .map_err(ApiError::WitherError)?;
+        .map_err(Error::WitherError)?;
 
       user
     }
@@ -274,7 +274,7 @@ async fn request_password_reset(
 
   let user = User::find_one(&ctx.database.conn, doc! { "email": email }, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   let mut user = match user {
     Some(user) => user,
@@ -288,7 +288,7 @@ async fn request_password_reset(
   user
     .save(&ctx.database.conn, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   debug!("Sending password reset email to the user {}", &user.email);
   let email = emails::create_password_reset_email(&ctx.settings.base_url, &user);
@@ -309,7 +309,7 @@ async fn update_password(ctx: web::Data<Context>, body: web::Json<PasswordUpdate
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let mut user = match user {
     Some(user) => user,
@@ -325,7 +325,7 @@ async fn update_password(ctx: web::Data<Context>, body: web::Json<PasswordUpdate
   user
     .save(&ctx.database.conn, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   debug!("Returning 204 status to the user");
   let res = HttpResponse::NoContent().finish();

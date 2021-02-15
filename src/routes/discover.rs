@@ -4,7 +4,7 @@ use wither::bson::doc;
 use wither::mongodb::options::FindOptions;
 use wither::Model;
 
-use crate::errors::ApiError;
+use crate::errors::ApiError as Error;
 use crate::lib::pagination::Pagination;
 use crate::models::list::List;
 use crate::Context;
@@ -24,10 +24,10 @@ async fn discover_lists(ctx: web::Data<Context>, pagination: web::Query<Paginati
   let query = doc! { "is_public": true };
   let lists = List::find(&ctx.database.conn, query, find_options)
     .await
-    .map_err(ApiError::WitherError)?
+    .map_err(Error::WitherError)?
     .try_collect::<Vec<List>>()
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   let lists = lists
     .iter()

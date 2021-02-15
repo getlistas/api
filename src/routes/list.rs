@@ -11,7 +11,7 @@ use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::mongodb::options::FindOptions;
 use wither::Model;
 
-use crate::errors::ApiError;
+use crate::errors::ApiError as Error;
 use crate::lib::date;
 use crate::lib::id::ID;
 use crate::lib::util;
@@ -70,7 +70,7 @@ async fn find_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respo
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let list = match list {
     Some(list) => list,
@@ -91,10 +91,10 @@ async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
   let options = FindOptions::builder().sort(sort).build();
   let mut lists = List::find(&ctx.database.conn, doc! { "user": user.0 }, options)
     .await
-    .map_err(ApiError::WitherError)?
+    .map_err(Error::WitherError)?
     .try_collect::<Vec<List>>()
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   let mut populated_lists = vec![];
   for list in lists.iter_mut() {
@@ -106,10 +106,10 @@ async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
   debug!("Querying list resources metadata");
   let lists = futures::stream::iter(populated_lists)
     .buffered(50)
-    .collect::<Vec<Result<serde_json::Value, errors::ApiError>>>()
+    .collect::<Vec<Result<serde_json::Value, Error>>>()
     .await
     .into_iter()
-    .collect::<Result<serde_json::Value, ApiError>>()?;
+    .collect::<Result<serde_json::Value, Error>>()?;
 
   debug!("Returning lists");
   let res = HttpResponse::Ok().json(lists);
@@ -136,7 +136,7 @@ async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) ->
   list
     .save(&ctx.database.conn, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   debug!("Returning created list");
   let res = HttpResponse::Created().json(list.to_json());
@@ -160,7 +160,7 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
     update_options,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let list = match list {
     Some(list) => list,
@@ -185,7 +185,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let list = match list {
     Some(list) => list,
@@ -221,7 +221,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
   forked_list
     .save(&ctx.database.conn, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   let resources = Resource::find(
     &ctx.database.conn,
@@ -229,10 +229,10 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?
+  .map_err(Error::WitherError)?
   .try_collect::<Vec<Resource>>()
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   debug!("Creating forked resources");
   let mut forked_resources = resources
@@ -256,22 +256,17 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
   let mut resource_futures = vec![];
   for resource in forked_resources.iter_mut() {
     let conn = ctx.database.conn.clone();
-    let task = async move {
-      resource
-        .save(&conn, None)
-        .await
-        .map_err(ApiError::WitherError)
-    };
+    let task = async move { resource.save(&conn, None).await.map_err(Error::WitherError) };
     resource_futures.push(task);
   }
 
   debug!("Storing forked resources");
   futures::stream::iter(resource_futures)
     .buffer_unordered(50)
-    .collect::<Vec<Result<(), errors::ApiError>>>()
+    .collect::<Vec<Result<(), Error>>>()
     .await
     .into_iter()
-    .collect::<Result<(), ApiError>>()?;
+    .collect::<Result<(), Error>>()?;
 
   debug!("Returning forked list");
   let res = HttpResponse::Ok().json(forked_list.to_json());
@@ -288,7 +283,7 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   if list.is_none() {
     debug!("List not found, returning 404 status code");
@@ -299,14 +294,14 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
   Resource::collection(&ctx.database.conn)
     .delete_many(doc! { "list": &id.0 }, None)
     .await
-    .map_err(ApiError::MongoError)?;
+    .map_err(Error::MongoError)?;
 
   debug!("Removing list");
   list
     .unwrap()
     .delete(&ctx.database.conn)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   debug!("List removed, returning 204 status code");
   let res = HttpResponse::NoContent().finish();

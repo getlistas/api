@@ -5,7 +5,7 @@ use rand::Rng;
 use url;
 use wither::bson::oid::ObjectId;
 
-use crate::errors::ApiError;
+use crate::errors::ApiError as Error;
 
 type Response = actix_web::Result<HttpResponse>;
 
@@ -30,16 +30,16 @@ pub fn to_slug_case(string: String) -> String {
   string.to_kebab_case()
 }
 
-pub fn to_object_id(id: String) -> Result<ObjectId, ApiError> {
-  ObjectId::with_string(id.as_str()).map_err(ApiError::ParseObjectID)
+pub fn to_object_id(id: String) -> Result<ObjectId, Error> {
+  ObjectId::with_string(id.as_str()).map_err(Error::ParseObjectID)
 }
 
-pub fn parse_url(url: &str) -> Result<url::Url, ApiError> {
-  let mut url = url::Url::parse(url).map_err(|_| ApiError::ParseURL())?;
+pub fn parse_url(url: &str) -> Result<url::Url, Error> {
+  let mut url = url::Url::parse(url).map_err(|_| Error::ParseURL())?;
 
   url
     .path_segments_mut()
-    .map_err(|_| ApiError::ParseURL())?
+    .map_err(|_| Error::ParseURL())?
     .pop_if_empty();
 
   Ok(url)

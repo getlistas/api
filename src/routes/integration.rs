@@ -6,10 +6,10 @@ use wither::bson::doc;
 use wither::Model;
 
 use crate::auth;
-use crate::errors::ApiError;
+use crate::errors::ApiError as Error;
+use crate::lib::date;
 use crate::lib::util::parse_url;
 use crate::lib::util::to_object_id;
-use crate::lib::{date};
 use crate::models::integration::{Integration, RSS};
 use crate::models::list::List;
 use crate::models::{resource::Resource, user::UserID};
@@ -49,7 +49,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let list = match list {
     Some(list) => list,
@@ -84,7 +84,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
   integration
     .save(&ctx.database.conn, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   let mut resources = ctx
     .rss
@@ -103,21 +103,16 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
       let conn = ctx.database.conn.clone();
       resource.position = position + (index as i32);
 
-      async move {
-        resource
-          .save(&conn, None)
-          .await
-          .map_err(ApiError::WitherError)
-      }
+      async move { resource.save(&conn, None).await.map_err(Error::WitherError) }
     });
 
   debug!("Creating resources from RSS feed");
   futures::stream::iter(resources)
     .buffer_unordered(10)
-    .collect::<Vec<Result<(), ApiError>>>()
+    .collect::<Vec<Result<(), Error>>>()
     .await
     .into_iter()
-    .collect::<Result<(), ApiError>>()?;
+    .collect::<Result<(), Error>>()?;
 
   debug!("Returning 200 status code");
   let res = HttpResponse::Ok().finish();

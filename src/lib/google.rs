@@ -1,7 +1,7 @@
 use jsonwebtoken::{Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 
-use crate::errors::ApiError;
+use crate::errors::ApiError as Error;
 
 // Read more about this implementation
 // https://developers.google.com/identity/sign-in/web/backend-auth
@@ -75,7 +75,7 @@ struct Cert {
   r#use: String,
 }
 
-pub async fn validate(token: &str, client_id: &str) -> Result<GoogleToken, ApiError> {
+pub async fn validate(token: &str, client_id: &str) -> Result<GoogleToken, Error> {
   let unverified_header = jsonwebtoken::decode_header(&token).unwrap();
   let kid = unverified_header.kid.unwrap();
   let certs = get_certs().await.unwrap();
@@ -85,7 +85,7 @@ pub async fn validate(token: &str, client_id: &str) -> Result<GoogleToken, ApiEr
   let cert = match cert {
     Some(cert) => cert,
     None => {
-      return Err(ApiError::GoogleAuthentication {});
+      return Err(Error::GoogleAuthentication {});
     }
   };
 
@@ -102,7 +102,7 @@ pub async fn validate(token: &str, client_id: &str) -> Result<GoogleToken, ApiEr
   let token_data = match token_data {
     Ok(token_data) => token_data,
     Err(_) => {
-      return Err(ApiError::GoogleAuthentication {});
+      return Err(Error::GoogleAuthentication {});
     }
   };
 
@@ -111,7 +111,7 @@ pub async fn validate(token: &str, client_id: &str) -> Result<GoogleToken, ApiEr
   if google_token.is_valid(audiences) {
     Ok(google_token)
   } else {
-    return Err(ApiError::GoogleAuthentication {});
+    return Err(Error::GoogleAuthentication {});
   }
 }
 

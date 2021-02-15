@@ -6,7 +6,7 @@ use wither::bson::{doc, oid::ObjectId, Bson};
 use wither::mongodb::Database;
 use wither::Model;
 
-use crate::{errors::ApiError, lib::date};
+use crate::{errors::ApiError as Error, lib::date};
 use crate::{lib::util, models::resource::Resource};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,7 +57,7 @@ impl List {
     })
   }
 
-  pub async fn to_schema(&self, conn: &Database) -> Result<JSON, ApiError> {
+  pub async fn to_schema(&self, conn: &Database) -> Result<JSON, Error> {
     let id = self.id.clone().unwrap();
     let user_id = self.user.clone();
     let mut res = self.to_json();
@@ -65,7 +65,7 @@ impl List {
     let resources_count: i64 = Resource::collection(conn)
       .count_documents(doc! { "list": &id }, None)
       .await
-      .map_err(ApiError::MongoError)?;
+      .map_err(Error::MongoError)?;
 
     let uncompleted_resources_count: i64 = Resource::collection(conn)
       .count_documents(
@@ -76,7 +76,7 @@ impl List {
         None,
       )
       .await
-      .map_err(ApiError::MongoError)?;
+      .map_err(Error::MongoError)?;
 
     let next_resource = Resource::find_next(conn, &user_id, &id).await?;
     let last_completed_resource = Resource::find_last_completed(conn, &user_id, &id).await?;

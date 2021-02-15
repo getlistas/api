@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use wither::bson::oid::ObjectId;
 
+use crate::errors::ApiError as Error;
 use crate::lib::date;
 use crate::lib::resource_metadata;
 use crate::lib::util::parse_url;
 use crate::models::resource::Resource;
-use crate::errors::ApiError as Error;
 
 // https://rssapi.net/docs
 #[derive(Clone)]
