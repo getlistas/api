@@ -4,7 +4,7 @@ use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
 
-use crate::errors::ApiError as Error;
+use crate::errors::Error;
 use crate::lib::date;
 use crate::lib::util::create_random_string;
 

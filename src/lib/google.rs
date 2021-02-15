@@ -1,7 +1,7 @@
 use jsonwebtoken::{Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 
-use crate::errors::ApiError as Error;
+use crate::errors::Error;
 
 // Read more about this implementation
 // https://developers.google.com/identity/sign-in/web/backend-auth

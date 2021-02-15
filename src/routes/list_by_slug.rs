@@ -5,7 +5,7 @@ use wither::bson::doc;
 use wither::Model;
 
 use crate::auth::AuthenticationMetadata;
-use crate::errors::ApiError as Error;
+use crate::errors::Error;
 use crate::models::list::List;
 use crate::models::user::User;
 use crate::Context;

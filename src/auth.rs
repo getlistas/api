@@ -4,7 +4,7 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use futures::future;
 use wither::bson::oid::ObjectId;
 
-use crate::errors::ApiError as Error;
+use crate::errors::Error;
 use crate::lib::token;
 use crate::models::user::UserID;
 use crate::models::user::UserPublic;

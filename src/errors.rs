@@ -11,7 +11,7 @@ use wither::WitherError;
 
 #[derive(thiserror::Error, Debug)]
 #[error("...")]
-pub enum ApiError {
+pub enum Error {
   #[error("Failed to read application shared data")]
   ReadAppData(),
 
@@ -46,13 +46,13 @@ pub enum ApiError {
   RSSIntegration(String),
 }
 
-impl ApiError {
+impl Error {
   fn get_codes(&self) -> (StatusCode, u16) {
     match *self {
       // 4XX
-      ApiError::ParseURL() => (StatusCode::BAD_REQUEST, 4041),
-      ApiError::ParseObjectID(_) => (StatusCode::BAD_REQUEST, 4042),
-      ApiError::WitherError(WitherError::Mongo(MongoError { ref kind, .. })) => {
+      Error::ParseURL() => (StatusCode::BAD_REQUEST, 4041),
+      Error::ParseObjectID(_) => (StatusCode::BAD_REQUEST, 4042),
+      Error::WitherError(WitherError::Mongo(MongoError { ref kind, .. })) => {
         let mongo_error = kind.as_ref();
         match mongo_error {
           MongoErrorKind::CommandError(MongoCommandError { code: 11000, .. }) => {
@@ -63,22 +63,22 @@ impl ApiError {
       }
 
       // 401
-      ApiError::JWT(_) => (StatusCode::UNAUTHORIZED, 4015),
-      ApiError::MissingAuthorizationToken {} => (StatusCode::UNAUTHORIZED, 4016),
-      ApiError::GoogleAuthentication {} => (StatusCode::UNAUTHORIZED, 4017),
+      Error::JWT(_) => (StatusCode::UNAUTHORIZED, 4015),
+      Error::MissingAuthorizationToken {} => (StatusCode::UNAUTHORIZED, 4016),
+      Error::GoogleAuthentication {} => (StatusCode::UNAUTHORIZED, 4017),
 
       // 5XX
-      ApiError::WitherError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5001),
-      ApiError::ReadAppData() => (StatusCode::INTERNAL_SERVER_ERROR, 5002),
-      ApiError::MongoError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5003),
-      ApiError::HashPassword(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5004),
-      ApiError::ContactRSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5005),
-      ApiError::RSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
+      Error::WitherError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5001),
+      Error::ReadAppData() => (StatusCode::INTERNAL_SERVER_ERROR, 5002),
+      Error::MongoError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5003),
+      Error::HashPassword(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5004),
+      Error::ContactRSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5005),
+      Error::RSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
     }
   }
 }
 
-impl actix_web::error::ResponseError for ApiError {
+impl actix_web::error::ResponseError for Error {
   fn error_response(&self) -> HttpResponse {
     let message = self.to_string();
     let (status_code, code) = self.get_codes();

@@ -17,7 +17,7 @@ use crate::models::resource::ResourceUpdate;
 use crate::models::user::UserID;
 use crate::Context;
 use crate::{auth, lib::date};
-use crate::{errors::ApiError as Error, lib::util};
+use crate::{errors::Error, lib::util};
 
 #[derive(Deserialize)]
 struct Query {

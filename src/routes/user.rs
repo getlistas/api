@@ -10,7 +10,7 @@ use crate::lib::token;
 use crate::models::user::User;
 use crate::Context;
 use crate::{emails, lib::google};
-use crate::{errors::ApiError as Error, lib::util};
+use crate::{errors::Error, lib::util};
 
 type Response = actix_web::Result<HttpResponse>;
 
