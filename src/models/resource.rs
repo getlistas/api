@@ -6,7 +6,7 @@ use wither::mongodb::options::FindOneOptions;
 use wither::mongodb::Database;
 use wither::Model;
 
-use crate::errors::ApiError as Error;
+use crate::errors::Error;
 use crate::lib::{date, util};
 
 #[derive(Debug, Model, Serialize, Deserialize)]

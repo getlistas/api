@@ -3,7 +3,7 @@ use futures::StreamExt;
 use wither::bson::doc;
 use wither::Model;
 
-use crate::errors::ApiError as Error;
+use crate::errors::Error;
 use crate::integrations::rss;
 use crate::models::integration::Integration;
 use crate::models::list::List;

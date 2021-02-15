@@ -5,7 +5,7 @@ use rand::Rng;
 use url;
 use wither::bson::oid::ObjectId;
 
-use crate::errors::ApiError as Error;
+use crate::errors::Error;
 
 type Response = actix_web::Result<HttpResponse>;
 

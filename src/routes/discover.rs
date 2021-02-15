@@ -4,7 +4,7 @@ use wither::bson::doc;
 use wither::mongodb::options::FindOptions;
 use wither::Model;
 
-use crate::errors::ApiError as Error;
+use crate::errors::Error;
 use crate::lib::pagination::Pagination;
 use crate::models::list::List;
 use crate::Context;

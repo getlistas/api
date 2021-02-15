@@ -6,7 +6,7 @@ use wither::bson::{doc, oid::ObjectId, Bson};
 use wither::mongodb::Database;
 use wither::Model;
 
-use crate::{errors::ApiError as Error, lib::date};
+use crate::{errors::Error, lib::date};
 use crate::{lib::util, models::resource::Resource};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -6,7 +6,7 @@ use wither::bson::doc;
 use wither::Model;
 
 use crate::auth;
-use crate::errors::ApiError as Error;
+use crate::errors::Error;
 use crate::lib::date;
 use crate::lib::util::parse_url;
 use crate::lib::util::to_object_id;
