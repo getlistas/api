@@ -17,7 +17,7 @@ use crate::models::resource::ResourceUpdate;
 use crate::models::user::UserID;
 use crate::Context;
 use crate::{auth, lib::date};
-use crate::{errors::ApiError, lib::util};
+use crate::{errors::ApiError as Error, lib::util};
 
 #[derive(Deserialize)]
 struct Query {
@@ -88,7 +88,7 @@ async fn get_resource_by_id(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let resource = match resource {
     Some(resource) => resource,
@@ -119,7 +119,7 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
 
   if qs.list.is_some() {
     let list_id =
-      ObjectId::with_string(qs.list.clone().unwrap().as_str()).map_err(ApiError::ParseObjectID)?;
+      ObjectId::with_string(qs.list.clone().unwrap().as_str()).map_err(Error::ParseObjectID)?;
     query.insert("list", list_id);
   }
 
@@ -133,10 +133,10 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
 
   let resources = Resource::find(&ctx.database.conn, query, options)
     .await
-    .map_err(ApiError::WitherError)?
+    .map_err(Error::WitherError)?
     .try_collect::<Vec<Resource>>()
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   let resources = resources
     .iter()
@@ -178,7 +178,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
   resource
     .save(&ctx.database.conn, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   debug!("Returning created resource");
   let res = HttpResponse::Created().json(resource.to_json());
@@ -210,7 +210,7 @@ async fn update_resource(
     update_options,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let resource = match resource {
     Some(resource) => resource,
@@ -235,7 +235,7 @@ async fn remove_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let res = match resource {
     Some(_) => {
@@ -261,7 +261,7 @@ async fn complete_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let mut resource = match resource {
     Some(resource) => resource,
@@ -280,7 +280,7 @@ async fn complete_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
   resource
     .save(&ctx.database.conn, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   debug!("Resource marked as completed, returning 202 status code");
   let res = HttpResponse::Accepted().finish();
@@ -298,7 +298,7 @@ async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdate
     None,
   )
   .await
-  .map_err(ApiError::WitherError)?;
+  .map_err(Error::WitherError)?;
 
   let mut resource = match resource {
     Some(resource) => resource,
@@ -343,14 +343,14 @@ async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdate
       None,
     )
     .await
-    .map_err(ApiError::MongoError)?;
+    .map_err(Error::MongoError)?;
 
   resource.position = position;
   resource.updated_at = date::now();
   resource
     .save(&ctx.database.conn, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   debug!("Resource position updated, returning 202 status code");
   let res = HttpResponse::Accepted().finish();

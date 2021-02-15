@@ -4,8 +4,9 @@ use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
 
+use crate::errors::ApiError as Error;
+use crate::lib::date;
 use crate::lib::util::create_random_string;
-use crate::{errors, lib::date};
 
 #[derive(Debug, Model, Serialize, Deserialize)]
 pub struct User {
@@ -34,12 +35,12 @@ pub struct User {
 }
 
 impl User {
-  pub async fn hash_password(password: String) -> Result<String, errors::ApiError> {
+  pub async fn hash_password(password: String) -> Result<String, Error> {
     let hash = to_future(move || bcrypt::hash(password, bcrypt::DEFAULT_COST));
 
     match hash.await {
       Ok(hash) => Ok(hash),
-      Err(err) => Err(errors::ApiError::HashPassword(err)),
+      Err(err) => Err(Error::HashPassword(err)),
     }
   }
 

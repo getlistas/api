@@ -6,7 +6,7 @@ use wither::mongodb::options::FindOneOptions;
 use wither::mongodb::Database;
 use wither::Model;
 
-use crate::errors::ApiError;
+use crate::errors::ApiError as Error;
 use crate::lib::{date, util};
 
 #[derive(Debug, Model, Serialize, Deserialize)]
@@ -31,20 +31,20 @@ impl Resource {
     conn: &Database,
     user_id: &ObjectId,
     list_id: &ObjectId,
-  ) -> Result<Option<Self>, ApiError> {
+  ) -> Result<Option<Self>, Error> {
     let query = doc! { "user": user_id, "list": list_id };
     let sort = doc! { "position": -1 };
     let options = FindOneOptions::builder().sort(Some(sort)).build();
     Self::find_one(conn, query, Some(options))
       .await
-      .map_err(ApiError::WitherError)
+      .map_err(Error::WitherError)
   }
 
   pub async fn find_next(
     conn: &Database,
     user_id: &ObjectId,
     list_id: &ObjectId,
-  ) -> Result<Option<Self>, ApiError> {
+  ) -> Result<Option<Self>, Error> {
     let query = doc! {
         "user": user_id,
         "list": list_id,
@@ -55,14 +55,14 @@ impl Resource {
 
     Self::find_one(conn, query, Some(options))
       .await
-      .map_err(ApiError::WitherError)
+      .map_err(Error::WitherError)
   }
 
   pub async fn find_last_completed(
     conn: &Database,
     user_id: &ObjectId,
     list_id: &ObjectId,
-  ) -> Result<Option<Self>, ApiError> {
+  ) -> Result<Option<Self>, Error> {
     let query = doc! {
         "user": user_id,
         "list": list_id,
@@ -73,13 +73,13 @@ impl Resource {
 
     Self::find_one(conn, query, Some(options))
       .await
-      .map_err(ApiError::WitherError)
+      .map_err(Error::WitherError)
   }
 
-  pub async fn get_position(conn: &Database, query: Document) -> Result<Option<i32>, ApiError> {
+  pub async fn get_position(conn: &Database, query: Document) -> Result<Option<i32>, Error> {
     let resource = Self::find_one(conn, query, None)
       .await
-      .map_err(ApiError::WitherError)?;
+      .map_err(Error::WitherError)?;
 
     match resource {
       Some(resource) => Ok(Some(resource.position)),
@@ -91,12 +91,12 @@ impl Resource {
     conn: &Database,
     user_id: &ObjectId,
     url: String,
-  ) -> Result<Option<Self>, ApiError> {
+  ) -> Result<Option<Self>, Error> {
     let query = doc! { "user": user_id, "url": url };
 
     Self::find_one(conn, query, None)
       .await
-      .map_err(ApiError::WitherError)
+      .map_err(Error::WitherError)
   }
 
   pub fn to_json(&self) -> serde_json::Value {

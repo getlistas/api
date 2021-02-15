@@ -5,7 +5,7 @@ use wither::bson::doc;
 use wither::Model;
 
 use crate::auth::AuthenticationMetadata;
-use crate::errors::ApiError;
+use crate::errors::ApiError as Error;
 use crate::models::list::List;
 use crate::models::user::User;
 use crate::Context;
@@ -33,7 +33,7 @@ async fn query_lists_by_slug(
 ) -> Response {
   let user = User::find_one(&ctx.database.conn, doc! { "slug": &params.user_slug }, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   let user = match user {
     Some(user) => user,
@@ -52,10 +52,10 @@ async fn query_lists_by_slug(
 
   let lists = List::find(&ctx.database.conn, lists_query, None)
     .await
-    .map_err(ApiError::WitherError)?
+    .map_err(Error::WitherError)?
     .try_collect::<Vec<List>>()
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   let lists = lists
     .iter()
@@ -75,7 +75,7 @@ async fn find_list_by_slug(
   let list_slug = params.list_slug.clone().unwrap();
   let user = User::find_one(&ctx.database.conn, doc! { "slug": &params.user_slug }, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   let user = match user {
     Some(user) => user,
@@ -97,7 +97,7 @@ async fn find_list_by_slug(
 
   let list = List::find_one(&ctx.database.conn, list_query, None)
     .await
-    .map_err(ApiError::WitherError)?;
+    .map_err(Error::WitherError)?;
 
   let list = match list {
     Some(list) => list,
