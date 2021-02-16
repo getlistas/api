@@ -70,7 +70,7 @@ async fn main() {
       .configure(routes::discover::create_router)
       .configure(routes::resource_metadata::create_router)
       .configure(routes::integration::create_router)
-      // .service(web::scope("/webhooks/rss").configure(routes::webhooks::rss::create_router))
+      .service(web::scope("/webhooks/rss").configure(routes::webhooks::rss::create_router))
       .service(web::scope("/webhooks/paddle").configure(routes::webhooks::paddle::create_router))
       .service(web::scope("/").configure(routes::index::create_router))
   })
