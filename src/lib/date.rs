@@ -1,5 +1,5 @@
-use chrono::ParseError;
 use chrono::NaiveDate;
+use chrono::ParseError;
 use wither::bson::DateTime;
 
 pub fn to_rfc3339(date: DateTime) -> String {

@@ -79,9 +79,6 @@ async fn create_subscription(ctx: web::Data<Context>, event: Form) -> Response {
 
   let event = event.clone();
   let now = date::now();
-  println!("aca {:?}", &event.next_bill_date);
-  println!("aca2 {:?}", &date::from_ymd(event.next_bill_date.clone().unwrap().as_str()));
-
   let next_bill_at = date::from_ymd(event.next_bill_date.unwrap().as_str()).unwrap();
   let subscription = Subscription {
     id: event.subscription_id,
