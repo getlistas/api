@@ -70,6 +70,8 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
 
     google_id: None,
 
+    subscription: None,
+
     verification_token: Some(verification_token),
     verification_token_set_at: Some(now),
 
@@ -215,6 +217,7 @@ async fn create_token_from_google(
         slug,
         avatar: Some(avatar),
         google_id: Some(subject),
+        subscription: None,
         verification_token: None,
         verification_token_set_at: None,
         password_reset_token: None,

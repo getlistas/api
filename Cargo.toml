@@ -38,8 +38,6 @@ Inflector = "0.11.4"
 version = "1"
 default-features = false
 features = [
-  "run-for-all",
-  "prepush-hook",
   "precommit-hook",
   "run-cargo-check",
   "run-cargo-clippy",

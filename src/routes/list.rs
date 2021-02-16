@@ -11,6 +11,7 @@ use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::mongodb::options::FindOptions;
 use wither::Model;
 
+use crate::auth;
 use crate::errors::Error;
 use crate::lib::date;
 use crate::lib::id::ID;
@@ -21,7 +22,6 @@ use crate::models::list::ListUpdate;
 use crate::models::resource::Resource;
 use crate::models::user::UserID;
 use crate::Context;
-use crate::auth;
 
 type Response = actix_web::Result<HttpResponse>;
 type Ctx = web::Data<Context>;
