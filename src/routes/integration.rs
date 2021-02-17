@@ -10,6 +10,7 @@ use crate::errors::Error;
 use crate::lib::date;
 use crate::lib::util::parse_url;
 use crate::lib::util::to_object_id;
+use crate::models::integration;
 use crate::models::integration::{Integration, RSS};
 use crate::models::list::List;
 use crate::models::{resource::Resource, user::UserID};
@@ -66,25 +67,24 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
 
   let now = date::now();
   let subscription = ctx.rss.subscribe(&url).await?;
-  let mut integration = Integration {
-    id: None,
-    user: user_id.clone(),
-    list: list_id.clone(),
-    created_at: now,
-    updated_at: now,
-    rss: Some(RSS {
-      url: subscription.url,
-      subscription_id: subscription.subscription_id,
-      status: subscription.status,
-      feed_type: subscription.feed_type,
-      metadata: subscription.info,
-    }),
-  };
-
-  integration
-    .save(&ctx.database.conn, None)
-    .await
-    .map_err(Error::WitherError)?;
+  let integration = ctx
+    .models
+    .integration
+    .create(integration::Model {
+      id: None,
+      user: user_id.clone(),
+      list: list_id.clone(),
+      created_at: now,
+      updated_at: now,
+      rss: Some(RSS {
+        url: subscription.url,
+        subscription_id: subscription.subscription_id,
+        status: subscription.status,
+        feed_type: subscription.feed_type,
+        metadata: subscription.info,
+      }),
+    })
+    .await?;
 
   let mut resources = ctx
     .rss

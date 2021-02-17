@@ -44,6 +44,7 @@ async fn main() {
     Err(_) => panic!("Failed to setup mailer"),
   };
 
+  let models = models::Models::new(database.clone());
   let rss = integrations::rss::RSS::new(settings.rss.token.clone());
 
   let context = web::Data::new(Context {
@@ -51,6 +52,7 @@ async fn main() {
     mailer: mailer.clone(),
     settings: settings.clone(),
     rss: rss.clone(),
+    models: models.clone(),
   });
 
   let port = settings.server.port;
