@@ -39,7 +39,7 @@ async fn main() {
     Err(_) => panic!("Failed to setup database connection"),
   };
 
-  let mailer = match Mailer::new() {
+  let mailer = match Mailer::new(&settings) {
     Ok(value) => value,
     Err(_) => panic!("Failed to setup mailer"),
   };

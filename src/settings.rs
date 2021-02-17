@@ -8,6 +8,11 @@ pub struct RSS {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct Sendgrid {
+  pub token: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct OAuthSettings {
   pub client_id: String,
 }
@@ -54,6 +59,7 @@ pub struct Settings {
   pub base_url: String,
   pub client_url: String,
   pub rss: RSS,
+  pub sendgrid: Sendgrid,
 }
 
 impl Settings {
