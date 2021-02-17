@@ -26,14 +26,11 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
   }
 
   let subscription_id = body.subscription_id.clone();
-
-  let integration = Integration::find_one(
-    &ctx.database.conn,
-    doc! { "rss.subscription_id": &subscription_id },
-    None,
-  )
-  .await
-  .map_err(Error::WitherError)?;
+  let integration = ctx
+    .models
+    .integration
+    .find_one(doc! { "rss.subscription_id": &subscription_id })
+    .await?;
 
   let integration = match integration {
     Some(integration) => integration,
