@@ -33,5 +33,9 @@
 
   "rss": {
     "token": "47b06074bad7738fd96c27d0b18ddbd8"
+  },
+
+  "sendgrid": {
+    "token": ""
   }
 }

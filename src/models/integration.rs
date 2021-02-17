@@ -24,9 +24,3 @@ pub struct Integration {
   pub created_at: DateTime,
   pub updated_at: DateTime,
 }
-
-impl Integration {
-  pub fn is_rss(&self) -> bool {
-    self.rss.is_some()
-  }
-}

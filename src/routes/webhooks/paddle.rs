@@ -2,7 +2,6 @@ use actix_web::{web, HttpResponse};
 use serde::Deserialize;
 use wither::bson::doc;
 use wither::bson::to_bson;
-use wither::bson::DateTime;
 use wither::Model;
 
 use crate::errors::Error;
@@ -43,7 +42,6 @@ struct PaddleEvent {
 }
 
 type Response = actix_web::Result<HttpResponse>;
-type EventBody = web::Json<PaddleEvent>;
 type Form = web::Form<PaddleEvent>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {

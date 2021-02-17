@@ -14,6 +14,7 @@ pub struct Context {
 }
 
 impl Context {
+  // TODO: Move to mailer module.
   pub async fn send_email(&self, email: EmailBuilder) {
     let email = email
       .from(self.settings.mailer.from.as_str())
