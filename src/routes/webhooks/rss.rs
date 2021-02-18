@@ -5,7 +5,6 @@ use wither::Model;
 
 use crate::errors::Error;
 use crate::integrations::rss;
-use crate::models::integration::Integration;
 use crate::models::list::List;
 use crate::models::resource::Resource;
 use crate::Context;

@@ -1,4 +1,3 @@
-use chrono::NaiveDate;
 use chrono::ParseError;
 use wither::bson::DateTime;
 

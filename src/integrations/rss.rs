@@ -189,11 +189,11 @@ impl RSS {
   ) -> Result<Vec<Resource>, Error> {
     let mut entries = self.get_entries(&url).await?;
 
-    let resources_futures = entries
+    let resources = entries
       .iter_mut()
       .map(|entry| Self::create_resource_from_entry(entry, &user, &list));
 
-    futures::stream::iter(resources_futures)
+    futures::stream::iter(resources)
       .buffered(10)
       .collect::<Vec<Result<Resource, Error>>>()
       .await
