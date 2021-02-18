@@ -11,7 +11,7 @@ use crate::lib::date;
 use crate::lib::util::parse_url;
 use crate::lib::util::to_object_id;
 use crate::models::integration;
-use crate::models::integration::{Integration, RSS};
+use crate::models::integration::RSS;
 use crate::models::list::List;
 use crate::models::{resource::Resource, user::UserID};
 use crate::Context;
@@ -115,6 +115,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
     .collect::<Result<(), Error>>()?;
 
   debug!("Returning 200 status code");
+  // TODO: Return integration to the user
   let res = HttpResponse::Ok().finish();
   Ok(res)
 }

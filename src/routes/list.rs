@@ -176,6 +176,8 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
 }
 
 async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
+  let user_id = user.0.clone();
+
   let list = List::find_one(
     &ctx.database.conn,
     doc! {
@@ -195,7 +197,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     }
   };
 
-  if list.user == user.0 {
+  if list.user == user_id {
     debug!("User can not fork its own list, returning 400 status code");
     return Ok(HttpResponse::BadRequest().finish());
   }
@@ -203,11 +205,15 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
   let now = date::now();
   let mut forked_list = List {
     id: None,
-    user: user.0,
+    user: user_id.clone(),
     title: list.title.clone(),
     description: list.description.clone(),
-    is_public: list.is_public.clone(),
+    // TODO: this option should come in the request body and we should default to
+    // false.
+    is_public: false,
     tags: list.tags.clone(),
+    // TODO: We should maybe postfix a `forked` string to avoid collitions. Then
+    // the user should be able to update this field.
     slug: list.slug.clone(),
     created_at: now,
     updated_at: now,
@@ -223,7 +229,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     .await
     .map_err(Error::WitherError)?;
 
-  let resources = Resource::find(
+  let forked_resources = Resource::find(
     &ctx.database.conn,
     doc! { "list": list.id.clone().unwrap() },
     None,
@@ -235,33 +241,31 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
   .map_err(Error::WitherError)?;
 
   debug!("Creating forked resources");
-  let mut forked_resources = resources
+  let forked_list_id = forked_list.id.clone().unwrap();
+  let forked_resources = forked_resources
     .into_iter()
-    .map(|resource| Resource {
-      id: None,
-      user: resource.user.clone(),
-      list: forked_list.id.clone().unwrap(),
-      position: resource.position.clone(),
-      url: resource.url.clone(),
-      title: resource.title.clone(),
-      description: resource.description.clone(),
-      thumbnail: resource.thumbnail.clone(),
-      tags: resource.tags.clone(),
-      created_at: now,
-      updated_at: now,
-      completed_at: None,
-    })
-    .collect::<Vec<Resource>>();
+    .map(move |resource| {
+      let conn = ctx.database.conn.clone();
+      let mut forked_resource = Resource {
+        id: None,
+        user: user_id.clone(),
+        list: forked_list_id.clone(),
+        position: resource.position,
+        url: resource.url.clone(),
+        title: resource.title.clone(),
+        description: resource.description.clone(),
+        thumbnail: resource.thumbnail.clone(),
+        tags: resource.tags.clone(),
+        created_at: now,
+        updated_at: now,
+        completed_at: None,
+      };
 
-  let mut resource_futures = vec![];
-  for resource in forked_resources.iter_mut() {
-    let conn = ctx.database.conn.clone();
-    let task = async move { resource.save(&conn, None).await.map_err(Error::WitherError) };
-    resource_futures.push(task);
-  }
+      async move { forked_resource.save(&conn, None).await.map_err(Error::WitherError) }
+    });
 
-  debug!("Storing forked resources");
-  futures::stream::iter(resource_futures)
+  debug!("Storing forked resources from forked list");
+  futures::stream::iter(forked_resources)
     .buffer_unordered(50)
     .collect::<Vec<Result<(), Error>>>()
     .await
