@@ -229,7 +229,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     .await
     .map_err(Error::WitherError)?;
 
-  let forked_resources = Resource::find(
+  let resources = Resource::find(
     &ctx.database.conn,
     doc! { "list": list.id.clone().unwrap() },
     None,
@@ -242,7 +242,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
 
   debug!("Creating forked resources");
   let forked_list_id = forked_list.id.clone().unwrap();
-  let forked_resources = forked_resources
+  let forked_resources = resources
     .into_iter()
     .map(move |resource| {
       let conn = ctx.database.conn.clone();
