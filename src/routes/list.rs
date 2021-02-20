@@ -96,15 +96,15 @@ async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
     .await
     .map_err(Error::WitherError)?;
 
-  let mut populated_lists = vec![];
-  for list in lists.iter_mut() {
-    let conn = ctx.database.conn.clone();
-    let task = async move { list.to_schema(&conn).await };
-    populated_lists.push(task);
-  }
+  let lists = lists
+    .iter_mut()
+    .map(move |list| {
+      let conn = ctx.database.conn.clone();
+      async move { list.to_schema(&conn).await }
+    });
 
   debug!("Querying list resources metadata");
-  let lists = futures::stream::iter(populated_lists)
+  let lists = futures::stream::iter(lists)
     .buffered(50)
     .collect::<Vec<Result<serde_json::Value, Error>>>()
     .await
