@@ -89,12 +89,13 @@ impl Models {
   pub async fn delete_one<T>(
     &self,
     query: Document,
-    options: Option<DeleteOptions>
+    options: Option<DeleteOptions>,
   ) -> Result<DeleteResult, Error>
   where
     T: wither::Model + Send,
   {
-    T::collection(&self.db.conn).delete_one(query, options)
+    T::collection(&self.db.conn)
+      .delete_one(query, options)
       .await
       .map_err(Error::MongoError)
   }
