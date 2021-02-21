@@ -50,7 +50,6 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(web::resource("/users/verification/{token}").route(web::get().to(verify_user_email)));
   cfg.service(web::resource("/users/auth").route(web::post().to(create_token)));
   cfg.service(web::resource("/users/google-auth").route(web::post().to(create_token_from_google)));
-
   cfg.service(web::resource("/users/reset-password").route(web::post().to(request_password_reset)));
   cfg.service(web::resource("/users/update-password").route(web::post().to(update_password)));
 }

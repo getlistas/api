@@ -5,6 +5,7 @@ use wither::Model;
 
 use crate::errors::Error;
 use crate::integrations::rss;
+use crate::models::integration::Integration;
 use crate::models::list::List;
 use crate::models::resource::Resource;
 use crate::Context;
@@ -27,8 +28,7 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
   let subscription_id = body.subscription_id.clone();
   let integration = ctx
     .models
-    .integration
-    .find_one(doc! { "rss.subscription_id": &subscription_id })
+    .find_one::<Integration>(doc! { "rss.subscription_id": &subscription_id })
     .await?;
 
   let integration = match integration {

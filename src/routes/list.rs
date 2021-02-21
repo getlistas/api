@@ -96,12 +96,10 @@ async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
     .await
     .map_err(Error::WitherError)?;
 
-  let lists = lists
-    .iter_mut()
-    .map(move |list| {
-      let conn = ctx.database.conn.clone();
-      async move { list.to_schema(&conn).await }
-    });
+  let lists = lists.iter_mut().map(move |list| {
+    let conn = ctx.database.conn.clone();
+    async move { list.to_schema(&conn).await }
+  });
 
   debug!("Querying list resources metadata");
   let lists = futures::stream::iter(lists)
@@ -242,27 +240,30 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
 
   debug!("Creating forked resources");
   let forked_list_id = forked_list.id.clone().unwrap();
-  let forked_resources = resources
-    .into_iter()
-    .map(move |resource| {
-      let conn = ctx.database.conn.clone();
-      let mut forked_resource = Resource {
-        id: None,
-        user: user_id.clone(),
-        list: forked_list_id.clone(),
-        position: resource.position,
-        url: resource.url.clone(),
-        title: resource.title.clone(),
-        description: resource.description.clone(),
-        thumbnail: resource.thumbnail.clone(),
-        tags: resource.tags.clone(),
-        created_at: now,
-        updated_at: now,
-        completed_at: None,
-      };
+  let forked_resources = resources.into_iter().map(move |resource| {
+    let conn = ctx.database.conn.clone();
+    let mut forked_resource = Resource {
+      id: None,
+      user: user_id.clone(),
+      list: forked_list_id.clone(),
+      position: resource.position,
+      url: resource.url.clone(),
+      title: resource.title.clone(),
+      description: resource.description.clone(),
+      thumbnail: resource.thumbnail.clone(),
+      tags: resource.tags.clone(),
+      created_at: now,
+      updated_at: now,
+      completed_at: None,
+    };
 
-      async move { forked_resource.save(&conn, None).await.map_err(Error::WitherError) }
-    });
+    async move {
+      forked_resource
+        .save(&conn, None)
+        .await
+        .map_err(Error::WitherError)
+    }
+  });
 
   debug!("Storing forked resources from forked list");
   futures::stream::iter(forked_resources)

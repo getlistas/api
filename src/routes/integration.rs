@@ -69,8 +69,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
   let subscription = ctx.rss.subscribe(&url).await?;
   let integration = ctx
     .models
-    .integration
-    .create(integration::Model {
+    .create(integration::Integration {
       id: None,
       user: user_id.clone(),
       list: list_id.clone(),
@@ -114,8 +113,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
     .into_iter()
     .collect::<Result<(), Error>>()?;
 
-  debug!("Returning 200 status code");
-  // TODO: Return integration to the user
-  let res = HttpResponse::Ok().finish();
+  debug!("Returning integration and 200 status code");
+  let res = HttpResponse::Ok().json(integration);
   Ok(res)
 }
