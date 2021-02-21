@@ -1,7 +1,6 @@
 use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::stream::StreamExt;
-use futures::stream::TryStreamExt;
 use serde::Deserialize;
 use serde_json::json;
 use wither::bson;
@@ -61,16 +60,13 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
 }
 
 async fn find_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
-  let list = List::find_one(
-    &ctx.database.conn,
-    doc! {
-        "_id": id.0,
-        "user": user.0
-    },
-    None,
-  )
-  .await
-  .map_err(Error::WitherError)?;
+  let user_id = user.0;
+  let list_id = id.0;
+
+  let list = ctx
+    .models
+    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
+    .await?;
 
   let list = match list {
     Some(list) => list,
@@ -87,14 +83,13 @@ async fn find_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respo
 }
 
 async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
+  let user_id = user.0;
   let sort = doc! { "created_at": 1 };
   let options = FindOptions::builder().sort(sort).build();
-  let mut lists = List::find(&ctx.database.conn, doc! { "user": user.0 }, options)
-    .await
-    .map_err(Error::WitherError)?
-    .try_collect::<Vec<List>>()
-    .await
-    .map_err(Error::WitherError)?;
+  let mut lists = ctx
+    .models
+    .find::<List>(doc! { "user": &user_id }, Some(options))
+    .await?;
 
   let lists = lists.iter_mut().map(move |list| {
     let conn = ctx.database.conn.clone();
@@ -118,7 +113,7 @@ async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) ->
   let now = date::now();
   let tags = body.tags.clone().map(util::sanitize_tags).unwrap_or(vec![]);
   let slug = util::to_slug_case(body.title.clone());
-  let mut list = List {
+  let list = List {
     id: None,
     user: user.0,
     title: body.title.clone(),
@@ -131,10 +126,7 @@ async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) ->
     updated_at: now,
   };
 
-  list
-    .save(&ctx.database.conn, None)
-    .await
-    .map_err(Error::WitherError)?;
+  let list = ctx.models.create(list).await?;
 
   debug!("Returning created list");
   let res = HttpResponse::Created().json(list.to_json());
@@ -142,6 +134,7 @@ async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) ->
 }
 
 async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate>) -> Response {
+  let list_id = id.0;
   let mut body = body.into_inner();
   let body = ListUpdate::new(&mut body);
   let update = json!({ "$set": body });
@@ -151,14 +144,10 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
     .return_document(mongodb::options::ReturnDocument::After)
     .build();
 
-  let list = List::find_one_and_update(
-    &ctx.database.conn,
-    doc! { "_id": id.0 },
-    update,
-    update_options,
-  )
-  .await
-  .map_err(Error::WitherError)?;
+  let list = ctx
+    .models
+    .find_one_and_update::<List>(doc! { "_id": list_id }, update, update_options)
+    .await?;
 
   let list = match list {
     Some(list) => list,
@@ -174,18 +163,13 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
 }
 
 async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
-  let user_id = user.0.clone();
+  let list_id = id.0;
+  let user_id = user.0;
 
-  let list = List::find_one(
-    &ctx.database.conn,
-    doc! {
-        "_id": id.0,
-        "is_public": true
-    },
-    None,
-  )
-  .await
-  .map_err(Error::WitherError)?;
+  let list = ctx
+    .models
+    .find_one::<List>(doc! { "_id": &list_id, "is_public": true })
+    .await?;
 
   let list = match list {
     Some(list) => list,
@@ -201,7 +185,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
   }
 
   let now = date::now();
-  let mut forked_list = List {
+  let forked_list = List {
     id: None,
     user: user_id.clone(),
     title: list.title.clone(),
@@ -222,21 +206,12 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     }),
   };
 
-  forked_list
-    .save(&ctx.database.conn, None)
-    .await
-    .map_err(Error::WitherError)?;
+  let forked_list = ctx.models.create(forked_list).await?;
 
-  let resources = Resource::find(
-    &ctx.database.conn,
-    doc! { "list": list.id.clone().unwrap() },
-    None,
-  )
-  .await
-  .map_err(Error::WitherError)?
-  .try_collect::<Vec<Resource>>()
-  .await
-  .map_err(Error::WitherError)?;
+  let resources = ctx
+    .models
+    .find::<Resource>(doc! { "list": list.id.clone().unwrap() }, None)
+    .await?;
 
   debug!("Creating forked resources");
   let forked_list_id = forked_list.id.clone().unwrap();
@@ -279,16 +254,13 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
 }
 
 async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
-  let list = List::find_one(
-    &ctx.database.conn,
-    doc! {
-        "_id": &id.0,
-        "user": user.0
-    },
-    None,
-  )
-  .await
-  .map_err(Error::WitherError)?;
+  let user_id = user.0;
+  let list_id = id.0;
+
+  let list = ctx
+    .models
+    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
+    .await?;
 
   if list.is_none() {
     debug!("List not found, returning 404 status code");
@@ -296,17 +268,16 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
   }
 
   debug!("Removing resources associated to this list");
-  Resource::collection(&ctx.database.conn)
-    .delete_many(doc! { "list": &id.0 }, None)
-    .await
-    .map_err(Error::MongoError)?;
+  ctx
+    .models
+    .delete_many::<Resource>(doc! { "list": &list_id }, None)
+    .await?;
 
   debug!("Removing list");
-  list
-    .unwrap()
-    .delete(&ctx.database.conn)
-    .await
-    .map_err(Error::WitherError)?;
+  ctx
+    .models
+    .delete_one::<List>(doc! { "_id": &list_id }, None)
+    .await?;
 
   debug!("List removed, returning 204 status code");
   let res = HttpResponse::NoContent().finish();
