@@ -41,16 +41,10 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
   let user_id = user_id.0;
   let url = parse_url(body.url.as_str())?;
 
-  let list = List::find_one(
-    &ctx.database.conn,
-    doc! {
-        "_id": &list_id,
-        "user": &user_id,
-    },
-    None,
-  )
-  .await
-  .map_err(Error::WitherError)?;
+  let list = ctx
+    .models
+    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
+    .await?;
 
   let list = match list {
     Some(list) => list,
