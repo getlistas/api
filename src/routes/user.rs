@@ -18,8 +18,7 @@ type Response = actix_web::Result<HttpResponse>;
 struct UserCreateBody {
   pub email: String,
   pub password: String,
-  pub name: String,
-  pub slug: String,
+  pub name: String
 }
 #[derive(Deserialize)]
 struct PasswordResetBody {
@@ -64,19 +63,14 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
     password,
     email: body.email.clone(),
     name: body.name.clone(),
-    slug: body.slug.clone(),
+    slug: User::create_slug(body.email.clone().as_str()),
     avatar: None,
-
     google_id: None,
-
     subscription: None,
-
     verification_token: Some(verification_token),
     verification_token_set_at: Some(now),
-
     password_reset_token: None,
     password_reset_token_set_at: None,
-
     created_at: now,
     updated_at: now,
     verified_at: None,

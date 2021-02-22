@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
+use slug::slugify;
 
 use crate::errors::Error;
 use crate::lib::date;
@@ -101,6 +102,14 @@ impl User {
   pub fn set_password(&mut self, password: String) {
     let password = bcrypt::hash(password, bcrypt::DEFAULT_COST).unwrap();
     self.password = password;
+  }
+
+  pub fn create_slug(email: &str) -> String {
+    // TODO: Validate email to unwrap here safely.
+    let prefix = email.split('@').next().unwrap();
+    let slug = slugify(prefix);
+    let random_string = create_random_string(5);
+    format!("{}-{}", slug, random_string.to_lowercase())
   }
 
   pub fn to_display(&self) -> UserPublic {
