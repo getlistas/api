@@ -37,13 +37,13 @@ pub fn to_object_id(id: String) -> Result<ObjectId, Error> {
 }
 
 pub fn parse_url(url: &str) -> Result<url::Url, Error> {
-  let mut url = url::Url::parse(url).map_err(|_| Error::ParseURL())?;
+  let mut url = url.to_owned();
+  // Removes the URL trailing slashes
+  while url.ends_with('/') {
+    url.pop();
+  }
 
-  // Remove the URL trailing slash
-  url
-    .path_segments_mut()
-    .map_err(|_| Error::ParseURL())?
-    .pop_if_empty();
+  let url = url::Url::parse(url.as_str()).map_err(|_| Error::ParseURL())?;
 
   Ok(url)
 }
