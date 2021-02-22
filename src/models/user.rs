@@ -3,11 +3,13 @@ use serde::{Deserialize, Serialize};
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
-use slug::slugify;
+use inflector::cases::snakecase::to_snake_case;
+
 
 use crate::errors::Error;
 use crate::lib::date;
 use crate::lib::util::create_random_string;
+use crate::lib::util::to_slug_case;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Subscription {
@@ -107,9 +109,10 @@ impl User {
   pub fn create_slug(email: &str) -> String {
     // TODO: Validate email to unwrap here safely.
     let prefix = email.split('@').next().unwrap();
-    let slug = slugify(prefix);
-    let random_string = create_random_string(5);
-    format!("{}-{}", slug, random_string.to_lowercase())
+    let slug = to_slug_case(prefix.to_owned());
+    let slug = to_snake_case(slug.as_str());
+    let random_string = create_random_string(5).to_lowercase();
+    format!("{}_{}", slug, random_string)
   }
 
   pub fn to_display(&self) -> UserPublic {

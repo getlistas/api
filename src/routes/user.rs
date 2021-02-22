@@ -200,7 +200,7 @@ async fn create_token_from_google(
       debug!("User not found, creating a new user based on google authentication");
 
       let password = User::hash_password(util::create_random_string(10)).await?;
-      let slug = util::to_slug_case(name.clone());
+      let slug = User::create_slug(email.as_str());
       let now = date::now();
       let mut user = User {
         id: None,

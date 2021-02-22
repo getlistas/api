@@ -1,9 +1,9 @@
 use actix_web::{http, HttpResponse};
-use inflector::Inflector;
 use itertools::Itertools;
 use rand::Rng;
 use url;
 use wither::bson::oid::ObjectId;
+use slug::slugify;
 
 use crate::errors::Error;
 
@@ -26,8 +26,10 @@ pub fn create_random_string(size: usize) -> String {
     .collect()
 }
 
+// The slug will consist of a-z, 0-9, and '-'. Furthermore, a slug will never
+// contain more than one '-' in a row and will never start or end with '-'.
 pub fn to_slug_case(string: String) -> String {
-  string.to_kebab_case()
+  slugify(string)
 }
 
 pub fn to_object_id(id: String) -> Result<ObjectId, Error> {
@@ -37,6 +39,7 @@ pub fn to_object_id(id: String) -> Result<ObjectId, Error> {
 pub fn parse_url(url: &str) -> Result<url::Url, Error> {
   let mut url = url::Url::parse(url).map_err(|_| Error::ParseURL())?;
 
+  // Remove the URL trailing slash
   url
     .path_segments_mut()
     .map_err(|_| Error::ParseURL())?
