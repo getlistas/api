@@ -35,7 +35,7 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
     Some(integration) => integration,
     None => {
       error!("Integration not found, unsubscribing and returning 404 status code");
-      &ctx.rss.unsuscribe(subscription_id.as_str()).await?;
+      ctx.rss.unsuscribe(subscription_id.as_str()).await?;
       return Ok(HttpResponse::Ok().finish());
     }
   };
@@ -43,20 +43,20 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
   let user_id = integration.user.clone();
   let list_id = integration.list.clone();
 
-  let list = List::find_one(
-    &ctx.database.conn,
-    doc! { "_id": &list_id, "user": &user_id },
-    None,
-  )
-  .await
-  .map_err(Error::WitherError)?;
+  let list = ctx
+    .models
+    .find_one(doc! { "_id": &list_id, "user": &user_id })
+    .await?;
 
   let list = match list {
     Some(list) => list,
     None => {
-      // TODO also remove integration
-      error!("List not found, unsubscribing and returning 404 status code");
-      &ctx.rss.unsuscribe(subscription_id.as_str()).await?;
+      error!("List not found, removing integration, unsubscribing and returning 404 status code");
+      ctx
+        .models
+        .delete_one::<Integration>(doc! { "_id": &integration.id })
+        .await?;
+      ctx.rss.unsuscribe(subscription_id.as_str()).await?;
       return Ok(HttpResponse::Ok().finish());
     }
   };
@@ -67,7 +67,7 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
     .map(|entry| rss::RSS::create_resource_from_entry(entry, &user_id, &list_id));
 
   let mut resources = futures::stream::iter(resources)
-    .buffered(10)
+    .buffered(50)
     .collect::<Vec<Result<Resource, Error>>>()
     .await
     .into_iter()
@@ -88,9 +88,9 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
       async move { resource.save(&conn, None).await.map_err(Error::WitherError) }
     });
 
-  debug!("Creating resources from RSS feed");
+  debug!("Creating resources from RSS webhook");
   futures::stream::iter(resources)
-    .buffer_unordered(10)
+    .buffer_unordered(50)
     .collect::<Vec<Result<(), Error>>>()
     .await
     .into_iter()
