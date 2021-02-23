@@ -270,13 +270,13 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
   debug!("Removing resources associated to this list");
   ctx
     .models
-    .delete_many::<Resource>(doc! { "list": &list_id }, None)
+    .delete_many::<Resource>(doc! { "list": &list_id })
     .await?;
 
   debug!("Removing list");
   ctx
     .models
-    .delete_one::<List>(doc! { "_id": &list_id }, None)
+    .delete_one::<List>(doc! { "_id": &list_id })
     .await?;
 
   debug!("List removed, returning 204 status code");
