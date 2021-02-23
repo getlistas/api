@@ -73,29 +73,21 @@ impl Models {
       .map_err(Error::WitherError)
   }
 
-  pub async fn delete_many<T>(
-    &self,
-    query: Document,
-    options: Option<DeleteOptions>,
-  ) -> Result<DeleteResult, Error>
+  pub async fn delete_many<T>(&self, query: Document) -> Result<DeleteResult, Error>
   where
     T: wither::Model + Send,
   {
-    T::delete_many(&self.db.conn, query, options)
+    T::delete_many(&self.db.conn, query, None)
       .await
       .map_err(Error::WitherError)
   }
 
-  pub async fn delete_one<T>(
-    &self,
-    query: Document,
-    options: Option<DeleteOptions>,
-  ) -> Result<DeleteResult, Error>
+  pub async fn delete_one<T>(&self, query: Document) -> Result<DeleteResult, Error>
   where
     T: wither::Model + Send,
   {
     T::collection(&self.db.conn)
-      .delete_one(query, options)
+      .delete_one(query, None)
       .await
       .map_err(Error::MongoError)
   }

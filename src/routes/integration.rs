@@ -8,9 +8,11 @@ use wither::Model;
 use crate::auth;
 use crate::errors::Error;
 use crate::lib::date;
+use crate::lib::id::ID;
 use crate::lib::util::parse_url;
 use crate::lib::util::to_object_id;
 use crate::models::integration;
+use crate::models::integration::Integration;
 use crate::models::integration::RSS;
 use crate::models::list::List;
 use crate::models::{resource::Resource, user::UserID};
@@ -32,6 +34,12 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::resource("/integrations/rss")
       .route(web::post().to(create_rss_integration))
+      .wrap(auth.clone()),
+  );
+
+  cfg.service(
+    web::resource("/integrations/rss/{id}")
+      .route(web::delete().to(remove_rss_integration))
       .wrap(auth.clone()),
   );
 }
@@ -109,5 +117,44 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
 
   debug!("Returning integration and 200 status code");
   let res = HttpResponse::Ok().json(integration);
+  Ok(res)
+}
+
+async fn remove_rss_integration(ctx: Ctx, id: ID, user_id: UserID) -> Response {
+  let user_id = user_id.0;
+  let integration_id = id.0;
+
+  let integration = ctx
+    .models
+    .find_one::<Integration>(doc! { "_id": &integration_id, "user": &user_id })
+    .await?;
+
+  let integration = match integration {
+    Some(integration) => integration,
+    None => {
+      debug!("Integration not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
+  let rss = match integration.rss {
+    Some(rss) => rss,
+    None => {
+      debug!("Integration is not an RSS integration, returning 400 status code");
+      return Ok(HttpResponse::BadRequest().finish());
+    }
+  };
+
+  ctx.rss.unsuscribe(rss.subscription_id.as_str()).await?;
+
+  debug!("Removing integration");
+  ctx
+    .models
+    .delete_one::<Integration>(doc! { "_id": &integration_id })
+    .await?;
+
+  debug!("Integration removed, returning 204 status code");
+  let res = HttpResponse::NoContent().finish();
+
   Ok(res)
 }
