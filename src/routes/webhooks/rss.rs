@@ -45,7 +45,7 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
 
   let list = ctx
     .models
-    .find_one(doc! { "_id": &list_id, "user": &user_id })
+    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
     .await?;
 
   let list = match list {
@@ -54,7 +54,7 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
       error!("List not found, removing integration, unsubscribing and returning 404 status code");
       ctx
         .models
-        .delete_one::<Integration>(doc! { "_id": &integration.id })
+        .delete_one::<Integration>(doc! { "_id": integration.id.unwrap() })
         .await?;
       ctx.rss.unsuscribe(subscription_id.as_str()).await?;
       return Ok(HttpResponse::Ok().finish());
