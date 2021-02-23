@@ -8,15 +8,15 @@ use wither::Model;
 use crate::auth;
 use crate::errors::Error;
 use crate::lib::date;
+use crate::lib::id::ID;
 use crate::lib::util::parse_url;
 use crate::lib::util::to_object_id;
 use crate::models::integration;
-use crate::models::integration::RSS;
 use crate::models::integration::Integration;
+use crate::models::integration::RSS;
 use crate::models::list::List;
 use crate::models::{resource::Resource, user::UserID};
 use crate::Context;
-use crate::lib::id::ID;
 
 #[derive(Deserialize)]
 struct RSSCreate {
