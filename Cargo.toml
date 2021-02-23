@@ -29,7 +29,7 @@ maud = "0.22.1"
 itertools = "0.10.0"
 url = "2.2.1"
 select = "0.5.0"
-futures = "0.3.12"
+futures = "0.3.13"
 rand = "0.8.3"
 Inflector = "0.11.4"
 
