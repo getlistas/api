@@ -17,7 +17,7 @@ pub struct RSS {
   pub client: reqwest::Client,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Webhook {
   pub webhook_reason: String,
   pub subscription_id: String,
@@ -26,7 +26,7 @@ pub struct Webhook {
   pub new_entries: Vec<Entry>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Entry {
   pub title: String,
   pub link: String,
