@@ -116,7 +116,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
     .collect::<Result<(), Error>>()?;
 
   debug!("Returning integration and 200 status code");
-  let res = HttpResponse::Ok().json(integration);
+  let res = HttpResponse::Ok().json(integration.to_response_schema());
   Ok(res)
 }
 

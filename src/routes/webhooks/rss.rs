@@ -14,13 +14,13 @@ type Response = actix_web::Result<HttpResponse>;
 type WebhookBody = web::Json<rss::Webhook>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
-  cfg.service(web::resource("/rssapi").route(web::post().to(webhook)));
+  cfg.service(web::resource("").route(web::post().to(webhook)));
 }
 
 async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
   debug!("Processing RSS webhook from rssapi");
 
-  if !body.new_entries.len() > 0 {
+  if body.new_entries.len() == 0 {
     debug!("RSS webhook does not contain new entries, returning 400 status code");
     return Ok(HttpResponse::BadRequest().finish());
   }
