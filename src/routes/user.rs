@@ -89,8 +89,10 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
     .map_err(Error::WitherError)?;
 
   debug!("Sending confirm email to the user {}", &user.email);
-  let confirm_email = emails::create_confirm_email(&ctx.settings.base_url, &user);
-  ctx.send_email(confirm_email).await;
+  let send_from = ctx.settings.mailer.from.as_str();
+  let base_url = &ctx.settings.base_url.as_str();
+  let confirm_email = emails::create_confirm_email(send_from, base_url, &user)?;
+  ctx.mailer.send(confirm_email).await?;
 
   // TODO: Create demo resource on dev.to or medium.
   // debug!("Creating demo lists and resources for new user");
@@ -235,8 +237,10 @@ async fn create_token_from_google(
         user.verified_at = None;
 
         debug!("Sending confirm email to the user {}", &user.email);
-        let confirm_email = emails::create_confirm_email(&ctx.settings.base_url, &user);
-        ctx.send_email(confirm_email).await;
+        let send_from = ctx.settings.mailer.from.as_str();
+        let base_url = ctx.settings.base_url.as_str();
+        let confirm_email = emails::create_confirm_email(send_from, base_url, &user)?;
+        ctx.mailer.send(confirm_email).await?;
       }
 
       user
@@ -293,8 +297,10 @@ async fn request_password_reset(
     .map_err(Error::WitherError)?;
 
   debug!("Sending password reset email to the user {}", &user.email);
-  let email = emails::create_password_reset_email(&ctx.settings.base_url, &user);
-  ctx.send_email(email).await;
+  let send_from = ctx.settings.mailer.from.as_str();
+  let base_url = &ctx.settings.base_url.as_str();
+  let email = emails::create_password_reset_email(send_from, base_url, &user)?;
+  ctx.mailer.send(email).await?;
 
   debug!("Returning 204 status to the user");
   let res = HttpResponse::NoContent().finish();
