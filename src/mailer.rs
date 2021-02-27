@@ -1,12 +1,12 @@
 use actix_web::error::BlockingError;
 use lettre::smtp::authentication::Credentials;
-use lettre::{SmtpClient, SmtpTransport, Transport};
-use std::sync::{Arc, Mutex};
 use lettre::smtp::error::Error as SMTPError;
+use lettre::{SmtpClient, SmtpTransport, Transport};
+use lettre_email::Email;
+use std::sync::{Arc, Mutex};
 
 use crate::errors::Error;
 use crate::settings::Settings;
-
 
 #[derive(thiserror::Error, Debug)]
 #[error("...")]
@@ -18,7 +18,7 @@ pub enum MailerError {
   SMTP(#[from] SMTPError),
 
   #[error("Failed to send email actix_web::web::block operation was cancelled")]
-  Canceled
+  Canceled,
 }
 
 #[derive(Clone)]
@@ -40,7 +40,7 @@ impl Mailer {
     })
   }
 
-  pub async fn send(&self, email: lettre::SendableEmail) -> Result<(), Error> {
+  pub async fn send(&self, email: Email) -> Result<(), Error> {
     let transport = self.transport.clone();
     let sent = actix_web::web::block(move || {
       transport
@@ -48,20 +48,17 @@ impl Mailer {
         // transport.lock() call will return an error once the mutex is acquired.
         .lock()
         .map_err(|_| MailerError::LockTransport)?
-        .send(email)
+        .send(email.into())
         .map_err(MailerError::SMTP)?;
+
       Ok(())
     })
     .await;
 
     match sent {
       Ok(_) => Ok(()),
-      Err(err) => {
-        match err {
-          BlockingError::Canceled => Err(Error::SendEmail(MailerError::Canceled)),
-          BlockingError::Error(err) => Err(Error::SendEmail(err))
-        }
-      }
+      Err(BlockingError::Canceled) => Err(Error::SendEmail(MailerError::Canceled)),
+      Err(BlockingError::Error(err)) => Err(Error::SendEmail(err)),
     }
   }
 }

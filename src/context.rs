@@ -14,15 +14,3 @@ pub struct Context {
   pub rss: RSS,
   pub models: Models,
 }
-
-impl Context {
-  // TODO: Move to mailer module.
-  pub async fn send_email(&self, email: EmailBuilder) {
-    let email = email
-      .from(self.settings.mailer.from.as_str())
-      .build()
-      .unwrap();
-
-    self.mailer.send(email.into()).await.unwrap();
-  }
-}

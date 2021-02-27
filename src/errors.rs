@@ -2,6 +2,7 @@ use actix_web::dev::HttpResponseBuilder;
 use actix_web::error::BlockingError;
 use actix_web::http::StatusCode;
 use actix_web::HttpResponse;
+use lettre_email::error::Error as LettreEmailError;
 use serde_json::json;
 use wither::bson;
 use wither::mongodb;
@@ -50,6 +51,9 @@ pub enum Error {
 
   #[error("Error sending email")]
   SendEmail(#[from] MailerError),
+
+  #[error("Failed to build email {0}")]
+  BuildEmail(#[from] LettreEmailError),
 }
 
 impl Error {
@@ -81,6 +85,7 @@ impl Error {
       Error::ContactRSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5005),
       Error::RSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
       Error::SendEmail(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5007),
+      Error::BuildEmail(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5008),
     }
   }
 }
