@@ -4,7 +4,6 @@ pub mod resource;
 pub mod user;
 use futures::stream::TryStreamExt;
 use wither::bson::Document;
-use wither::mongodb::options::DeleteOptions;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::mongodb::options::FindOptions;
 use wither::mongodb::results::DeleteResult;

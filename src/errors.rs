@@ -1,4 +1,5 @@
 use actix_web::dev::HttpResponseBuilder;
+use actix_web::error::BlockingError;
 use actix_web::http::StatusCode;
 use actix_web::HttpResponse;
 use serde_json::json;
@@ -8,6 +9,8 @@ use wither::mongodb::error::CommandError as MongoCommandError;
 use wither::mongodb::error::Error as MongoError;
 use wither::mongodb::error::ErrorKind as MongoErrorKind;
 use wither::WitherError;
+
+use crate::mailer::MailerError;
 
 #[derive(thiserror::Error, Debug)]
 #[error("...")]
@@ -30,11 +33,11 @@ pub enum Error {
   #[error("{0}")]
   JWT(#[from] jsonwebtoken::errors::Error),
 
-  #[error("Failed authentication google token")]
+  #[error("Failed authenticating Google token")]
   GoogleAuthentication {},
 
   #[error("{0}")]
-  HashPassword(#[from] actix_web::error::BlockingError<bcrypt::BcryptError>),
+  HashPassword(#[from] BlockingError<bcrypt::BcryptError>),
 
   #[error("Failed to parse URL")]
   ParseURL(),
@@ -44,6 +47,9 @@ pub enum Error {
 
   #[error("RSS Integration error: {0}")]
   RSSIntegration(String),
+
+  #[error("Error sending email")]
+  SendEmail(#[from] MailerError),
 }
 
 impl Error {
@@ -74,6 +80,7 @@ impl Error {
       Error::HashPassword(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5004),
       Error::ContactRSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5005),
       Error::RSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
+      Error::SendEmail(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5007),
     }
   }
 }
