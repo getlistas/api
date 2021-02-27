@@ -1,5 +1,3 @@
-use lettre_email::EmailBuilder;
-
 use crate::database::Database;
 use crate::integrations::rss::RSS;
 use crate::mailer::Mailer;
