@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde_json::json;
 use wither::bson;
 use wither::bson::doc;
+use wither::bson::Bson;
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::mongodb::options::FindOptions;
@@ -55,6 +56,12 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::resource("/lists/{id}/fork")
       .route(web::post().to(fork_list))
+      .wrap(auth.clone()),
+  );
+
+  cfg.service(
+    web::resource("/lists/{id}/archive")
+      .route(web::post().to(archive_list))
       .wrap(auth.clone()),
   );
 }
@@ -124,6 +131,7 @@ async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) ->
     fork: None,
     created_at: now,
     updated_at: now,
+    archived_at: None,
   };
 
   let list = ctx.models.create(list).await?;
@@ -146,7 +154,7 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
 
   let list = ctx
     .models
-    .find_one_and_update::<List>(doc! { "_id": list_id }, update, update_options)
+    .find_one_and_update::<List>(doc! { "_id": list_id }, update, Some(update_options))
     .await?;
 
   let list = match list {
@@ -199,6 +207,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     slug: list.slug.clone(),
     created_at: now,
     updated_at: now,
+    archived_at: None,
 
     fork: Some(list::Fork {
       from: list.id.clone().unwrap(),
@@ -280,6 +289,59 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
     .await?;
 
   debug!("List removed, returning 204 status code");
+  let res = HttpResponse::NoContent().finish();
+
+  Ok(res)
+}
+
+async fn archive_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
+  let user_id = user.0;
+  let list_id = id.0;
+
+  let list = ctx
+    .models
+    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
+    .await?;
+
+  if list.is_none() {
+    debug!("List not found, returning 404 status code");
+    return Ok(HttpResponse::NotFound().finish());
+  }
+
+  let completed_resources_count = ctx
+    .models
+    .count::<Resource>(doc! {
+      "list": &list_id,
+      "completed_at": { "$exists": true }
+    })
+    .await?;
+
+  if completed_resources_count == 0 {
+    debug!("Can not archive list with no completed resources, returning 400 status code");
+    return Ok(HttpResponse::BadRequest().finish());
+  }
+
+  debug!("Removing not completed resources associated to this list");
+  ctx
+    .models
+    .delete_many::<Resource>(doc! {
+      "list": &list_id,
+      "completed_at": Bson::Null
+    })
+    .await?;
+
+  debug!("Archiving list");
+  let now = date::now();
+  ctx
+    .models
+    .find_one_and_update::<List>(
+      doc! { "_id": &list_id },
+      doc! { "archived_at": Bson::DateTime(now.into()) },
+      None,
+    )
+    .await?;
+
+  debug!("List archived, returning 204 status code");
   let res = HttpResponse::NoContent().finish();
 
   Ok(res)

@@ -38,6 +38,7 @@ pub struct List {
   pub fork: Option<Fork>,
   pub created_at: DateTime,
   pub updated_at: DateTime,
+  pub archived_at: Option<DateTime>,
 }
 
 impl List {
