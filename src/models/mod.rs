@@ -62,7 +62,7 @@ impl Models {
     &self,
     query: Document,
     update: Document,
-    options: FindOneAndUpdateOptions,
+    options: Option<FindOneAndUpdateOptions>,
   ) -> Result<Option<T>, Error>
   where
     T: wither::Model + Send,
@@ -87,6 +87,16 @@ impl Models {
   {
     T::collection(&self.db.conn)
       .delete_one(query, None)
+      .await
+      .map_err(Error::MongoError)
+  }
+
+  pub async fn count<T>(&self, query: Document) -> Result<i64, Error>
+  where
+    T: wither::Model + Send,
+  {
+    T::collection(&self.db.conn)
+      .count_documents(query, None)
       .await
       .map_err(Error::MongoError)
   }
