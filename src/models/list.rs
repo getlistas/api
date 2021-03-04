@@ -54,7 +54,8 @@ impl List {
         "is_public": this.is_public,
         "fork": this.fork.clone().map(|fork| fork.to_json()),
         "created_at": date::to_rfc3339(this.created_at),
-        "updated_at": date::to_rfc3339(this.updated_at)
+        "updated_at": date::to_rfc3339(this.updated_at),
+        "archived_at": this.archived_at.map(date::to_rfc3339)
     })
   }
 

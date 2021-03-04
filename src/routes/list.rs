@@ -303,9 +303,17 @@ async fn archive_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response
     .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
     .await?;
 
-  if list.is_none() {
-    debug!("List not found, returning 404 status code");
-    return Ok(HttpResponse::NotFound().finish());
+  let list = match list {
+    Some(list) => list,
+    None => {
+      debug!("List not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
+  if list.archived_at.is_some() {
+    debug!("List was already archived, returning 400 status code");
+    return Ok(HttpResponse::BadRequest().finish());
   }
 
   let completed_resources_count = ctx
@@ -331,14 +339,14 @@ async fn archive_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response
     .await?;
 
   debug!("Archiving list");
-  let now = date::now();
+  let update = doc! {
+    "$set": {
+      "archived_at": Bson::DateTime(date::now().into())
+    }
+  };
   ctx
     .models
-    .find_one_and_update::<List>(
-      doc! { "_id": &list_id },
-      doc! { "archived_at": Bson::DateTime(now.into()) },
-      None,
-    )
+    .find_one_and_update::<List>(doc! { "_id": &list_id }, update, None)
     .await?;
 
   debug!("List archived, returning 204 status code");
