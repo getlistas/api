@@ -24,12 +24,24 @@ struct RSSCreate {
   url: String,
 }
 
+#[derive(Deserialize)]
+struct Query {
+  list: Option<String>,
+  service: Option<String>,
+}
+
 type Ctx = web::Data<Context>;
 type Response = actix_web::Result<HttpResponse>;
 type RSSCreateBody = web::Json<RSSCreate>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
   let auth = HttpAuthentication::bearer(auth::validator);
+
+  cfg.service(
+    web::resource("/integrations")
+      .route(web::get().to(query_integrations))
+      .wrap(auth.clone()),
+  );
 
   cfg.service(
     web::resource("/integrations/rss")
@@ -42,6 +54,32 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
       .route(web::delete().to(remove_rss_integration))
       .wrap(auth.clone()),
   );
+}
+
+async fn query_integrations(ctx: Ctx, user: UserID, qs: web::Query<Query>) -> Response {
+  let user_id = user.0;
+  let mut query = doc! { "user": &user_id };
+
+  if qs.list.is_some() {
+    let list_id = to_object_id(qs.list.clone().unwrap())?;
+    query.insert("list", list_id);
+  }
+
+  if qs.service.is_some() {
+    let service = qs.service.as_ref().unwrap();
+    query.insert("service", service);
+  }
+
+  let integrations = ctx.models.find::<Integration>(query, None).await?;
+
+  let integrations = integrations
+    .iter()
+    .map(|integrations| integrations.to_response_schema())
+    .collect::<Vec<serde_json::Value>>();
+
+  debug!("Returning integrations");
+  let res = HttpResponse::Ok().json(integrations);
+  Ok(res)
 }
 
 async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) -> Response {
@@ -77,6 +115,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
       list: list_id.clone(),
       created_at: now,
       updated_at: now,
+      service: "rss".to_owned(),
       rss: Some(RSS {
         url: subscription.url,
         subscription_id: subscription.subscription_id,

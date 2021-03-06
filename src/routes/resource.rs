@@ -4,7 +4,7 @@ use futures::stream::TryStreamExt;
 use serde::Deserialize;
 use serde_json::json;
 use wither::bson;
-use wither::bson::{doc, oid::ObjectId, Bson};
+use wither::bson::{doc, Bson};
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::mongodb::options::FindOptions;
@@ -118,8 +118,7 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
   let options = FindOptions::builder().sort(Some(sort)).build();
 
   if qs.list.is_some() {
-    let list_id =
-      ObjectId::with_string(qs.list.clone().unwrap().as_str()).map_err(Error::ParseObjectID)?;
+    let list_id = util::to_object_id(qs.list.clone().unwrap())?;
     query.insert("list", list_id);
   }
 
