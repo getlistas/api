@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
+use validator::Validate;
 
 use crate::errors::Error;
 use crate::lib::date;
@@ -25,13 +26,15 @@ pub struct Subscription {
   pub cancellation_effective_at: Option<DateTime>,
 }
 
-#[derive(Debug, Model, Serialize, Deserialize)]
+#[derive(Debug, Model, Validate, Serialize, Deserialize)]
 pub struct User {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
   pub id: Option<ObjectId>,
 
   pub password: String,
+  #[validate(email)]
   pub email: String,
+  #[validate(length(min = 1, max = 50))]
   pub slug: String,
   pub name: String,
   pub avatar: Option<String>,

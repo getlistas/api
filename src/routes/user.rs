@@ -3,6 +3,7 @@ use serde::Deserialize;
 use serde_json::json;
 use wither::bson::doc;
 use wither::Model;
+use validator::Validate;
 
 // use crate::lib::create_demo_lists;
 use crate::lib::date;
@@ -81,6 +82,14 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
     updated_at: now,
     verified_at: None,
     locked_at: None,
+  };
+
+  match user.validate() {
+    Ok(_) => (),
+    Err(_err) => {
+      debug!("Failed creating User, payload is not valid. Returning 400 status code");
+      return Ok(HttpResponse::BadRequest().finish());
+    }
   };
 
   user
