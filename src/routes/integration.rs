@@ -39,7 +39,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
 
   cfg.service(
     web::resource("/integrations")
-      .route(web::get().to(query_integration))
+      .route(web::get().to(query_integrations))
       .wrap(auth.clone()),
   );
 
@@ -56,7 +56,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   );
 }
 
-async fn query_integration(ctx: Ctx, user: UserID, qs: web::Query<Query>) -> Response {
+async fn query_integrations(ctx: Ctx, user: UserID, qs: web::Query<Query>) -> Response {
   let user_id = user.0;
   let mut query = doc! { "user": &user_id };
 
