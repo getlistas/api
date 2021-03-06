@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
-use validator::{Validate, ValidationError, ValidationErrors};
+use validator::Validate;
 
 use crate::errors::Error;
 use crate::lib::date;
