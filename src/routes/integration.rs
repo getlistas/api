@@ -44,6 +44,12 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   );
 
   cfg.service(
+    web::resource("/integrations/{id}")
+      .route(web::delete().to(remove_integration))
+      .wrap(auth.clone()),
+  );
+
+  cfg.service(
     web::resource("/integrations/rss")
       .route(web::post().to(create_rss_integration))
       .wrap(auth.clone()),
@@ -191,6 +197,32 @@ async fn remove_rss_integration(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     .models
     .delete_one::<Integration>(doc! { "_id": &integration_id })
     .await?;
+
+  debug!("Integration removed, returning 204 status code");
+  let res = HttpResponse::NoContent().finish();
+
+  Ok(res)
+}
+
+async fn remove_integration(ctx: Ctx, id: ID, user_id: UserID) -> Response {
+  let user_id = user_id.0;
+  let integration_id = id.0;
+
+  let integration = ctx
+    .models
+    .find_one::<Integration>(doc! { "_id": &integration_id, "user": &user_id })
+    .await?;
+
+  let integration = match integration {
+    Some(integration) => integration,
+    None => {
+      debug!("Integration not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
+  debug!("Removing integration");
+  integration.remove(&ctx).await?;
 
   debug!("Integration removed, returning 204 status code");
   let res = HttpResponse::NoContent().finish();
