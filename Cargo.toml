@@ -20,7 +20,7 @@ futures-util = "0.3.13"
 actix-files = "0.5.0"
 actix-web-httpauth = "0.5.0"
 # Do not update until actix web runs on tokio v1
-reqwest = { version = "0.10.10", features = ["json"] }
+reqwest = { version = "0.11.2", features = ["json"] }
 jsonwebtoken = "7.2.0"
 bcrypt = "0.9.0"
 lettre = "0.9"
