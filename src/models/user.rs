@@ -1,9 +1,9 @@
 use actix_web::web::block as to_future;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
-use validator::Validate;
 
 use crate::errors::Error;
 use crate::lib::date;

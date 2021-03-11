@@ -1,11 +1,16 @@
+use actix_web::web;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value as JSON;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
-use wither::Model as DatabaseModel;
+use wither::Model;
 
+use crate::errors::Error;
 use crate::lib::date;
+use crate::Context;
+
+type Ctx = web::Data<Context>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RSS {
@@ -22,7 +27,7 @@ impl RSS {
   }
 }
 
-#[derive(Debug, Clone, DatabaseModel, Serialize, Deserialize)]
+#[derive(Debug, Clone, Model, Serialize, Deserialize)]
 pub struct Integration {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
   pub id: Option<ObjectId>,
@@ -35,6 +40,25 @@ pub struct Integration {
 }
 
 impl Integration {
+  pub async fn remove(&self, ctx: &Ctx) -> Result<(), Error> {
+    match self.service.as_str() {
+      "rss" => {
+        ctx
+          .rss
+          .unsuscribe(self.rss.as_ref().unwrap().subscription_id.as_str())
+          .await?;
+      }
+      _ => {}
+    };
+
+    ctx
+      .models
+      .delete_one::<Integration>(doc! { "_id": self.id.clone().unwrap() })
+      .await?;
+
+    Ok(())
+  }
+
   pub fn to_response_schema(&self) -> JSON {
     let this = self.clone();
     json!({
