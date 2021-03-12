@@ -1,3 +1,5 @@
+use actix_web::web;
+use futures::stream::StreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value as JSON;
@@ -6,8 +8,12 @@ use wither::bson::{doc, oid::ObjectId, Bson};
 use wither::mongodb::Database;
 use wither::Model;
 
+use crate::models::integration::Integration;
+use crate::Context;
 use crate::{errors::Error, lib::date};
 use crate::{lib::util, models::resource::Resource};
+
+type Ctx = web::Data<Context>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fork {
@@ -94,6 +100,65 @@ impl List {
     });
 
     Ok(res)
+  }
+
+  pub async fn archive(&self, ctx: &Ctx) -> Result<(), Error> {
+    let id = self.id.as_ref().unwrap();
+
+    ctx
+      .models
+      .delete_many::<Resource>(doc! { "list": id, "completed_at": Bson::Null })
+      .await?;
+
+    self.remove_integrations(&ctx).await?;
+
+    let update = doc! {
+      "$set": {
+        "archived_at": Bson::DateTime(date::now().into())
+      }
+    };
+
+    ctx
+      .models
+      .find_one_and_update::<List>(doc! { "_id": id }, update, None)
+      .await?;
+
+    Ok(())
+  }
+
+  pub async fn remove(&self, ctx: &Ctx) -> Result<(), Error> {
+    let id = self.id.as_ref().unwrap();
+
+    ctx
+      .models
+      .delete_many::<Resource>(doc! { "list": id })
+      .await?;
+
+    self.remove_integrations(&ctx).await?;
+
+    ctx.models.delete_one::<List>(doc! { "_id": id }).await?;
+
+    Ok(())
+  }
+
+  pub async fn remove_integrations(&self, ctx: &Ctx) -> Result<(), Error> {
+    let id = self.id.as_ref().unwrap();
+
+    let integrations = ctx
+      .models
+      .find::<Integration>(doc! { "list": id }, None)
+      .await?;
+
+    let remove_integration_futures = integrations
+      .into_iter()
+      .map(move |integration| async move { integration.remove(&ctx).await });
+
+    futures::stream::iter(remove_integration_futures)
+      .buffer_unordered(50)
+      .collect::<Vec<Result<(), Error>>>()
+      .await
+      .into_iter()
+      .collect::<Result<(), Error>>()
   }
 }
 

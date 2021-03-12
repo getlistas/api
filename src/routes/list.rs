@@ -271,22 +271,16 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
     .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
     .await?;
 
-  if list.is_none() {
-    debug!("List not found, returning 404 status code");
-    return Ok(HttpResponse::NotFound().finish());
-  }
-
-  debug!("Removing resources associated to this list");
-  ctx
-    .models
-    .delete_many::<Resource>(doc! { "list": &list_id })
-    .await?;
+  let list = match list {
+    Some(list) => list,
+    None => {
+      debug!("List not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
 
   debug!("Removing list");
-  ctx
-    .models
-    .delete_one::<List>(doc! { "_id": &list_id })
-    .await?;
+  list.remove(&ctx).await?;
 
   debug!("List removed, returning 204 status code");
   let res = HttpResponse::NoContent().finish();
@@ -329,25 +323,8 @@ async fn archive_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response
     return Ok(HttpResponse::BadRequest().finish());
   }
 
-  debug!("Removing not completed resources associated to this list");
-  ctx
-    .models
-    .delete_many::<Resource>(doc! {
-      "list": &list_id,
-      "completed_at": Bson::Null
-    })
-    .await?;
-
   debug!("Archiving list");
-  let update = doc! {
-    "$set": {
-      "archived_at": Bson::DateTime(date::now().into())
-    }
-  };
-  ctx
-    .models
-    .find_one_and_update::<List>(doc! { "_id": &list_id }, update, None)
-    .await?;
+  list.archive(&ctx).await?;
 
   debug!("List archived, returning 204 status code");
   let res = HttpResponse::NoContent().finish();
