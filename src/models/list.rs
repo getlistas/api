@@ -110,6 +110,8 @@ impl List {
       .delete_many::<Resource>(doc! { "list": id, "completed_at": Bson::Null })
       .await?;
 
+    self.remove_integrations(&ctx).await?;
+
     let update = doc! {
       "$set": {
         "archived_at": Bson::DateTime(date::now().into())
@@ -121,7 +123,7 @@ impl List {
       .find_one_and_update::<List>(doc! { "_id": id }, update, None)
       .await?;
 
-    self.remove_integrations(&ctx).await
+    Ok(())
   }
 
   pub async fn remove(&self, ctx: &Ctx) -> Result<(), Error> {
@@ -132,7 +134,11 @@ impl List {
       .delete_many::<Resource>(doc! { "list": id })
       .await?;
 
-    self.remove_integrations(&ctx).await
+    self.remove_integrations(&ctx).await?;
+
+    ctx.models.delete_one::<List>(doc! { "_id": &id }).await?;
+
+    Ok(())
   }
 
   pub async fn remove_integrations(&self, ctx: &Ctx) -> Result<(), Error> {
