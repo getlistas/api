@@ -1,9 +1,9 @@
 use actix_web::{web, HttpResponse};
-use validator::Validate;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::stream::TryStreamExt;
 use serde::Deserialize;
 use serde_json::json;
+use validator::Validate;
 use wither::bson;
 use wither::bson::{doc, Bson};
 use wither::mongodb;
