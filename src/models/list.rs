@@ -136,7 +136,7 @@ impl List {
 
     self.remove_integrations(&ctx).await?;
 
-    ctx.models.delete_one::<List>(doc! { "_id": &id }).await?;
+    ctx.models.delete_one::<List>(doc! { "_id": id }).await?;
 
     Ok(())
   }
@@ -149,12 +149,11 @@ impl List {
       .find::<Integration>(doc! { "list": id }, None)
       .await?;
 
-    let integrations = integrations.into_iter().map(move |integration| {
-      let ctx = ctx.clone();
-      async move { integration.remove(&ctx).await }
-    });
+    let remove_integration_futures = integrations
+      .into_iter()
+      .map(move |integration| async move { integration.remove(&ctx).await });
 
-    futures::stream::iter(integrations)
+    futures::stream::iter(remove_integration_futures)
       .buffer_unordered(50)
       .collect::<Vec<Result<(), Error>>>()
       .await
