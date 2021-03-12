@@ -30,7 +30,6 @@ pub struct Subscription {
 pub struct User {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
   pub id: Option<ObjectId>,
-
   pub password: String,
   #[validate(email)]
   pub email: String,
@@ -38,21 +37,15 @@ pub struct User {
   pub slug: String,
   pub name: String,
   pub avatar: Option<String>,
-
-  // Oauth providers attributes
   pub google_id: Option<String>,
-
   pub verification_token: Option<String>,
   pub password_reset_token: Option<String>,
-
   pub created_at: DateTime,
   pub updated_at: DateTime,
-
   pub verified_at: Option<DateTime>,
   pub locked_at: Option<DateTime>,
   pub verification_token_set_at: Option<DateTime>,
   pub password_reset_token_set_at: Option<DateTime>,
-
   pub subscription: Option<Subscription>,
 }
 
