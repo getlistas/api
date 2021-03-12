@@ -1,4 +1,5 @@
 use actix_web::{web, HttpResponse};
+use validator::Validate;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use futures::stream::TryStreamExt;
 use serde::Deserialize;
@@ -172,6 +173,14 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     created_at: date::now(),
     updated_at: date::now(),
     completed_at: None,
+  };
+
+  match resource.validate() {
+    Ok(_) => (),
+    Err(_err) => {
+      debug!("Failed creating Resource, payload is not valid. Returning 400 status code");
+      return Ok(HttpResponse::BadRequest().finish());
+    }
   };
 
   resource

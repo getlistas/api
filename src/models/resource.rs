@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use validator::Validate;
 use wither::bson::{doc, oid::ObjectId, Bson};
 use wither::bson::{DateTime, Document};
 use wither::mongodb::options::FindOneOptions;
@@ -9,12 +10,13 @@ use wither::Model;
 use crate::errors::Error;
 use crate::lib::{date, util};
 
-#[derive(Debug, Model, Serialize, Deserialize)]
+#[derive(Debug, Model, Validate, Serialize, Deserialize)]
 pub struct Resource {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
   pub id: Option<ObjectId>,
   pub user: ObjectId,
   pub list: ObjectId,
+  #[validate(url)]
   pub url: String,
   pub title: String,
   pub position: i32,
