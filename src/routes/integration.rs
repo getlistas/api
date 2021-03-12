@@ -44,14 +44,14 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   );
 
   cfg.service(
-    web::resource("/integrations/{id}")
-      .route(web::delete().to(remove_integration))
+    web::resource("/integrations/rss")
+      .route(web::post().to(create_rss_integration))
       .wrap(auth.clone()),
   );
 
   cfg.service(
-    web::resource("/integrations/rss")
-      .route(web::post().to(create_rss_integration))
+    web::resource("/integrations/{id}")
+      .route(web::delete().to(remove_integration))
       .wrap(auth.clone()),
   );
 
