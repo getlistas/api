@@ -2,6 +2,7 @@ pub mod integration;
 pub mod list;
 pub mod resource;
 pub mod user;
+
 use futures::stream::TryStreamExt;
 use wither::bson::Document;
 use wither::mongodb::options::FindOneAndUpdateOptions;
