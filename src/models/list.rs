@@ -31,22 +31,6 @@ impl Fork {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Follow {
-  pub from: ObjectId,
-  pub at: DateTime,
-}
-
-impl Follow {
-  pub fn to_json(&self) -> JSON {
-    let this = self.clone();
-    json!({
-        "from": this.from.clone().to_hex(),
-        "at": date::to_rfc3339(this.at)
-    })
-  }
-}
-
 #[derive(Debug, Model, Serialize, Deserialize)]
 pub struct List {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -58,7 +42,6 @@ pub struct List {
   pub tags: Vec<String>,
   pub is_public: bool,
   pub fork: Option<Fork>,
-  pub follow: Option<Follow>,
   pub created_at: DateTime,
   pub updated_at: DateTime,
   pub archived_at: Option<DateTime>,
@@ -76,7 +59,6 @@ impl List {
         "slug": this.slug,
         "is_public": this.is_public,
         "fork": this.fork.clone().map(|fork| fork.to_json()),
-        "follow": this.follow.clone().map(|follow| follow.to_json()),
         "created_at": date::to_rfc3339(this.created_at),
         "updated_at": date::to_rfc3339(this.updated_at),
         "archived_at": this.archived_at.map(date::to_rfc3339)

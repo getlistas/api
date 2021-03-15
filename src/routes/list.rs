@@ -58,7 +58,6 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
       .wrap(auth.clone()),
   );
 
-
   cfg.service(
     web::resource("/lists/{id}/follow")
       .route(web::post().to(follow_list))
@@ -135,7 +134,6 @@ async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) ->
     tags,
     slug,
     fork: None,
-    follow: None,
     created_at: now,
     updated_at: now,
     archived_at: None,
@@ -213,8 +211,10 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     created_at: now,
     updated_at: now,
     archived_at: None,
-    follow: None,
-    fork: Some(list::Fork { from: list.id.clone().unwrap(), at: now }),
+    fork: Some(list::Fork {
+      from: list.id.clone().unwrap(),
+      at: now,
+    }),
   };
 
   let forked_list = ctx.models.create(forked_list).await?;
@@ -301,7 +301,6 @@ async fn follow_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
     updated_at: now,
     archived_at: None,
     fork: None,
-    follow: Some(list::Follow { from: parent_list_id.clone(), at: now }),
   };
 
   let list = ctx.models.create(list).await?;
@@ -313,30 +312,27 @@ async fn follow_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
 
   debug!("Creating resources from parent list");
   let list_id = list.id.clone().unwrap();
-  let resources = parent_list_resources.into_iter().map(move |parent_resource| {
-    let conn = ctx.database.conn.clone();
-    let mut resource = Resource {
-      id: None,
-      user: user_id.clone(),
-      list: list_id.clone(),
-      position: parent_resource.position,
-      url: parent_resource.url.clone(),
-      title: parent_resource.title.clone(),
-      description: parent_resource.description.clone(),
-      thumbnail: parent_resource.thumbnail.clone(),
-      tags: parent_resource.tags.clone(),
-      created_at: now,
-      updated_at: now,
-      completed_at: None,
-    };
+  let resources = parent_list_resources
+    .into_iter()
+    .map(move |parent_resource| {
+      let conn = ctx.database.conn.clone();
+      let mut resource = Resource {
+        id: None,
+        user: user_id.clone(),
+        list: list_id.clone(),
+        position: parent_resource.position,
+        url: parent_resource.url.clone(),
+        title: parent_resource.title.clone(),
+        description: parent_resource.description.clone(),
+        thumbnail: parent_resource.thumbnail.clone(),
+        tags: parent_resource.tags.clone(),
+        created_at: now,
+        updated_at: now,
+        completed_at: None,
+      };
 
-    async move {
-      resource
-        .save(&conn, None)
-        .await
-        .map_err(Error::WitherError)
-    }
-  });
+      async move { resource.save(&conn, None).await.map_err(Error::WitherError) }
+    });
 
   debug!("Storing resources from followed list");
   futures::stream::iter(resources)
