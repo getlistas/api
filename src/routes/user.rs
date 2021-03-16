@@ -1,4 +1,5 @@
 use actix_web::{web, HttpResponse};
+use actix_web_httpauth::middleware::HttpAuthentication;
 use serde::Deserialize;
 use serde_json::json;
 use validator::Validate;
@@ -6,14 +7,17 @@ use wither::bson::doc;
 use wither::Model;
 
 // use crate::lib::create_demo_lists;
+use crate::auth;
 use crate::lib::date;
 use crate::lib::token;
 use crate::models::user::User;
+use crate::models::user::UserID;
 use crate::Context;
 use crate::{emails, lib::google};
 use crate::{errors::Error, lib::util};
 
 type Response = actix_web::Result<HttpResponse>;
+type Ctx = web::Data<Context>;
 
 #[derive(Deserialize)]
 struct UserCreateBody {
@@ -47,7 +51,14 @@ pub struct GoogleAuthenticate {
 type GoogleAuthenticateBody = web::Json<GoogleAuthenticate>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
+  let auth = HttpAuthentication::bearer(auth::validator);
+
   cfg.service(web::resource("/users").route(web::post().to(create_user)));
+  cfg.service(
+    web::resource("/users/me")
+      .route(web::get().to(get_session))
+      .wrap(auth.clone()),
+  );
   cfg.service(web::resource("/users/verification/{token}").route(web::get().to(verify_user_email)));
   cfg.service(web::resource("/users/auth").route(web::post().to(create_token)));
   cfg.service(web::resource("/users/google-auth").route(web::post().to(create_token_from_google)));
@@ -109,6 +120,24 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
 
   debug!("Returning created user");
   let res = HttpResponse::Created().json(user.to_display());
+  Ok(res)
+}
+
+async fn get_session(ctx: Ctx, user: UserID) -> Response {
+  let user_id = user.0;
+
+  let user = ctx.models.find_one::<User>(doc! { "_id": user_id }).await?;
+
+  let user = match user {
+    Some(user) => user,
+    None => {
+      debug!("User not found, returning 401 status code");
+      return Ok(HttpResponse::Unauthorized().finish());
+    }
+  };
+
+  debug!("Returning user");
+  let res = HttpResponse::Ok().json(user.to_schema());
   Ok(res)
 }
 

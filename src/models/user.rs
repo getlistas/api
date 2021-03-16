@@ -1,5 +1,7 @@
 use actix_web::web::block as to_future;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use serde_json::Value as JSON;
 use validator::Validate;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
@@ -50,6 +52,18 @@ pub struct User {
 }
 
 impl User {
+  pub fn to_schema(&self) -> JSON {
+    json!({
+        "id": self.id.clone().unwrap().to_hex(),
+        "email": self.email.clone(),
+        "slug": self.slug.clone(),
+        "name": self.name.clone(),
+        "avatar": self.avatar.clone(),
+        "created_at": date::to_rfc3339(self.created_at),
+        "updated_at": date::to_rfc3339(self.updated_at),
+    })
+  }
+
   pub fn is_premium(&self) -> bool {
     match self.subscription {
       Some(ref subscription) => {
