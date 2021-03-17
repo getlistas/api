@@ -29,7 +29,6 @@ pub async fn create(database: &Database, user: ObjectId) -> Result<(), Error> {
     is_public: false,
     tags: tags.clone(),
     fork: None,
-    follow: None,
     created_at: now,
     updated_at: now,
     archived_at: None,
