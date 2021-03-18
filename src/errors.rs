@@ -28,6 +28,9 @@ pub enum Error {
   #[error("{0}")]
   ParseObjectID(#[from] bson::oid::Error),
 
+  #[error("{0}")]
+  SerializeMongoResponse(#[from] bson::de::Error),
+
   #[error("Authorization token missing")]
   MissingAuthorizationToken {},
 
@@ -86,6 +89,7 @@ impl Error {
       Error::RSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
       Error::SendEmail(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5007),
       Error::BuildEmail(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5008),
+      Error::SerializeMongoResponse(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5009),
     }
   }
 }
