@@ -14,7 +14,6 @@ use crate::lib::util::parse_url;
 use crate::lib::util::to_object_id;
 use crate::models::integration;
 use crate::models::integration::Integration;
-// use crate::models::integration::Kind;
 use crate::models::integration::RSS;
 use crate::models::list::List;
 use crate::models::{resource::Resource, user::UserID};
@@ -34,7 +33,9 @@ struct FollowPayload {
 #[derive(Deserialize)]
 struct Query {
   list: Option<String>,
+  // TODO: Remove once the front end is not using this field anymore.
   service: Option<String>,
+  kind: Option<String>,
 }
 
 type Ctx = web::Data<Context>;
@@ -90,8 +91,12 @@ async fn query_integrations(ctx: Ctx, user: UserID, qs: web::Query<Query>) -> Re
     query.insert("service", service);
   }
 
-  let integrations = ctx.models.find::<Integration>(query, None).await?;
+  if qs.kind.is_some() {
+    let kind = qs.kind.as_ref().unwrap();
+    query.insert("kind", kind);
+  }
 
+  let integrations = ctx.models.find::<Integration>(query, None).await?;
   let integrations = integrations
     .iter()
     .map(|integrations| integrations.to_response_schema())
@@ -136,6 +141,8 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
       created_at: now,
       updated_at: now,
       kind: integration::Kind::from_str("rss").unwrap(),
+      // TODO: Remove once the front end is not using this field anymore.
+      service: integration::Kind::from_str("rss").unwrap(),
       follow: None,
       rss: Some(RSS {
         url: subscription.url,
@@ -215,8 +222,12 @@ async fn create_follow_integration(ctx: Ctx, body: FollowCreateBody, user_id: Us
       created_at: now,
       updated_at: now,
       kind: integration::Kind::from_str("follow").unwrap(),
+      // TODO: Remove once the front end is not using this field anymore.
+      service: integration::Kind::from_str("follow").unwrap(),
       rss: None,
-      follow: Some(integration::Follow { list: following_list_id.clone() }),
+      follow: Some(integration::Follow {
+        list: following_list_id.clone(),
+      }),
     })
     .await?;
 
