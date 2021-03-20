@@ -28,9 +28,7 @@ struct UserResponse {
 struct ListResponse {
   #[serde(serialize_with = "serialize_object_id_as_hex_string ")]
   id: ObjectId,
-  // TODO
-  // title: String,
-  title_aux: String,
+  title: String,
   description: Option<String>,
   tags: Option<Vec<String>>,
   #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
@@ -90,6 +88,11 @@ async fn discover_lists(
         "resources": { "$ne": [] }
       }
     },
+    doc! {
+      "$sort": {
+        "created_at": -1
+      }
+    },
     doc! { "$skip":  skip },
     doc! { "$limit": limit },
     doc! {
@@ -105,8 +108,7 @@ async fn discover_lists(
       "$project": {
         "_id": false,
         "id": "$_id",
-        "title:": "$title",
-        "title_aux": "$title",
+        "title": "$title",
         "description": "$description",
         "tags": "$tags",
         "created_at": "$created_at",
