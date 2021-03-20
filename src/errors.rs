@@ -46,6 +46,9 @@ pub enum Error {
   #[error("Failed to parse URL")]
   ParseURL(),
 
+  #[error("Failed to parse query string {0}")]
+  ParseQueryString(#[from] serde_qs::Error),
+
   #[error("{0}")]
   ContactRSSIntegration(#[from] reqwest::Error),
 
@@ -64,14 +67,15 @@ impl Error {
     match *self {
       // 4XX
       Error::ParseURL() => (StatusCode::BAD_REQUEST, 4041),
-      Error::ParseObjectID(_) => (StatusCode::BAD_REQUEST, 4042),
+      Error::ParseQueryString(_) => (StatusCode::BAD_REQUEST, 4042),
+      Error::ParseObjectID(_) => (StatusCode::BAD_REQUEST, 4043),
       Error::WitherError(WitherError::Mongo(MongoError { ref kind, .. })) => {
         let mongo_error = kind.as_ref();
         match mongo_error {
           MongoErrorKind::CommandError(MongoCommandError { code: 11000, .. }) => {
-            (StatusCode::BAD_REQUEST, 4043)
+            (StatusCode::BAD_REQUEST, 4044)
           }
-          _ => (StatusCode::INTERNAL_SERVER_ERROR, 4044),
+          _ => (StatusCode::INTERNAL_SERVER_ERROR, 4045),
         }
       }
 
