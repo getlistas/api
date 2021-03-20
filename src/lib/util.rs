@@ -1,9 +1,9 @@
 use actix_web::{http, HttpResponse};
 use itertools::Itertools;
 use rand::Rng;
+use slug::slugify;
 use url;
 use wither::bson::oid::ObjectId;
-use slug::slugify;
 
 use crate::errors::Error;
 

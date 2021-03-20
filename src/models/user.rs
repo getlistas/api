@@ -1,10 +1,12 @@
 use actix_web::web::block as to_future;
+use inflector::cases::snakecase::to_snake_case;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use serde_json::Value as JSON;
+use validator::Validate;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
-use inflector::cases::snakecase::to_snake_case;
-
 
 use crate::errors::Error;
 use crate::lib::date;
@@ -28,35 +30,42 @@ pub struct Subscription {
   pub cancellation_effective_at: Option<DateTime>,
 }
 
-#[derive(Debug, Model, Serialize, Deserialize)]
+#[derive(Debug, Model, Validate, Serialize, Deserialize)]
 pub struct User {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
   pub id: Option<ObjectId>,
-
   pub password: String,
+  #[validate(email)]
   pub email: String,
+  #[validate(length(min = 1, max = 50))]
   pub slug: String,
   pub name: String,
   pub avatar: Option<String>,
-
-  // Oauth providers attributes
   pub google_id: Option<String>,
-
   pub verification_token: Option<String>,
   pub password_reset_token: Option<String>,
-
   pub created_at: DateTime,
   pub updated_at: DateTime,
-
   pub verified_at: Option<DateTime>,
   pub locked_at: Option<DateTime>,
   pub verification_token_set_at: Option<DateTime>,
   pub password_reset_token_set_at: Option<DateTime>,
-
   pub subscription: Option<Subscription>,
 }
 
 impl User {
+  pub fn to_schema(&self) -> JSON {
+    json!({
+        "id": self.id.clone().unwrap().to_hex(),
+        "email": self.email.clone(),
+        "slug": self.slug.clone(),
+        "name": self.name.clone(),
+        "avatar": self.avatar.clone(),
+        "created_at": date::to_rfc3339(self.created_at),
+        "updated_at": date::to_rfc3339(self.updated_at),
+    })
+  }
+
   pub fn is_premium(&self) -> bool {
     match self.subscription {
       Some(ref subscription) => {

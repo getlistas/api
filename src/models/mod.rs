@@ -2,9 +2,9 @@ pub mod integration;
 pub mod list;
 pub mod resource;
 pub mod user;
+
 use futures::stream::TryStreamExt;
 use wither::bson::Document;
-use wither::mongodb::options::DeleteOptions;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::mongodb::options::FindOptions;
 use wither::mongodb::results::DeleteResult;
@@ -63,7 +63,7 @@ impl Models {
     &self,
     query: Document,
     update: Document,
-    options: FindOneAndUpdateOptions,
+    options: Option<FindOneAndUpdateOptions>,
   ) -> Result<Option<T>, Error>
   where
     T: wither::Model + Send,
@@ -73,29 +73,31 @@ impl Models {
       .map_err(Error::WitherError)
   }
 
-  pub async fn delete_many<T>(
-    &self,
-    query: Document,
-    options: Option<DeleteOptions>,
-  ) -> Result<DeleteResult, Error>
+  pub async fn delete_many<T>(&self, query: Document) -> Result<DeleteResult, Error>
   where
     T: wither::Model + Send,
   {
-    T::delete_many(&self.db.conn, query, options)
+    T::delete_many(&self.db.conn, query, None)
       .await
       .map_err(Error::WitherError)
   }
 
-  pub async fn delete_one<T>(
-    &self,
-    query: Document,
-    options: Option<DeleteOptions>,
-  ) -> Result<DeleteResult, Error>
+  pub async fn delete_one<T>(&self, query: Document) -> Result<DeleteResult, Error>
   where
     T: wither::Model + Send,
   {
     T::collection(&self.db.conn)
-      .delete_one(query, options)
+      .delete_one(query, None)
+      .await
+      .map_err(Error::MongoError)
+  }
+
+  pub async fn count<T>(&self, query: Document) -> Result<i64, Error>
+  where
+    T: wither::Model + Send,
+  {
+    T::collection(&self.db.conn)
+      .count_documents(query, None)
       .await
       .map_err(Error::MongoError)
   }

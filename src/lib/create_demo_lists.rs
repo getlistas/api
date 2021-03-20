@@ -31,6 +31,7 @@ pub async fn create(database: &Database, user: ObjectId) -> Result<(), Error> {
     fork: None,
     created_at: now,
     updated_at: now,
+    archived_at: None,
   };
 
   list

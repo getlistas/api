@@ -17,7 +17,7 @@ pub struct RSS {
   pub client: reqwest::Client,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Webhook {
   pub webhook_reason: String,
   pub subscription_id: String,
@@ -26,7 +26,7 @@ pub struct Webhook {
   pub new_entries: Vec<Entry>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Entry {
   pub title: String,
   pub link: String,
@@ -159,19 +159,23 @@ impl RSS {
     let url = parse_url(entry.link.as_str())?;
     let metadata = resource_metadata::get_website_metadata(&url).await?;
 
+    let description = if entry.description.is_empty() {
+      metadata.description
+    } else {
+      Some(entry.description.clone())
+    };
+
     let resource = Resource {
       id: None,
       user: user.clone(),
       list: list.clone(),
-      // Placeholder position, we are not saving the resource yet.
+      // The position will be computed before inserting the resource into the
+      // database.
       position: 0,
-      // TODO allow user to add custom tags to all integration resources.
-      tags: vec![],
+      tags: vec!["rss".to_owned()],
       url: url.to_string(),
       title: entry.title.clone(),
-      // TODO Use metadata description if no description was found in
-      // the RSS response.
-      description: Some(entry.description.clone()),
+      description,
       thumbnail: metadata.thumbnail,
       created_at: now,
       updated_at: now,

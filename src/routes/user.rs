@@ -1,24 +1,29 @@
 use actix_web::{web, HttpResponse};
+use actix_web_httpauth::middleware::HttpAuthentication;
 use serde::Deserialize;
 use serde_json::json;
+use validator::Validate;
 use wither::bson::doc;
 use wither::Model;
 
 // use crate::lib::create_demo_lists;
+use crate::auth;
 use crate::lib::date;
 use crate::lib::token;
 use crate::models::user::User;
+use crate::models::user::UserID;
 use crate::Context;
 use crate::{emails, lib::google};
 use crate::{errors::Error, lib::util};
 
 type Response = actix_web::Result<HttpResponse>;
+type Ctx = web::Data<Context>;
 
 #[derive(Deserialize)]
 struct UserCreateBody {
   pub email: String,
   pub password: String,
-  pub name: String
+  pub name: String,
 }
 #[derive(Deserialize)]
 struct PasswordResetBody {
@@ -45,7 +50,14 @@ pub struct GoogleAuthenticate {
 type GoogleAuthenticateBody = web::Json<GoogleAuthenticate>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
+  let auth = HttpAuthentication::bearer(auth::validator);
+
   cfg.service(web::resource("/users").route(web::post().to(create_user)));
+  cfg.service(
+    web::resource("/users/me")
+      .route(web::get().to(get_session))
+      .wrap(auth.clone()),
+  );
   cfg.service(web::resource("/users/verification/{token}").route(web::get().to(verify_user_email)));
   cfg.service(web::resource("/users/auth").route(web::post().to(create_token)));
   cfg.service(web::resource("/users/google-auth").route(web::post().to(create_token_from_google)));
@@ -77,14 +89,24 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
     locked_at: None,
   };
 
+  match user.validate() {
+    Ok(_) => (),
+    Err(_err) => {
+      debug!("Failed creating User, payload is not valid. Returning 400 status code");
+      return Ok(HttpResponse::BadRequest().finish());
+    }
+  };
+
   user
     .save(&ctx.database.conn, None)
     .await
     .map_err(Error::WitherError)?;
 
   debug!("Sending confirm email to the user {}", &user.email);
-  let confirm_email = emails::create_confirm_email(&ctx.settings.base_url, &user);
-  ctx.send_email(confirm_email).await;
+  let send_from = ctx.settings.mailer.from.as_str();
+  let base_url = &ctx.settings.base_url.as_str();
+  let confirm_email = emails::create_confirm_email(send_from, base_url, &user)?;
+  ctx.mailer.send(confirm_email).await?;
 
   // TODO: Create demo resource on dev.to or medium.
   // debug!("Creating demo lists and resources for new user");
@@ -92,6 +114,24 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
 
   debug!("Returning created user");
   let res = HttpResponse::Created().json(user.to_display());
+  Ok(res)
+}
+
+async fn get_session(ctx: Ctx, user: UserID) -> Response {
+  let user_id = user.0;
+
+  let user = ctx.models.find_one::<User>(doc! { "_id": user_id }).await?;
+
+  let user = match user {
+    Some(user) => user,
+    None => {
+      debug!("User not found, returning 401 status code");
+      return Ok(HttpResponse::Unauthorized().finish());
+    }
+  };
+
+  debug!("Returning user");
+  let res = HttpResponse::Ok().json(user.to_schema());
   Ok(res)
 }
 
@@ -229,8 +269,10 @@ async fn create_token_from_google(
         user.verified_at = None;
 
         debug!("Sending confirm email to the user {}", &user.email);
-        let confirm_email = emails::create_confirm_email(&ctx.settings.base_url, &user);
-        ctx.send_email(confirm_email).await;
+        let send_from = ctx.settings.mailer.from.as_str();
+        let base_url = ctx.settings.base_url.as_str();
+        let confirm_email = emails::create_confirm_email(send_from, base_url, &user)?;
+        ctx.mailer.send(confirm_email).await?;
       }
 
       user
@@ -287,8 +329,10 @@ async fn request_password_reset(
     .map_err(Error::WitherError)?;
 
   debug!("Sending password reset email to the user {}", &user.email);
-  let email = emails::create_password_reset_email(&ctx.settings.base_url, &user);
-  ctx.send_email(email).await;
+  let send_from = ctx.settings.mailer.from.as_str();
+  let base_url = &ctx.settings.base_url.as_str();
+  let email = emails::create_password_reset_email(send_from, base_url, &user)?;
+  ctx.mailer.send(email).await?;
 
   debug!("Returning 204 status to the user");
   let res = HttpResponse::NoContent().finish();

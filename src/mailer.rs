@@ -1,8 +1,25 @@
+use actix_web::error::BlockingError;
 use lettre::smtp::authentication::Credentials;
+use lettre::smtp::error::Error as SMTPError;
 use lettre::{SmtpClient, SmtpTransport, Transport};
+use lettre_email::Email;
 use std::sync::{Arc, Mutex};
 
+use crate::errors::Error;
 use crate::settings::Settings;
+
+#[derive(thiserror::Error, Debug)]
+#[error("...")]
+pub enum MailerError {
+  #[error("Failed to acquire mailer transport mutex")]
+  LockTransport,
+
+  #[error("Failed to send email using SMTP transport {0}")]
+  SMTP(#[from] SMTPError),
+
+  #[error("Failed to send email actix_web::web::block operation was cancelled")]
+  Canceled,
+}
 
 #[derive(Clone)]
 pub struct Mailer {
@@ -23,17 +40,25 @@ impl Mailer {
     })
   }
 
-  pub async fn send(
-    &self,
-    email: lettre::SendableEmail,
-  ) -> Result<(), actix_web::error::BlockingError<lettre::smtp::error::Error>> {
+  pub async fn send(&self, email: Email) -> Result<(), Error> {
     let transport = self.transport.clone();
-    match actix_web::web::block(move || transport.lock().unwrap().send(email)).await {
+    let sent = actix_web::web::block(move || {
+      transport
+        // If another user of this mutex panicked while holding the mutex, then
+        // transport.lock() call will return an error once the mutex is acquired.
+        .lock()
+        .map_err(|_| MailerError::LockTransport)?
+        .send(email.into())
+        .map_err(MailerError::SMTP)?;
+
+      Ok(())
+    })
+    .await;
+
+    match sent {
       Ok(_) => Ok(()),
-      Err(err) => {
-        error!("Failed to send email. {}", &err);
-        Err(err)
-      }
+      Err(BlockingError::Canceled) => Err(Error::SendEmail(MailerError::Canceled)),
+      Err(BlockingError::Error(err)) => Err(Error::SendEmail(err)),
     }
   }
 }
