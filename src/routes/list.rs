@@ -59,6 +59,12 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   );
 
   cfg.service(
+    web::resource("/lists/{id}/follow")
+      .route(web::post().to(follow_list))
+      .wrap(auth.clone()),
+  );
+
+  cfg.service(
     web::resource("/lists/{id}/archive")
       .route(web::post().to(archive_list))
       .wrap(auth.clone()),
@@ -197,8 +203,6 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     user: user_id.clone(),
     title: list.title.clone(),
     description: list.description.clone(),
-    // TODO: this option should come in the request body and we should default to
-    // false.
     is_public: false,
     tags: list.tags.clone(),
     // TODO: We should maybe postfix a `forked` string to avoid collitions. Then
@@ -207,7 +211,6 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     created_at: now,
     updated_at: now,
     archived_at: None,
-
     fork: Some(list::Fork {
       from: list.id.clone().unwrap(),
       at: now,
@@ -258,6 +261,89 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
 
   debug!("Returning forked list");
   let res = HttpResponse::Ok().json(forked_list.to_json());
+  Ok(res)
+}
+
+async fn follow_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
+  let parent_list_id = &id.0;
+  let user_id = &user.0;
+
+  let parent_list = ctx
+    .models
+    .find_one::<List>(doc! { "_id": parent_list_id, "is_public": true })
+    .await?;
+
+  let parent_list = match parent_list {
+    Some(parent_list) => parent_list,
+    None => {
+      debug!("List not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
+  if parent_list.user == *user_id {
+    debug!("User can not follow its own list, returning 400 status code");
+    return Ok(HttpResponse::BadRequest().finish());
+  }
+
+  let now = date::now();
+  let list = List {
+    id: None,
+    user: user_id.clone(),
+    title: parent_list.title.clone(),
+    description: parent_list.description.clone(),
+    is_public: false,
+    tags: parent_list.tags.clone(),
+    // TODO: We should maybe postfix a `follow` string to avoid collitions. Then
+    // the user should be able to update this field.
+    slug: parent_list.slug.clone(),
+    created_at: now,
+    updated_at: now,
+    archived_at: None,
+    fork: None,
+  };
+
+  let list = ctx.models.create(list).await?;
+
+  let parent_list_resources = ctx
+    .models
+    .find::<Resource>(doc! { "list": parent_list_id }, None)
+    .await?;
+
+  debug!("Creating resources from parent list");
+  let list_id = list.id.clone().unwrap();
+  let resources = parent_list_resources
+    .into_iter()
+    .map(move |parent_resource| {
+      let conn = ctx.database.conn.clone();
+      let mut resource = Resource {
+        id: None,
+        user: user_id.clone(),
+        list: list_id.clone(),
+        position: parent_resource.position,
+        url: parent_resource.url.clone(),
+        title: parent_resource.title.clone(),
+        description: parent_resource.description.clone(),
+        thumbnail: parent_resource.thumbnail.clone(),
+        tags: parent_resource.tags.clone(),
+        created_at: now,
+        updated_at: now,
+        completed_at: None,
+      };
+
+      async move { resource.save(&conn, None).await.map_err(Error::WitherError) }
+    });
+
+  debug!("Storing resources from followed list");
+  futures::stream::iter(resources)
+    .buffer_unordered(50)
+    .collect::<Vec<Result<(), Error>>>()
+    .await
+    .into_iter()
+    .collect::<Result<(), Error>>()?;
+
+  debug!("Returning followed list");
+  let res = HttpResponse::Ok().json(list.to_json());
   Ok(res)
 }
 
