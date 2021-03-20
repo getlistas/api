@@ -5,7 +5,6 @@ use serde::Deserialize;
 use serde_json::json;
 use wither::bson;
 use wither::bson::doc;
-use wither::bson::Bson;
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::mongodb::options::FindOptions;
