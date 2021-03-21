@@ -64,6 +64,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(web::resource("/users/google-auth").route(web::post().to(create_token_from_google)));
   cfg.service(web::resource("/users/reset-password").route(web::post().to(request_password_reset)));
   cfg.service(web::resource("/users/update-password").route(web::post().to(update_password)));
+  cfg.service(web::resource("/users/{slug}").route(web::get().to(find_user_by_slug)));
 }
 
 async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -> Response {
@@ -375,5 +376,31 @@ async fn update_password(ctx: web::Data<Context>, body: web::Json<PasswordUpdate
 
   debug!("Returning 204 status to the user");
   let res = HttpResponse::NoContent().finish();
+  Ok(res)
+}
+
+async fn find_user_by_slug(ctx: web::Data<Context>, slug: web::Path<String>) -> Response {
+  let slug = slug.clone();
+  let user = ctx.models.find_one::<User>(doc! { "slug": &slug }).await?;
+
+  let user = match user {
+    Some(user) => user,
+    None => {
+      debug!("User not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
+  // TODO: Replace this with a struct and serde serialization helper once
+  // this PR is merged https://github.com/getlistas/api/pull/91
+  let json = json!({
+      "id": user.id.clone().unwrap().to_hex(),
+      "slug": user.slug.clone(),
+      "name": user.name.clone(),
+      "avatar": user.avatar.clone(),
+  });
+
+  debug!("Returning public user");
+  let res = HttpResponse::Ok().json(json);
   Ok(res)
 }

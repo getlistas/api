@@ -128,6 +128,7 @@ impl User {
 #[derive(Clone)]
 pub struct UserID(pub ObjectId);
 
+// TODO: Move to a UserToken struct
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserPublic {
   pub id: String,
