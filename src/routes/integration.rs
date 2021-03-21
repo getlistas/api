@@ -33,8 +33,6 @@ struct FollowPayload {
 #[derive(Deserialize)]
 struct Query {
   list: Option<String>,
-  // TODO: Remove once the front end is not using this field anymore.
-  service: Option<String>,
   kind: Option<String>,
 }
 
@@ -84,11 +82,6 @@ async fn query_integrations(ctx: Ctx, user: UserID, qs: web::Query<Query>) -> Re
   if qs.list.is_some() {
     let list_id = to_object_id(qs.list.clone().unwrap())?;
     query.insert("list", list_id);
-  }
-
-  if qs.service.is_some() {
-    let service = qs.service.as_ref().unwrap();
-    query.insert("service", service);
   }
 
   if qs.kind.is_some() {
@@ -141,8 +134,6 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
       created_at: now,
       updated_at: now,
       kind: integration::Kind::from_str("rss").unwrap(),
-      // TODO: Remove once the front end is not using this field anymore.
-      service: integration::Kind::from_str("rss").unwrap(),
       follow: None,
       rss: Some(RSS {
         url: subscription.url,
@@ -222,8 +213,6 @@ async fn create_follow_integration(ctx: Ctx, body: FollowCreateBody, user_id: Us
       created_at: now,
       updated_at: now,
       kind: integration::Kind::from_str("follow").unwrap(),
-      // TODO: Remove once the front end is not using this field anymore.
-      service: integration::Kind::from_str("follow").unwrap(),
       rss: None,
       follow: Some(integration::Follow {
         list: following_list_id.clone(),
