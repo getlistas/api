@@ -56,8 +56,6 @@ pub struct Integration {
   pub user: ObjectId,
   pub list: ObjectId,
   pub kind: Kind,
-  // TODO: Remove once the front end is not using this field anymore.
-  pub service: Kind,
   pub created_at: DateTime,
   pub updated_at: DateTime,
 
@@ -92,8 +90,6 @@ impl Integration {
         "user": this.user.to_hex(),
         "list": this.list.to_hex(),
         "kind": this.kind,
-        // TODO: Remove once the front end is not using this field anymore.
-        "service": this.kind,
         "rss": this.rss.map(|rss| rss.to_response_schema()),
         "follow": this.follow.map(|follow| follow.to_response_schema()),
         "created_at": date::to_rfc3339(this.created_at),
