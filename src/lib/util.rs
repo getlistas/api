@@ -1,6 +1,7 @@
 use actix_web::{http, HttpResponse};
 use itertools::Itertools;
 use rand::Rng;
+use serde::de::Deserialize;
 use slug::slugify;
 use url;
 use wither::bson::oid::ObjectId;
@@ -46,6 +47,13 @@ pub fn parse_url(url: &str) -> Result<url::Url, Error> {
   let url = url::Url::parse(url.as_str()).map_err(|_| Error::ParseURL())?;
 
   Ok(url)
+}
+
+pub fn parse_query_string<'a, T>(query_string: &'a str) -> Result<T, Error>
+where
+  T: Deserialize<'a>,
+{
+  serde_qs::from_str::<T>(&query_string).map_err(Error::ParseQueryString)
 }
 
 pub fn sanitize_tags(tags: Vec<String>) -> Vec<String> {

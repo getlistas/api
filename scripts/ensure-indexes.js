@@ -11,6 +11,7 @@ const { ObjectId } = Schema.Types
 const user = new Schema();
 const list = new Schema();
 const resource = new Schema();
+const integration = new Schema();
 
 
 // User indexes
@@ -19,11 +20,15 @@ user.index({ slug: 1 }, { unique: true });
 
 // List indexes
 list.index({ user: 1 });
-list.index({ user: 1, slug: 1 });
+list.index({ user: 1, slug: 1 }, { unique: true });
 
 // Resource indexes
 resource.index({ user: 1 })
 resource.index({ user: 1, list: 1 })
+
+// Integration 
+integration.index({ user: 1 })
+integration.index({ user: 1, list: 1 })
 
 
 async function runScript() {

@@ -4,6 +4,10 @@ pub mod resource;
 pub mod user;
 
 use futures::stream::TryStreamExt;
+use serde::{de::DeserializeOwned, ser::Serialize};
+use wither::bson;
+use wither::bson::from_bson;
+use wither::bson::Bson;
 use wither::bson::Document;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::mongodb::options::FindOptions;
@@ -100,5 +104,27 @@ impl Models {
       .count_documents(query, None)
       .await
       .map_err(Error::MongoError)
+  }
+
+  pub async fn aggregate<T, R>(&self, pipeline: Vec<Document>) -> Result<Vec<R>, Error>
+  where
+    T: wither::Model + Send,
+    R: Serialize + DeserializeOwned,
+  {
+    let documents = T::collection(&self.db.conn)
+      .aggregate(pipeline, None)
+      .await
+      .map_err(Error::MongoError)?
+      .try_collect::<Vec<Document>>()
+      .await
+      .map_err(Error::MongoError)?;
+
+    let documents = documents
+      .into_iter()
+      .map(|document| from_bson::<R>(Bson::Document(document)))
+      .collect::<Result<Vec<R>, bson::de::Error>>()
+      .map_err(Error::SerializeMongoResponse)?;
+
+    Ok(documents)
   }
 }

@@ -10,6 +10,7 @@ use wither::Model;
 use crate::auth;
 use crate::lib::date;
 use crate::lib::token;
+use crate::models::user;
 use crate::models::user::User;
 use crate::models::user::UserID;
 use crate::Context;
@@ -63,6 +64,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(web::resource("/users/google-auth").route(web::post().to(create_token_from_google)));
   cfg.service(web::resource("/users/reset-password").route(web::post().to(request_password_reset)));
   cfg.service(web::resource("/users/update-password").route(web::post().to(update_password)));
+  cfg.service(web::resource("/users/{slug}").route(web::get().to(find_user_by_slug)));
 }
 
 async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -> Response {
@@ -235,7 +237,16 @@ async fn create_token_from_google(
     .map_err(Error::WitherError)?;
 
   let user = match user {
-    Some(user) => user,
+    Some(user) => {
+      let query = doc! { "_id": user.id.as_ref().unwrap() };
+      let update = doc! { "$set": { "avatar": avatar } };
+      ctx
+        .models
+        .find_one_and_update::<User>(query, update, None)
+        .await?;
+
+      user
+    }
     None => {
       debug!("User not found, creating a new user based on google authentication");
 
@@ -369,5 +380,22 @@ async fn update_password(ctx: web::Data<Context>, body: web::Json<PasswordUpdate
 
   debug!("Returning 204 status to the user");
   let res = HttpResponse::NoContent().finish();
+  Ok(res)
+}
+
+async fn find_user_by_slug(ctx: web::Data<Context>, slug: web::Path<String>) -> Response {
+  let slug = slug.clone();
+  let user = ctx.models.find_one::<User>(doc! { "slug": &slug }).await?;
+
+  let user: user::PublicUser = match user {
+    Some(user) => user.into(),
+    None => {
+      debug!("User not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
+  debug!("Returning public user");
+  let res = HttpResponse::Ok().json(user);
   Ok(res)
 }
