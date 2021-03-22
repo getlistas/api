@@ -17,7 +17,7 @@ pub struct Query {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct UserResponse {
-  #[serde(serialize_with = "serialize_object_id_as_hex_string ")]
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
   id: ObjectId,
   slug: String,
   name: String,
@@ -26,7 +26,7 @@ struct UserResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ListResponse {
-  #[serde(serialize_with = "serialize_object_id_as_hex_string ")]
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
   id: ObjectId,
   title: String,
   description: Option<String>,

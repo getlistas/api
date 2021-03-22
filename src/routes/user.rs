@@ -10,6 +10,7 @@ use wither::Model;
 use crate::auth;
 use crate::lib::date;
 use crate::lib::token;
+use crate::models::user;
 use crate::models::user::User;
 use crate::models::user::UserID;
 use crate::Context;
@@ -383,24 +384,15 @@ async fn find_user_by_slug(ctx: web::Data<Context>, slug: web::Path<String>) -> 
   let slug = slug.clone();
   let user = ctx.models.find_one::<User>(doc! { "slug": &slug }).await?;
 
-  let user = match user {
-    Some(user) => user,
+  let user: user::PublicUser = match user {
+    Some(user) => user.into(),
     None => {
       debug!("User not found, returning 404 status code");
       return Ok(HttpResponse::NotFound().finish());
     }
   };
 
-  // TODO: Replace this with a struct and serde serialization helper once
-  // this PR is merged https://github.com/getlistas/api/pull/91
-  let json = json!({
-      "id": user.id.clone().unwrap().to_hex(),
-      "slug": user.slug.clone(),
-      "name": user.name.clone(),
-      "avatar": user.avatar.clone(),
-  });
-
   debug!("Returning public user");
-  let res = HttpResponse::Ok().json(json);
+  let res = HttpResponse::Ok().json(user);
   Ok(res)
 }
