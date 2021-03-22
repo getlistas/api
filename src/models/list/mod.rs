@@ -1,3 +1,5 @@
+pub mod queries;
+
 use actix_web::web;
 use futures::stream::StreamExt;
 use serde::{Deserialize, Serialize};
