@@ -2,6 +2,7 @@ use actix_web::web::block as to_future;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value as JSON;
+use std::convert::From;
 use validator::Validate;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
@@ -9,6 +10,7 @@ use wither::Model;
 
 use crate::errors::Error;
 use crate::lib::date;
+use crate::lib::serde::serialize_object_id_as_hex_string;
 use crate::lib::util::create_random_string;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -119,6 +121,26 @@ impl User {
       email: self.email.clone(),
       name: self.name.clone(),
       slug: self.slug.clone(),
+    }
+  }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PublicUser {
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
+  pub id: ObjectId,
+  pub slug: String,
+  pub name: String,
+  pub avatar: Option<String>,
+}
+
+impl From<User> for PublicUser {
+  fn from(user: User) -> Self {
+    Self {
+      id: user.id.unwrap(),
+      slug: user.slug,
+      name: user.name,
+      avatar: user.avatar,
     }
   }
 }
