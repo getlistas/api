@@ -7,6 +7,7 @@ use crate::lib::pagination::Pagination;
 use crate::lib::serde::serialize_bson_datetime_as_iso_string;
 use crate::lib::serde::serialize_object_id_as_hex_string;
 use crate::lib::util::parse_query_string;
+use crate::models::list;
 use crate::models::list::List;
 use crate::Context;
 
@@ -50,79 +51,14 @@ async fn discover_lists(
 ) -> Response {
   let skip = pagination.skip.unwrap_or(0);
   let limit = pagination.limit.unwrap_or(100);
-  let query = parse_query_string::<Query>(&req.query_string())?;
+  let query_string = parse_query_string::<Query>(&req.query_string())?;
 
-  let mut list_match = doc! { "is_public": true };
-  if let Some(tags) = query.tags {
-    list_match.insert("tags", doc! { "$in": tags });
+  let mut query = doc! { "is_public": true };
+  if let Some(tags) = query_string.tags {
+    query.insert("tags", doc! { "$in": tags });
   }
 
-  let pipeline = vec![
-    doc! { "$match": list_match },
-    doc! {
-      "$lookup": {
-        "from":"resources",
-        "as": "resources",
-        "let": {
-          "list": "$_id"
-        },
-        "pipeline": vec![
-          doc! {
-            "$match": {
-              "$expr": {
-                "$eq": [ "$list",  "$$list" ]
-              }
-            }
-          },
-          doc! {
-            "$sort": {
-              "created_at": -1
-            }
-          },
-          doc! { "$limit": 1 }
-        ]
-      }
-    },
-    doc! {
-      "$match": {
-        "resources": { "$ne": [] }
-      }
-    },
-    doc! {
-      "$sort": {
-        "created_at": -1
-      }
-    },
-    doc! { "$skip":  skip },
-    doc! { "$limit": limit },
-    doc! {
-      "$lookup": {
-        "from":"users",
-        "localField": "user",
-        "foreignField": "_id",
-        "as": "user",
-      }
-    },
-    doc! { "$unwind": "$user" },
-    doc! {
-      "$project": {
-        "_id": false,
-        "id": "$_id",
-        "title": "$title",
-        "description": "$description",
-        "tags": "$tags",
-        "created_at": "$created_at",
-        "slug": "$slug",
-        "user": {
-          "id": "$user._id",
-          "slug": "$user.slug",
-          "name": "$user.name",
-          "avatar": "$user.avatar",
-        }
-      }
-    },
-  ];
-
+  let pipeline = list::queries::create_discover_query(query, skip, limit);
   let res = ctx.models.aggregate::<List, ListResponse>(pipeline).await?;
 
   debug!("Returning lists to the client");
