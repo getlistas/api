@@ -242,7 +242,16 @@ async fn create_token_from_google(
     .map_err(Error::WitherError)?;
 
   let user = match user {
-    Some(user) => user,
+    Some(user) => {
+      let query = doc! { "_id": user.id.as_ref().unwrap() };
+      let update = doc! { "$set": { "avatar": avatar } };
+      ctx
+        .models
+        .find_one_and_update::<User>(query, update, None)
+        .await?;
+
+      user
+    }
     None => {
       debug!("User not found, creating a new user based on google authentication");
 
