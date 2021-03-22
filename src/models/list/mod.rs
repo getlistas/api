@@ -19,16 +19,16 @@ type Ctx = web::Data<Context>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fork {
-  pub list: ObjectId,
-  pub user: ObjectId,
+  pub from: ObjectId,
+  pub at: DateTime,
 }
 
 impl Fork {
   pub fn to_json(&self) -> JSON {
     let this = self.clone();
     json!({
-        "list": this.list.clone().to_hex(),
-        "user": this.user.clone().to_hex(),
+        "from": this.from.clone().to_hex(),
+        "at": date::to_rfc3339(this.at)
     })
   }
 }

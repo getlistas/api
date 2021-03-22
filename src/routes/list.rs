@@ -212,8 +212,8 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     updated_at: now,
     archived_at: None,
     fork: Some(list::Fork {
-      list: list.id.clone().unwrap(),
-      user: list.user.clone(),
+      from: list.id.clone().unwrap(),
+      at: now,
     }),
   };
 
