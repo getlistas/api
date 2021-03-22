@@ -25,7 +25,6 @@ struct UserCreateBody {
   pub email: String,
   pub password: String,
   pub name: String,
-  pub slug: String,
 }
 #[derive(Deserialize)]
 struct PasswordResetBody {
@@ -78,19 +77,14 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
     password,
     email: body.email.clone(),
     name: body.name.clone(),
-    slug: body.slug.clone(),
+    slug: User::create_slug(body.email.clone().as_str()),
     avatar: None,
-
     google_id: None,
-
     subscription: None,
-
     verification_token: Some(verification_token),
     verification_token_set_at: Some(now),
-
     password_reset_token: None,
     password_reset_token_set_at: None,
-
     created_at: now,
     updated_at: now,
     verified_at: None,
@@ -257,7 +251,7 @@ async fn create_token_from_google(
       debug!("User not found, creating a new user based on google authentication");
 
       let password = User::hash_password(util::create_random_string(10)).await?;
-      let slug = util::to_slug_case(name.clone());
+      let slug = User::create_slug(email.as_str());
       let now = date::now();
       let mut user = User {
         id: None,

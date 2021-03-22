@@ -1,8 +1,8 @@
 use actix_web::{http, HttpResponse};
-use inflector::Inflector;
 use itertools::Itertools;
 use rand::Rng;
 use serde::de::Deserialize;
+use slug::slugify;
 use url;
 use wither::bson::oid::ObjectId;
 
@@ -27,8 +27,10 @@ pub fn create_random_string(size: usize) -> String {
     .collect()
 }
 
+// The slug will consist of a-z, 0-9, and '-'. Furthermore, a slug will never
+// contain more than one '-' in a row and will never start or end with '-'.
 pub fn to_slug_case(string: String) -> String {
-  string.to_kebab_case()
+  slugify(string)
 }
 
 pub fn to_object_id(id: String) -> Result<ObjectId, Error> {

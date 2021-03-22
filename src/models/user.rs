@@ -1,4 +1,5 @@
 use actix_web::web::block as to_future;
+use inflector::cases::snakecase::to_snake_case;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value as JSON;
@@ -12,6 +13,7 @@ use crate::errors::Error;
 use crate::lib::date;
 use crate::lib::serde::serialize_object_id_as_hex_string;
 use crate::lib::util::create_random_string;
+use crate::lib::util::to_slug_case;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Subscription {
@@ -113,6 +115,15 @@ impl User {
   pub fn set_password(&mut self, password: String) {
     let password = bcrypt::hash(password, bcrypt::DEFAULT_COST).unwrap();
     self.password = password;
+  }
+
+  pub fn create_slug(email: &str) -> String {
+    // TODO: Validate email to unwrap here safely.
+    let prefix = email.split('@').next().unwrap();
+    let slug = to_slug_case(prefix.to_owned());
+    let slug = to_snake_case(slug.as_str());
+    let random_string = create_random_string(5).to_lowercase();
+    format!("{}_{}", slug, random_string)
   }
 
   pub fn to_display(&self) -> UserPublic {
