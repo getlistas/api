@@ -5,7 +5,7 @@
     "level": "info"
   },
 
-  "base_url": "https://doneq.herokuapp.com",
+  "base_url": "https://api.listas.io",
 
   "client_url": "https://listas.io"
 }
