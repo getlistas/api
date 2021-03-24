@@ -67,12 +67,6 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
       .route(web::delete().to(remove_integration))
       .wrap(auth.clone()),
   );
-
-  cfg.service(
-    web::resource("/integrations/rss/{id}")
-      .route(web::delete().to(remove_rss_integration))
-      .wrap(auth.clone()),
-  );
 }
 
 async fn query_integrations(ctx: Ctx, user: UserID, qs: web::Query<Query>) -> Response {
@@ -222,45 +216,6 @@ async fn create_follow_integration(ctx: Ctx, body: FollowCreateBody, user_id: Us
 
   debug!("Returning integration and 200 status code");
   let res = HttpResponse::Ok().json(integration.to_response_schema());
-  Ok(res)
-}
-
-async fn remove_rss_integration(ctx: Ctx, id: ID, user_id: UserID) -> Response {
-  let user_id = user_id.0;
-  let integration_id = id.0;
-
-  let integration = ctx
-    .models
-    .find_one::<Integration>(doc! { "_id": &integration_id, "user": &user_id })
-    .await?;
-
-  let integration = match integration {
-    Some(integration) => integration,
-    None => {
-      debug!("Integration not found, returning 404 status code");
-      return Ok(HttpResponse::NotFound().finish());
-    }
-  };
-
-  let rss = match integration.rss {
-    Some(rss) => rss,
-    None => {
-      debug!("Integration is not an RSS integration, returning 400 status code");
-      return Ok(HttpResponse::BadRequest().finish());
-    }
-  };
-
-  ctx.rss.unsuscribe(rss.subscription_id.as_str()).await?;
-
-  debug!("Removing integration");
-  ctx
-    .models
-    .delete_one::<Integration>(doc! { "_id": &integration_id })
-    .await?;
-
-  debug!("Integration removed, returning 204 status code");
-  let res = HttpResponse::NoContent().finish();
-
   Ok(res)
 }
 
