@@ -6,8 +6,8 @@ use validator::Validate;
 use wither::bson::doc;
 use wither::Model;
 
-// use crate::lib::create_demo_lists;
 use crate::auth;
+use crate::lib::create_demo_data_for_user;
 use crate::lib::date;
 use crate::lib::token;
 use crate::models::user;
@@ -99,10 +99,7 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
     }
   };
 
-  user
-    .save(&ctx.database.conn, None)
-    .await
-    .map_err(Error::WitherError)?;
+  let user = ctx.models.create(user).await?;
 
   debug!("Sending confirm email to the user {}", &user.email);
   let send_from = ctx.settings.mailer.from.as_str();
@@ -110,9 +107,8 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
   let confirm_email = emails::create_confirm_email(send_from, base_url, &user)?;
   ctx.mailer.send(confirm_email).await?;
 
-  // TODO: Create demo resource on dev.to or medium.
-  // debug!("Creating demo lists and resources for new user");
-  // create_demo_lists::create(&ctx.database.conn, user.id.clone().unwrap()).await?;
+  debug!("Creating demo list and resource for new user");
+  create_demo_data_for_user::create(&ctx.models, user.id.clone().unwrap()).await?;
 
   debug!("Returning created user");
   let res = HttpResponse::Created().json(user.to_display());
@@ -121,7 +117,6 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
 
 async fn get_session(ctx: Ctx, user: UserID) -> Response {
   let user_id = user.0;
-
   let user = ctx.models.find_one::<User>(doc! { "_id": user_id }).await?;
 
   let user = match user {
@@ -286,10 +281,7 @@ async fn create_token_from_google(
         ctx.mailer.send(confirm_email).await?;
       }
 
-      user
-        .save(&ctx.database.conn, None)
-        .await
-        .map_err(Error::WitherError)?;
+      let user = ctx.models.create(user).await?;
 
       user
     }
