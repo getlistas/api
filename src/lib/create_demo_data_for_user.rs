@@ -8,7 +8,7 @@ use crate::models::Models;
 
 pub async fn create(models: &Models, user: ObjectId) -> Result<(), Error> {
   let list_title = "To read later";
-  let list_description = "This is a demo list create automatically by Listas";
+  let list_description = "This is a demo list created automatically by Listas";
   let list_slug = "to-read-later";
 
   let resource_title = "Hello World — Listas";
