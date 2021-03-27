@@ -1,4 +1,4 @@
-pub mod create_demo_lists;
+pub mod create_demo_data_for_user;
 pub mod date;
 pub mod google;
 pub mod id;
