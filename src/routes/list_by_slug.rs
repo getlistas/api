@@ -1,11 +1,8 @@
 use actix_web::{web, HttpResponse};
-use futures::stream::TryStreamExt;
 use serde::Deserialize;
 use wither::bson::doc;
-use wither::Model;
 
 use crate::auth::AuthenticationMetadata;
-use crate::errors::Error;
 use crate::models::list::List;
 use crate::models::user::User;
 use crate::Context;
@@ -31,9 +28,10 @@ async fn query_lists_by_slug(
   params: web::Path<Params>,
   auth: AuthenticationMetadata,
 ) -> Response {
-  let user = User::find_one(&ctx.database.conn, doc! { "slug": &params.user_slug }, None)
-    .await
-    .map_err(Error::WitherError)?;
+  let user = ctx
+    .models
+    .find_one::<User>(doc! { "slug": &params.user_slug })
+    .await?;
 
   let user = match user {
     Some(user) => user,
@@ -45,17 +43,12 @@ async fn query_lists_by_slug(
 
   let is_authenticated = auth.is_authenticated;
   let is_self = is_authenticated && auth.user_id.clone().unwrap() == user.id.clone().unwrap();
-  let mut lists_query = doc! { "user": user.id.unwrap() };
+  let mut query = doc! { "user": user.id.unwrap() };
   if !is_self {
-    lists_query.insert("is_public", true);
+    query.insert("is_public", true);
   }
 
-  let lists = List::find(&ctx.database.conn, lists_query, None)
-    .await
-    .map_err(Error::WitherError)?
-    .try_collect::<Vec<List>>()
-    .await
-    .map_err(Error::WitherError)?;
+  let lists = ctx.models.find::<List>(query, None).await?;
 
   let lists = lists
     .iter()
@@ -73,9 +66,11 @@ async fn find_list_by_slug(
   auth: AuthenticationMetadata,
 ) -> Response {
   let list_slug = params.list_slug.clone().unwrap();
-  let user = User::find_one(&ctx.database.conn, doc! { "slug": &params.user_slug }, None)
-    .await
-    .map_err(Error::WitherError)?;
+  let user_slug = &params.user_slug;
+  let user = ctx
+    .models
+    .find_one::<User>(doc! { "slug": user_slug })
+    .await?;
 
   let user = match user {
     Some(user) => user,
@@ -87,17 +82,15 @@ async fn find_list_by_slug(
 
   let is_authenticated = auth.is_authenticated;
   let is_self = is_authenticated && auth.user_id.clone().unwrap() == user.id.clone().unwrap();
-  let mut list_query = doc! {
+  let mut query = doc! {
       "user": user.id.unwrap(),
-      "slug": list_slug
+      "slug": &list_slug
   };
   if !is_self {
-    list_query.insert("is_public", true);
+    query.insert("is_public", true);
   }
 
-  let list = List::find_one(&ctx.database.conn, list_query, None)
-    .await
-    .map_err(Error::WitherError)?;
+  let list = ctx.models.find_one::<List>(query).await?;
 
   let list = match list {
     Some(list) => list,
