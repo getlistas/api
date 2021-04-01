@@ -1,8 +1,6 @@
 use actix_web::web::block as to_future;
 use inflector::cases::snakecase::to_snake_case;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use serde_json::Value as JSON;
 use std::convert::From;
 use validator::Validate;
 use wither::bson::DateTime;
@@ -11,6 +9,7 @@ use wither::Model;
 
 use crate::errors::Error;
 use crate::lib::date;
+use crate::lib::serde::serialize_bson_datetime_as_iso_string;
 use crate::lib::serde::serialize_object_id_as_hex_string;
 use crate::lib::util::create_random_string;
 use crate::lib::util::to_slug_case;
@@ -56,33 +55,21 @@ pub struct User {
 }
 
 impl User {
-  pub fn to_schema(&self) -> JSON {
-    json!({
-        "id": self.id.clone().unwrap().to_hex(),
-        "email": self.email.clone(),
-        "slug": self.slug.clone(),
-        "name": self.name.clone(),
-        "avatar": self.avatar.clone(),
-        "created_at": date::to_rfc3339(self.created_at),
-        "updated_at": date::to_rfc3339(self.updated_at),
-    })
-  }
+  // pub fn is_premium(&self) -> bool {
+  //   match self.subscription {
+  //     Some(ref subscription) => {
+  //       let expires_at = subscription.cancellation_effective_at;
+  //       if expires_at.is_none() {
+  //         return true;
+  //       }
+  //       let now = date::now();
+  //       let expires_at = expires_at.unwrap();
 
-  pub fn is_premium(&self) -> bool {
-    match self.subscription {
-      Some(ref subscription) => {
-        let expires_at = subscription.cancellation_effective_at;
-        if expires_at.is_none() {
-          return true;
-        }
-        let now = date::now();
-        let expires_at = expires_at.unwrap();
-
-        expires_at > now
-      }
-      None => false,
-    }
-  }
+  //       expires_at > now
+  //     }
+  //     None => false,
+  //   }
+  // }
 
   pub async fn hash_password(password: String) -> Result<String, Error> {
     let hash = to_future(move || bcrypt::hash(password, bcrypt::DEFAULT_COST));
@@ -125,15 +112,6 @@ impl User {
     let random_string = create_random_string(5).to_lowercase();
     format!("{}_{}", slug, random_string)
   }
-
-  pub fn to_display(&self) -> UserPublic {
-    UserPublic {
-      id: self.id.clone().unwrap().to_string(),
-      email: self.email.clone(),
-      name: self.name.clone(),
-      slug: self.slug.clone(),
-    }
-  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -156,16 +134,36 @@ impl From<User> for PublicUser {
   }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrivateUser {
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
+  pub id: ObjectId,
+  pub email: String,
+  pub slug: String,
+  pub name: String,
+  pub avatar: Option<String>,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub created_at: DateTime,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub updated_at: DateTime,
+}
+
+impl From<User> for PrivateUser {
+  fn from(user: User) -> Self {
+    Self {
+      id: user.id.unwrap(),
+      email: user.email,
+      slug: user.slug,
+      name: user.name,
+      avatar: user.avatar,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+    }
+  }
+}
+
 // This struct is used in actix extractors to retrieve the user ObjectID from
 // the authentication token.
+// TODO: Move this to auth source code.
 #[derive(Clone)]
 pub struct UserID(pub ObjectId);
-
-// TODO: Move to a UserToken struct
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UserPublic {
-  pub id: String,
-  pub email: String,
-  pub name: String,
-  pub slug: String,
-}

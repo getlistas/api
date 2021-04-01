@@ -48,18 +48,15 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
     .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
     .await?;
 
-  let list = match list {
-    Some(list) => list,
-    None => {
-      error!("List not found, removing integration, unsubscribing and returning 404 status code");
-      ctx
-        .models
-        .delete_one::<Integration>(doc! { "_id": integration.id.unwrap() })
-        .await?;
-      ctx.rss.unsuscribe(subscription_id.as_str()).await?;
-      return Ok(HttpResponse::Ok().finish());
-    }
-  };
+  if list.is_none() {
+    error!("List not found, removing integration, unsubscribing and returning 404 status code");
+    ctx
+      .models
+      .delete_one::<Integration>(doc! { "_id": integration.id.unwrap() })
+      .await?;
+    ctx.rss.unsuscribe(subscription_id.as_str()).await?;
+    return Ok(HttpResponse::Ok().finish());
+  }
 
   let mut entries = body.new_entries.clone();
   let resources = entries
