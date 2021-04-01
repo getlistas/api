@@ -2,13 +2,44 @@ use actix_web::dev::Payload;
 use actix_web::dev::ServiceRequest;
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use futures::future;
+use serde::{Deserialize, Serialize};
 use wither::bson::oid::ObjectId;
 
 use crate::errors::Error;
 use crate::lib::token;
+use crate::models::user::User;
 use crate::models::user::UserID;
-use crate::models::user::UserPublic;
 use crate::settings::Settings;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserFromToken {
+  pub id: String,
+  pub email: String,
+  pub name: String,
+  pub slug: String,
+}
+
+impl From<token::Claims> for UserFromToken {
+  fn from(claims: token::Claims) -> Self {
+    Self {
+      id: claims.user.id,
+      email: claims.user.email,
+      name: claims.user.name,
+      slug: claims.user.slug,
+    }
+  }
+}
+
+impl From<User> for UserFromToken {
+  fn from(user: User) -> Self {
+    Self {
+      id: user.id.unwrap().to_hex(),
+      email: user.email,
+      name: user.name,
+      slug: user.slug,
+    }
+  }
+}
 
 type ActixValidationResult = Result<ServiceRequest, actix_web::Error>;
 
@@ -35,7 +66,7 @@ pub async fn validator(req: ServiceRequest, credentials: BearerAuth) -> ActixVal
   }
 }
 
-impl actix_web::FromRequest for UserPublic {
+impl actix_web::FromRequest for UserFromToken {
   type Config = ();
   type Error = Error;
   type Future = future::Ready<Result<Self, Error>>;
@@ -56,7 +87,7 @@ impl actix_web::FromRequest for UserPublic {
     let token_payload = token::get_token_payload(token.as_str());
 
     match token_payload.map_err(Error::JWT) {
-      Ok(payload) => future::ok(payload.claims.to_public_user()),
+      Ok(payload) => future::ok(payload.claims.into()),
       Err(err) => future::err(err),
     }
   }

@@ -104,13 +104,10 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
     .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
     .await?;
 
-  let list = match list {
-    Some(list) => list,
-    None => {
-      debug!("List not found, returning 404 status code");
-      return Ok(HttpResponse::NotFound().finish());
-    }
-  };
+  if list.is_none() {
+    debug!("List not found, returning 404 status code");
+    return Ok(HttpResponse::NotFound().finish());
+  }
 
   if !ctx.rss.is_valid_url(&url).await? {
     debug!("Requested URL does not contains a valid RSS feed");

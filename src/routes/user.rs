@@ -11,6 +11,7 @@ use crate::lib::create_demo_data_for_user;
 use crate::lib::date;
 use crate::lib::token;
 use crate::models::user;
+use crate::models::user::PrivateUser;
 use crate::models::user::User;
 use crate::models::user::UserID;
 use crate::Context;
@@ -72,7 +73,7 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
   let verification_token = util::create_random_string(40);
   let now = date::now();
 
-  let mut user = User {
+  let user = User {
     id: None,
     password,
     email: body.email.clone(),
@@ -94,7 +95,7 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
   match user.validate() {
     Ok(_) => (),
     Err(_err) => {
-      debug!("Failed creating User, payload is not valid. Returning 400 status code");
+      debug!("Failed to create User, payload is not valid. Returning 400 status code");
       return Ok(HttpResponse::BadRequest().finish());
     }
   };
@@ -111,7 +112,8 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
   create_demo_data_for_user::create(&ctx.models, user.id.clone().unwrap()).await?;
 
   debug!("Returning created user");
-  let res = HttpResponse::Created().json(user.to_display());
+  let user: PrivateUser = user.into();
+  let res = HttpResponse::Created().json(user);
   Ok(res)
 }
 
@@ -119,8 +121,8 @@ async fn get_session(ctx: Ctx, user: UserID) -> Response {
   let user_id = user.0;
   let user = ctx.models.find_one::<User>(doc! { "_id": user_id }).await?;
 
-  let user = match user {
-    Some(user) => user,
+  let user: PrivateUser = match user {
+    Some(user) => user.into(),
     None => {
       debug!("User not found, returning 401 status code");
       return Ok(HttpResponse::Unauthorized().finish());
@@ -128,7 +130,7 @@ async fn get_session(ctx: Ctx, user: UserID) -> Response {
   };
 
   debug!("Returning user");
-  let res = HttpResponse::Ok().json(user.to_schema());
+  let res = HttpResponse::Ok().json(user);
   Ok(res)
 }
 
@@ -195,7 +197,7 @@ async fn create_token(ctx: web::Data<Context>, body: web::Json<AuthenticateBody>
   }
 
   let private_key = ctx.settings.auth.secret.as_str();
-  let token = token::create_token(&user, private_key);
+  let token = token::create_token(user, private_key);
   let payload = json!({ "access_token": token });
 
   debug!("Returning created user token to the client");
@@ -299,7 +301,7 @@ async fn create_token_from_google(
   }
 
   let private_key = ctx.settings.auth.secret.as_str();
-  let token = token::create_token(&user, private_key);
+  let token = token::create_token(user, private_key);
   let payload = json!({ "access_token": token });
 
   debug!("Returning created user token to the client");

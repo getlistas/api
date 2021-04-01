@@ -1,8 +1,8 @@
 use jsonwebtoken::dangerous_insecure_decode_with_validation;
 use serde::{Deserialize, Serialize};
 
+use crate::auth::UserFromToken;
 use crate::models::user::User;
-use crate::models::user::UserPublic;
 
 type TokenResult = Result<jsonwebtoken::TokenData<Claims>, jsonwebtoken::errors::Error>;
 
@@ -10,29 +10,20 @@ type TokenResult = Result<jsonwebtoken::TokenData<Claims>, jsonwebtoken::errors:
 pub struct Claims {
   exp: usize, // Expiration time (as UTC timestamp). validate_exp defaults to true in validation
   iat: usize, // Issued at (as UTC timestamp)
-  pub user: UserPublic,
+  pub user: UserFromToken,
 }
 
 impl Claims {
-  pub fn new(user: &User) -> Self {
+  pub fn new(user: User) -> Self {
     Self {
       exp: (chrono::Local::now() + chrono::Duration::days(30)).timestamp() as usize,
       iat: chrono::Local::now().timestamp() as usize,
-      user: user.to_display(),
-    }
-  }
-
-  pub fn to_public_user(&self) -> UserPublic {
-    UserPublic {
-      id: self.user.id.clone(),
-      email: self.user.email.clone(),
-      name: self.user.name.clone(),
-      slug: self.user.slug.clone(),
+      user: user.into(),
     }
   }
 }
 
-pub fn create_token(user: &User, private_key: &str) -> String {
+pub fn create_token(user: User, private_key: &str) -> String {
   let header = jsonwebtoken::Header::default();
   let encoding_key = jsonwebtoken::EncodingKey::from_secret(private_key.as_ref());
   let claims = Claims::new(user);
