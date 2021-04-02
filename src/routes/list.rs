@@ -7,7 +7,6 @@ use wither::bson;
 use wither::bson::doc;
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
-use wither::mongodb::options::FindOptions;
 use wither::Model;
 
 use crate::auth;
@@ -95,26 +94,10 @@ async fn find_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respo
 }
 
 async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
-  let user_id = user.0;
-  let sort = doc! { "created_at": 1 };
-  let options = FindOptions::builder().sort(sort).build();
-  let mut lists = ctx
-    .models
-    .find::<List>(doc! { "user": &user_id }, Some(options))
-    .await?;
+  let user_id = &user.0;
 
-  let lists = lists.iter_mut().map(move |list| {
-    let conn = ctx.database.conn.clone();
-    async move { list.to_schema(&conn).await }
-  });
-
-  debug!("Querying list resources metadata");
-  let lists = futures::stream::iter(lists)
-    .buffered(50)
-    .collect::<Vec<Result<serde_json::Value, Error>>>()
-    .await
-    .into_iter()
-    .collect::<Result<serde_json::Value, Error>>()?;
+  let models = &ctx.models;
+  let lists = List::find_populated(models, user_id).await?;
 
   debug!("Returning lists");
   let res = HttpResponse::Ok().json(lists);

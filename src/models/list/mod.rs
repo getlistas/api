@@ -11,6 +11,9 @@ use wither::mongodb::Database;
 use wither::Model;
 
 use crate::models::integration::Integration;
+use crate::models::list::queries::create_find_populated_query;
+use crate::models::user::PublicUser;
+use crate::models::Models;
 use crate::Context;
 use crate::{errors::Error, lib::date};
 use crate::{lib::util, models::resource::Resource};
@@ -65,6 +68,17 @@ impl List {
         "updated_at": date::to_rfc3339(this.updated_at),
         "archived_at": this.archived_at.map(date::to_rfc3339)
     })
+  }
+
+  pub async fn find_populated(
+    models: &Models,
+    user_id: &ObjectId,
+  ) -> Result<Vec<PopulatedList>, Error> {
+    let query = doc! { "user": user_id };
+    let pipeline = create_find_populated_query(query);
+    let lists = models.aggregate::<List, PopulatedList>(pipeline).await?;
+
+    Ok(lists)
   }
 
   pub async fn to_schema(&self, conn: &Database) -> Result<JSON, Error> {
@@ -193,4 +207,32 @@ impl ListUpdate {
     update.updated_at = Some(date::now());
     update
   }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PopulatedList {
+  pub id: ObjectId,
+  pub user: ObjectId,
+  pub title: String,
+  pub slug: String,
+  pub description: Option<String>,
+  pub tags: Vec<String>,
+  pub is_public: bool,
+  pub created_at: DateTime,
+  pub updated_at: DateTime,
+  pub archived_at: Option<DateTime>,
+  pub fork: Option<PopulatedFork>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PopulatedFork {
+  // pub user: PublicUser,
+  pub list: Option<ListFromPopulatedFork>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListFromPopulatedFork {
+  pub id: Option<ObjectId>,
+  pub title: Option<String>,
+  pub slug: Option<String>,
 }

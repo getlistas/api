@@ -45,7 +45,6 @@ pub fn parse_url(url: &str) -> Result<url::Url, Error> {
   }
 
   let url = url::Url::parse(url.as_str()).map_err(|_| Error::ParseURL())?;
-
   Ok(url)
 }
 
