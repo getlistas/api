@@ -5,11 +5,15 @@ use futures::stream::StreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value as JSON;
+use serde_with::skip_serializing_none;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId, Bson};
 use wither::mongodb::Database;
 use wither::Model;
 
+use crate::lib::serde::serialize_bson_datetime_as_iso_string;
+use crate::lib::serde::serialize_bson_datetime_option_as_iso_string;
+use crate::lib::serde::serialize_object_id_as_hex_string;
 use crate::models::integration::Integration;
 use crate::models::list::queries::create_find_populated_query;
 use crate::models::user::PublicUser;
@@ -178,17 +182,13 @@ impl List {
   }
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListUpdate {
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub title: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub description: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub tags: Option<Vec<String>>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub is_public: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub updated_at: Option<DateTime>,
 }
 
@@ -211,28 +211,36 @@ impl ListUpdate {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PopulatedList {
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
+  #[serde(alias = "_id")]
   pub id: ObjectId,
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
   pub user: ObjectId,
   pub title: String,
   pub slug: String,
   pub description: Option<String>,
   pub tags: Vec<String>,
   pub is_public: bool,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
   pub created_at: DateTime,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
   pub updated_at: DateTime,
+  #[serde(serialize_with = "serialize_bson_datetime_option_as_iso_string")]
   pub archived_at: Option<DateTime>,
   pub fork: Option<PopulatedFork>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PopulatedFork {
-  // pub user: PublicUser,
   pub list: Option<ListFromPopulatedFork>,
+  pub user: Option<PublicUser>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListFromPopulatedFork {
-  pub id: Option<ObjectId>,
-  pub title: Option<String>,
-  pub slug: Option<String>,
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
+  #[serde(alias = "_id")]
+  pub id: ObjectId,
+  pub title: String,
+  pub slug: String,
 }

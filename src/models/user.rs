@@ -117,6 +117,7 @@ impl User {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PublicUser {
   #[serde(serialize_with = "serialize_object_id_as_hex_string")]
+  #[serde(alias = "_id")]
   pub id: ObjectId,
   pub slug: String,
   pub name: String,
