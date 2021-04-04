@@ -143,7 +143,9 @@ impl ResourceUpdate {
 pub struct PrivateResource {
   #[serde(alias = "_id", serialize_with = "serialize_object_id_as_hex_string")]
   pub id: ObjectId,
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
   pub user: ObjectId,
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
   pub list: ObjectId,
   pub url: String,
   pub title: String,

@@ -272,6 +272,7 @@ pub struct ResourceMetadata {
 pub struct ResourceMetadataWithNextResource {
   pub count: i64,
   pub completed_count: i64,
+  #[serde(serialize_with = "serialize_bson_datetime_option_as_iso_string")]
   pub last_completed_at: Option<DateTime>,
   pub next: Option<PrivateResource>,
 }
