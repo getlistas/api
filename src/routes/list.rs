@@ -17,6 +17,7 @@ use crate::lib::util;
 use crate::models::list;
 use crate::models::list::List;
 use crate::models::list::ListUpdate;
+use crate::models::list::PrivateList;
 use crate::models::resource::Resource;
 use crate::models::user::UserID;
 use crate::Context;
@@ -76,7 +77,7 @@ async fn find_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respo
 
   let list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
+    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id }, None)
     .await?;
 
   let list = match list {
@@ -88,7 +89,7 @@ async fn find_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respo
   };
 
   debug!("Returning list");
-  let list = list.to_schema(&ctx.database.conn).await?;
+  let list = list.to_schema(&ctx.models).await?;
   let res = HttpResponse::Ok().json(list);
   Ok(res)
 }
@@ -123,9 +124,10 @@ async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) ->
   };
 
   let list = ctx.models.create(list).await?;
+  let list: PrivateList = list.into();
 
   debug!("Returning created list");
-  let res = HttpResponse::Created().json(list.to_json());
+  let res = HttpResponse::Created().json(list);
   Ok(res)
 }
 
@@ -145,8 +147,8 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
     .find_one_and_update::<List>(doc! { "_id": list_id }, update, Some(update_options))
     .await?;
 
-  let list = match list {
-    Some(list) => list,
+  let list: PrivateList = match list {
+    Some(list) => list.into(),
     None => {
       debug!("List not found, returning 404 status code");
       return Ok(HttpResponse::NotFound().finish());
@@ -154,7 +156,7 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
   };
 
   debug!("Returning updated list");
-  let res = HttpResponse::Ok().json(list.to_json());
+  let res = HttpResponse::Ok().json(list);
   Ok(res)
 }
 
@@ -164,7 +166,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
 
   let list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &list_id, "is_public": true })
+    .find_one::<List>(doc! { "_id": &list_id, "is_public": true }, None)
     .await?;
 
   let list = match list {
@@ -242,8 +244,10 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     .into_iter()
     .collect::<Result<(), Error>>()?;
 
+  let forked_list: PrivateList = forked_list.into();
+
   debug!("Returning forked list");
-  let res = HttpResponse::Ok().json(forked_list.to_json());
+  let res = HttpResponse::Ok().json(forked_list);
   Ok(res)
 }
 
@@ -253,7 +257,7 @@ async fn follow_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
 
   let parent_list = ctx
     .models
-    .find_one::<List>(doc! { "_id": parent_list_id, "is_public": true })
+    .find_one::<List>(doc! { "_id": parent_list_id, "is_public": true }, None)
     .await?;
 
   let parent_list = match parent_list {
@@ -326,7 +330,7 @@ async fn follow_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
     .collect::<Result<(), Error>>()?;
 
   debug!("Returning followed list");
-  let res = HttpResponse::Ok().json(list.to_json());
+  let res = HttpResponse::Ok().finish();
   Ok(res)
 }
 
@@ -336,7 +340,7 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
 
   let list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
+    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id }, None)
     .await?;
 
   let list = match list {
@@ -362,7 +366,7 @@ async fn archive_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response
 
   let list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
+    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id }, None)
     .await?;
 
   let list = match list {

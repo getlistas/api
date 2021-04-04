@@ -1,22 +1,25 @@
 pub mod queries;
 
 use actix_web::web;
+use futures::future::try_join4;
+use futures::future::try_join_all;
+use futures::future::{try_join, try_join3};
 use futures::stream::StreamExt;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use serde_json::Value as JSON;
 use serde_with::skip_serializing_none;
+use std::convert::From;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId, Bson};
-use wither::mongodb::Database;
+use wither::mongodb::options::FindOptions;
 use wither::Model;
 
 use crate::lib::serde::serialize_bson_datetime_as_iso_string;
 use crate::lib::serde::serialize_bson_datetime_option_as_iso_string;
 use crate::lib::serde::serialize_object_id_as_hex_string;
 use crate::models::integration::Integration;
-use crate::models::list::queries::create_find_populated_query;
+use crate::models::resource::PrivateResource;
 use crate::models::user::PublicUser;
+use crate::models::user::User;
 use crate::models::Models;
 use crate::Context;
 use crate::{errors::Error, lib::date};
@@ -28,16 +31,6 @@ type Ctx = web::Data<Context>;
 pub struct Fork {
   pub list: ObjectId,
   pub user: ObjectId,
-}
-
-impl Fork {
-  pub fn to_json(&self) -> JSON {
-    let this = self.clone();
-    json!({
-        "list": this.list.clone().to_hex(),
-        "user": this.user.clone().to_hex(),
-    })
-  }
 }
 
 #[derive(Debug, Model, Serialize, Deserialize)]
@@ -57,69 +50,101 @@ pub struct List {
 }
 
 impl List {
-  pub fn to_json(&self) -> JSON {
-    let this = self.clone();
-    json!({
-        "id": this.id.clone().unwrap().to_hex(),
-        "user": this.user.to_hex(),
-        "title": this.title,
-        "description": this.description,
-        "tags": this.tags,
-        "slug": this.slug,
-        "is_public": this.is_public,
-        "fork": this.fork.clone().map(|fork| fork.to_json()),
-        "created_at": date::to_rfc3339(this.created_at),
-        "updated_at": date::to_rfc3339(this.updated_at),
-        "archived_at": this.archived_at.map(date::to_rfc3339)
-    })
-  }
-
   pub async fn find_populated(
     models: &Models,
     user_id: &ObjectId,
-  ) -> Result<Vec<PopulatedList>, Error> {
-    let query = doc! { "user": user_id };
-    let pipeline = create_find_populated_query(query);
-    let lists = models.aggregate::<List, PopulatedList>(pipeline).await?;
+  ) -> Result<Vec<PopulatedListWithResourceMetadata>, Error> {
+    let sort = doc! { "created_at": 1 };
+    let options = FindOptions::builder().sort(sort).build();
+    let mut lists = models
+      .find::<List>(doc! { "user": &user_id }, Some(options))
+      .await?;
 
+    let lists = lists
+      .iter_mut()
+      .map(move |list| async move { list.to_schema(&models).await });
+
+    debug!("Querying list resources metadata");
+    let lists = try_join_all(lists).await?;
+
+    debug!("Returning list to the user");
     Ok(lists)
   }
 
-  pub async fn to_schema(&self, conn: &Database) -> Result<JSON, Error> {
-    let id = self.id.clone().unwrap();
-    let user_id = self.user.clone();
-    let mut res = self.to_json();
+  pub async fn get_resource_metadata(
+    models: &Models,
+    list_id: &ObjectId,
+  ) -> Result<ResourceMetadata, Error> {
+    let (count, uncompleted_count, last_completed_resource) = try_join3(
+      models.count::<Resource>(doc! { "list": &list_id }),
+      models.count::<Resource>(doc! { "list": &list_id, "completed_at": Bson::Null }),
+      Resource::find_last_completed(models, &list_id),
+    )
+    .await?;
 
-    let resources_count: i64 = Resource::collection(conn)
-      .count_documents(doc! { "list": &id }, None)
-      .await
-      .map_err(Error::MongoError)?;
+    Ok(ResourceMetadata {
+      count,
+      completed_count: count - uncompleted_count,
+      last_completed_at: last_completed_resource.and_then(|resource| resource.completed_at),
+    })
+  }
 
-    let uncompleted_resources_count: i64 = Resource::collection(conn)
-      .count_documents(
-        doc! {
-            "list": &id,
-            "completed_at": Bson::Null
-        },
-        None,
-      )
-      .await
-      .map_err(Error::MongoError)?;
+  pub async fn get_populated_fork(&self, models: &Models) -> Result<Option<PopulatedFork>, Error> {
+    if self.fork.is_none() {
+      return Ok(None);
+    }
 
-    let next_resource = Resource::find_next(conn, &user_id, &id).await?;
-    let last_completed_resource = Resource::find_last_completed(conn, &user_id, &id).await?;
-    let last_completed_at = last_completed_resource
-      .map(|resource| resource.completed_at)
-      .and_then(|completed_at| completed_at.map(date::to_rfc3339));
+    let fork = self.fork.as_ref().unwrap();
+    let user_id = &fork.user;
+    let list_id = &fork.list;
 
-    res["resource_metadata"] = json!({
-        "count": resources_count,
-        "completed_count": resources_count - uncompleted_resources_count,
-        "last_completed_at": last_completed_at,
-        "next": next_resource.map(|resource| resource.to_json())
-    });
+    let (user, list) = try_join(
+      models.find_by_id::<User>(user_id),
+      models.find_by_id::<List>(list_id),
+    )
+    .await?;
 
-    Ok(res)
+    let populated_fork = PopulatedFork {
+      list: list.map(Into::into),
+      user: user.map(Into::into),
+    };
+
+    Ok(Some(populated_fork))
+  }
+
+  pub async fn to_schema(
+    &self,
+    models: &Models,
+  ) -> Result<PopulatedListWithResourceMetadata, Error> {
+    let list_id = self.id.clone().unwrap();
+
+    let (metadata, next_resource, last_completed_resource, populated_fork) = try_join4(
+      Self::get_resource_metadata(models, &list_id),
+      Resource::find_next(models, &list_id),
+      Resource::find_last_completed(models, &list_id),
+      self.get_populated_fork(models),
+    )
+    .await?;
+
+    Ok(PopulatedListWithResourceMetadata {
+      id: self.id.clone().unwrap(),
+      user: self.user.clone(),
+      title: self.title.clone(),
+      slug: self.slug.clone(),
+      description: self.description.clone(),
+      tags: self.tags.clone(),
+      is_public: self.is_public,
+      created_at: self.created_at,
+      updated_at: self.updated_at,
+      archived_at: self.archived_at,
+      fork: populated_fork,
+      resource_metadata: ResourceMetadataWithNextResource {
+        count: metadata.count,
+        completed_count: metadata.completed_count,
+        last_completed_at: last_completed_resource.and_then(|resource| resource.completed_at),
+        next: next_resource.map(Into::into),
+      },
+    })
   }
 
   pub async fn archive(&self, ctx: &Ctx) -> Result<(), Error> {
@@ -170,7 +195,7 @@ impl List {
       .await?;
 
     let remove_integration_futures = integrations
-      .into_iter()
+      .iter()
       .map(move |integration| async move { integration.remove(&ctx).await });
 
     futures::stream::iter(remove_integration_futures)
@@ -232,15 +257,126 @@ pub struct PopulatedList {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PopulatedFork {
-  pub list: Option<ListFromPopulatedFork>,
+  pub list: Option<PublicList>,
   pub user: Option<PublicUser>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ListFromPopulatedFork {
-  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
-  #[serde(alias = "_id")]
+pub struct ResourceMetadata {
+  pub count: i64,
+  pub completed_count: i64,
+  pub last_completed_at: Option<DateTime>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResourceMetadataWithNextResource {
+  pub count: i64,
+  pub completed_count: i64,
+  pub last_completed_at: Option<DateTime>,
+  pub next: Option<PrivateResource>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PopulatedListWithResourceMetadata {
+  #[serde(alias = "_id", serialize_with = "serialize_object_id_as_hex_string")]
   pub id: ObjectId,
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
+  pub user: ObjectId,
   pub title: String,
   pub slug: String,
+  pub description: Option<String>,
+  pub tags: Vec<String>,
+  pub is_public: bool,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub created_at: DateTime,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub updated_at: DateTime,
+  #[serde(serialize_with = "serialize_bson_datetime_option_as_iso_string")]
+  pub archived_at: Option<DateTime>,
+  pub fork: Option<PopulatedFork>,
+  pub resource_metadata: ResourceMetadataWithNextResource,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PrivateList {
+  #[serde(alias = "_id", serialize_with = "serialize_object_id_as_hex_string")]
+  pub id: ObjectId,
+  pub user: ObjectId,
+  pub title: String,
+  pub slug: String,
+  pub description: Option<String>,
+  pub tags: Vec<String>,
+  pub is_public: bool,
+  pub fork: Option<PrivateFork>,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub created_at: DateTime,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub updated_at: DateTime,
+  #[serde(serialize_with = "serialize_bson_datetime_option_as_iso_string")]
+  pub archived_at: Option<DateTime>,
+}
+
+impl From<List> for PrivateList {
+  fn from(list: List) -> Self {
+    Self {
+      id: list.id.unwrap(),
+      user: list.user,
+      title: list.title,
+      slug: list.slug,
+      description: list.description,
+      tags: list.tags,
+      is_public: list.is_public,
+      fork: list.fork.map(Into::into),
+      created_at: list.created_at,
+      updated_at: list.updated_at,
+      archived_at: list.archived_at,
+    }
+  }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PublicList {
+  #[serde(alias = "_id", serialize_with = "serialize_object_id_as_hex_string")]
+  pub id: ObjectId,
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
+  pub user: ObjectId,
+  pub title: String,
+  pub slug: String,
+  pub description: Option<String>,
+  pub tags: Vec<String>,
+  pub fork: Option<PrivateFork>,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub created_at: DateTime,
+}
+
+impl From<List> for PublicList {
+  fn from(list: List) -> Self {
+    Self {
+      id: list.id.unwrap(),
+      user: list.user,
+      title: list.title,
+      slug: list.slug,
+      description: list.description,
+      tags: list.tags,
+      fork: list.fork.map(Into::into),
+      created_at: list.created_at,
+    }
+  }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrivateFork {
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
+  pub list: ObjectId,
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
+  pub user: ObjectId,
+}
+
+impl From<Fork> for PrivateFork {
+  fn from(fork: Fork) -> Self {
+    Self {
+      user: fork.user,
+      list: fork.list,
+    }
+  }
 }

@@ -4,6 +4,7 @@ use wither::bson::doc;
 
 use crate::auth::AuthenticationMetadata;
 use crate::models::list::List;
+use crate::models::list::PrivateList;
 use crate::models::user::User;
 use crate::Context;
 
@@ -30,7 +31,7 @@ async fn query_lists_by_slug(
 ) -> Response {
   let user = ctx
     .models
-    .find_one::<User>(doc! { "slug": &params.user_slug })
+    .find_one::<User>(doc! { "slug": &params.user_slug }, None)
     .await?;
 
   let user = match user {
@@ -51,9 +52,9 @@ async fn query_lists_by_slug(
   let lists = ctx.models.find::<List>(query, None).await?;
 
   let lists = lists
-    .iter()
-    .map(|list| list.to_json())
-    .collect::<Vec<serde_json::Value>>();
+    .into_iter()
+    .map(|list| list.into())
+    .collect::<Vec<PrivateList>>();
 
   debug!("Returning list to the user");
   let res = HttpResponse::Ok().json(lists);
@@ -69,7 +70,7 @@ async fn find_list_by_slug(
   let user_slug = &params.user_slug;
   let user = ctx
     .models
-    .find_one::<User>(doc! { "slug": user_slug })
+    .find_one::<User>(doc! { "slug": user_slug }, None)
     .await?;
 
   let user = match user {
@@ -90,10 +91,10 @@ async fn find_list_by_slug(
     query.insert("is_public", true);
   }
 
-  let list = ctx.models.find_one::<List>(query).await?;
+  let list = ctx.models.find_one::<List>(query, None).await?;
 
-  let list = match list {
-    Some(list) => list,
+  let list: PrivateList = match list {
+    Some(list) => list.into(),
     None => {
       debug!("List not found, returning 404 status code");
       return Ok(HttpResponse::NotFound().finish());
@@ -101,6 +102,6 @@ async fn find_list_by_slug(
   };
 
   debug!("Returning list to the user");
-  let res = HttpResponse::Ok().json(list.to_json());
+  let res = HttpResponse::Ok().json(list);
   Ok(res)
 }

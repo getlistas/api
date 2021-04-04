@@ -1,5 +1,4 @@
 use wither::bson::doc;
-use wither::bson::Bson;
 use wither::bson::Document;
 
 pub fn create_discover_query(query: Document, skip: i64, limit: i64) -> Vec<Document> {
@@ -55,60 +54,6 @@ pub fn create_discover_query(query: Document, skip: i64, limit: i64) -> Vec<Docu
           "name":   "$user.name",
           "avatar": "$user.avatar",
         }
-      }
-    },
-  ];
-
-  pipeline
-}
-
-pub fn create_find_populated_query(query: Document) -> Vec<Document> {
-  let pipeline = vec![
-    doc! { "$match": query },
-    doc! {
-      "$lookup": {
-        "from": "resources",
-        "as":   "resources",
-        "let": { "list": "$_id" },
-        "pipeline": vec![
-          doc! {
-            "$match": {
-              "$expr": { "$eq": [ "$list",  "$$list" ] },
-              "completed_at": Bson::Null
-            }
-          },
-          doc! { "$sort": { "position": 1 } },
-          doc! { "$limit": 1 }
-        ]
-      }
-    },
-    doc! { "$sort": { "created_at": 1 } },
-    doc! {
-      "$lookup": {
-        "from":         "users",
-        "localField":   "fork.user",
-        "foreignField": "_id",
-        "as":           "fork.user",
-      }
-    },
-    doc! {
-      "$unwind": {
-        "path":                       "$fork.user",
-        "preserveNullAndEmptyArrays": true
-      }
-    },
-    doc! {
-      "$lookup": {
-        "from":         "lists",
-        "localField":   "fork.list",
-        "foreignField": "_id",
-        "as":           "fork.list",
-      }
-    },
-    doc! {
-      "$unwind": {
-        "path":                       "$fork.list",
-        "preserveNullAndEmptyArrays": true
       }
     },
   ];
