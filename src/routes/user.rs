@@ -163,6 +163,7 @@ async fn get_metrics(ctx: Ctx, user: UserID) -> Response {
         "completed_count": { "$sum": 1 }
       }
     },
+    doc! { "$sort": { "_id": 1 } },
   ];
 
   let metrics = ctx.models.aggregate::<Resource, Metric>(pipeline).await?;
