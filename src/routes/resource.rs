@@ -105,7 +105,7 @@ async fn get_resource_by_id(ctx: Ctx, id: ID, user_id: UserID) -> Response {
 }
 
 async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Response {
-  let sort_option = qs.sort.clone().unwrap_or("position_asc".into());
+  let sort_option = qs.sort.clone().unwrap_or_else(|| "position_asc".into());
   let mut query = doc! { "user": user_id.0 };
 
   let sort = match sort_option.as_str() {
@@ -149,10 +149,14 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
 }
 
 async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) -> Response {
-  let list_id = to_object_id(body.list.clone().into())?;
+  let list_id = to_object_id(body.list.clone())?;
   let user_id = user_id.0;
   let url = util::parse_url(body.url.clone().as_str())?;
-  let tags = body.tags.clone().map(util::sanitize_tags).unwrap_or(vec![]);
+  let tags = body
+    .tags
+    .clone()
+    .map(util::sanitize_tags)
+    .unwrap_or_default();
 
   let last_resource = Resource::find_last(&ctx.database.conn, &user_id, &list_id).await?;
 

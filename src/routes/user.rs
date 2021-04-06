@@ -1,15 +1,17 @@
 use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use validator::Validate;
 use wither::bson::doc;
+use wither::bson::Bson;
 use wither::Model;
 
 use crate::auth;
 use crate::lib::create_demo_data_for_user;
 use crate::lib::date;
 use crate::lib::token;
+use crate::models::resource::Resource;
 use crate::models::user;
 use crate::models::user::PrivateUser;
 use crate::models::user::User;
@@ -58,6 +60,11 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::resource("/users/me")
       .route(web::get().to(get_session))
+      .wrap(auth.clone()),
+  );
+  cfg.service(
+    web::resource("/users/me/metrics")
+      .route(web::get().to(get_metrics))
       .wrap(auth.clone()),
   );
   cfg.service(web::resource("/users/verification/{token}").route(web::get().to(verify_user_email)));
@@ -134,6 +141,38 @@ async fn get_session(ctx: Ctx, user: UserID) -> Response {
 
   debug!("Returning user");
   let res = HttpResponse::Ok().json(user);
+  Ok(res)
+}
+
+async fn get_metrics(ctx: Ctx, user: UserID) -> Response {
+  let user_id = user.0;
+  let pipeline = vec![
+    doc! {
+      "$match": {
+        "user": user_id,
+        "completed_at": { "$exists": true, "$ne": Bson::Null }
+      }
+    },
+    doc! {
+      "$group": {
+        "_id": {
+          "$dateToString": {
+            "date":   "$completed_at",
+            "format": "%Y-%m-%d",
+            // TODO: Send and probably store the user timezone from the front-end
+            // timezone: timezone
+          }
+        },
+        "completed_count": { "$sum": 1 }
+      }
+    },
+    doc! { "$sort": { "_id": 1 } },
+  ];
+
+  let metrics = ctx.models.aggregate::<Resource, Metric>(pipeline).await?;
+
+  debug!("Returning user metrics");
+  let res = HttpResponse::Ok().json(metrics);
   Ok(res)
 }
 
@@ -398,4 +437,11 @@ async fn find_user_by_slug(ctx: web::Data<Context>, slug: web::Path<String>) -> 
   debug!("Returning public user");
   let res = HttpResponse::Ok().json(user);
   Ok(res)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Metric {
+  #[serde(alias = "_id")]
+  date: String,
+  completed_count: i64,
 }

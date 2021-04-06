@@ -20,7 +20,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
 async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
   debug!("Processing RSS webhook from rssapi");
 
-  if body.new_entries.len() == 0 {
+  if body.new_entries.is_empty() {
     debug!("RSS webhook does not contain new entries, returning 400 status code");
     return Ok(HttpResponse::BadRequest().finish());
   }
