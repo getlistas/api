@@ -26,7 +26,7 @@ struct RSSPayload {
 }
 
 #[derive(Deserialize)]
-struct FollowPayload {
+struct SubscriptionPayload {
   follower_list: String,
   following_list: String,
 }
@@ -36,10 +36,10 @@ struct Query {
   kind: Option<String>,
 }
 
-type Ctx = web::Data<Context>;
+type CTX = web::Data<Context>;
 type Response = actix_web::Result<HttpResponse>;
 type RSSCreateBody = web::Json<RSSPayload>;
-type FollowCreateBody = web::Json<FollowPayload>;
+type SubscriptionCreateBody = web::Json<SubscriptionPayload>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
   let auth = HttpAuthentication::bearer(auth::validator);
@@ -57,8 +57,8 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   );
 
   cfg.service(
-    web::resource("/integrations/follow")
-      .route(web::post().to(create_follow_integration))
+    web::resource("/integrations/listas-subscription")
+      .route(web::post().to(create_subscription_integration))
       .wrap(auth.clone()),
   );
 
@@ -69,7 +69,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   );
 }
 
-async fn query_integrations(ctx: Ctx, user: UserID, qs: web::Query<Query>) -> Response {
+async fn query_integrations(ctx: CTX, user: UserID, qs: web::Query<Query>) -> Response {
   let user_id = user.0;
   let mut query = doc! { "user": &user_id };
 
@@ -94,7 +94,7 @@ async fn query_integrations(ctx: Ctx, user: UserID, qs: web::Query<Query>) -> Re
   Ok(res)
 }
 
-async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) -> Response {
+async fn create_rss_integration(ctx: CTX, body: RSSCreateBody, user_id: UserID) -> Response {
   let list_id = to_object_id(body.list.clone())?;
   let user_id = user_id.0;
   let url = parse_url(body.url.as_str())?;
@@ -125,7 +125,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
       created_at: now,
       updated_at: now,
       kind: integration::Kind::from_str("rss").unwrap(),
-      follow: None,
+      listas_subscription: None,
       rss: Some(RSS {
         url: subscription.url,
         subscription_id: subscription.subscription_id,
@@ -169,7 +169,11 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
   Ok(res)
 }
 
-async fn create_follow_integration(ctx: Ctx, body: FollowCreateBody, user_id: UserID) -> Response {
+async fn create_subscription_integration(
+  ctx: CTX,
+  body: SubscriptionCreateBody,
+  user_id: UserID,
+) -> Response {
   let user_id = user_id.0;
   let follower_list_id = to_object_id(body.follower_list.clone())?;
   let following_list_id = to_object_id(body.following_list.clone())?;
@@ -205,7 +209,7 @@ async fn create_follow_integration(ctx: Ctx, body: FollowCreateBody, user_id: Us
       updated_at: now,
       kind: integration::Kind::from_str("follow").unwrap(),
       rss: None,
-      follow: Some(integration::Follow {
+      listas_subscription: Some(integration::Subscription {
         list: following_list_id.clone(),
       }),
     })
@@ -216,7 +220,7 @@ async fn create_follow_integration(ctx: Ctx, body: FollowCreateBody, user_id: Us
   Ok(res)
 }
 
-async fn remove_integration(ctx: Ctx, id: ID, user_id: UserID) -> Response {
+async fn remove_integration(ctx: CTX, id: ID, user_id: UserID) -> Response {
   let user_id = user_id.0;
   let integration_id = id.0;
 
