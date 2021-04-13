@@ -209,7 +209,7 @@ async fn create_subscription_integration(
       updated_at: now,
       kind: integration::Kind::from_str("follow").unwrap(),
       rss: None,
-      listas_subscription: Some(integration::Subscription {
+      listas_subscription: Some(integration::listas_subscription::ListasSubscription {
         list: following_list_id.clone(),
       }),
     })

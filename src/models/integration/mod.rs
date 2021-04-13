@@ -1,3 +1,5 @@
+pub mod listas_subscription;
+
 use actix_web::web;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -9,6 +11,7 @@ use wither::Model;
 
 use crate::errors::Error;
 use crate::lib::date;
+use crate::models::integration::listas_subscription::ListasSubscription;
 use crate::Context;
 
 type CTX = web::Data<Context>;
@@ -38,17 +41,6 @@ impl RSS {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Subscription {
-  pub list: ObjectId,
-}
-
-impl Subscription {
-  pub fn to_response_schema(&self) -> JSON {
-    json!({ "list": self.list.to_hex() })
-  }
-}
-
 #[derive(Debug, Clone, Model, Serialize, Deserialize)]
 pub struct Integration {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -60,7 +52,7 @@ pub struct Integration {
   pub updated_at: DateTime,
 
   pub rss: Option<RSS>,
-  pub listas_subscription: Option<Subscription>,
+  pub listas_subscription: Option<ListasSubscription>,
 }
 
 impl Integration {

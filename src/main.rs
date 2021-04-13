@@ -22,6 +22,10 @@ use logger::Logger;
 use mailer::Mailer;
 use settings::Settings;
 
+use actix::Actor;
+
+use models::integration::listas_subscription::ListasSubscriptionActor;
+
 #[actix_web::main]
 async fn main() {
   let settings = match Settings::new() {
@@ -46,6 +50,8 @@ async fn main() {
 
   let models = models::Models::new(database.clone());
   let rss = integrations::rss::RSS::new(settings.rss.token.clone());
+
+  let _listas_subscription_actor = ListasSubscriptionActor::new(models.clone()).start();
 
   let context = web::Data::new(Context {
     database: database.clone(),

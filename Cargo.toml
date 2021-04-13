@@ -37,6 +37,8 @@ validator = { version = "0.12", features = ["derive"] }
 serde_qs = "0.8.3"
 strum = { version = "0.20.0", features = ["derive"] }
 serde_with = "1.7.0"
+# Do not update until actix web runs on tokio v1
+actix = "0.10.0"
 
 [dev-dependencies.cargo-husky]
 version = "1"

@@ -1,4 +1,4 @@
-use futures::StreamExt;
+use futures::future::try_join_all;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use wither::bson::oid::ObjectId;
@@ -193,15 +193,10 @@ impl RSS {
   ) -> Result<Vec<Resource>, Error> {
     let mut entries = self.get_entries(&url).await?;
 
-    let resources = entries
+    let resource_futures = entries
       .iter_mut()
       .map(|entry| Self::create_resource_from_entry(entry, &user, &list));
 
-    futures::stream::iter(resources)
-      .buffered(10)
-      .collect::<Vec<Result<Resource, Error>>>()
-      .await
-      .into_iter()
-      .collect::<Result<Vec<Resource>, Error>>()
+    try_join_all(resource_futures).await
   }
 }
