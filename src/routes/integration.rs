@@ -13,8 +13,8 @@ use crate::lib::id::ID;
 use crate::lib::util::parse_url;
 use crate::lib::util::to_object_id;
 use crate::models::integration;
+use crate::models::integration::rss::RSS;
 use crate::models::integration::Integration;
-use crate::models::integration::RSS;
 use crate::models::list::List;
 use crate::models::{resource::Resource, user::UserID};
 use crate::Context;
@@ -209,7 +209,7 @@ async fn create_subscription_integration(
       updated_at: now,
       kind: integration::Kind::from_str("follow").unwrap(),
       rss: None,
-      listas_subscription: Some(integration::listas_subscription::ListasSubscription {
+      listas_subscription: Some(integration::subscription::ListasSubscription {
         list: following_list_id.clone(),
       }),
     })

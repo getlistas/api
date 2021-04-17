@@ -3,6 +3,7 @@ use actix_web::{middleware, web, App, HttpServer};
 #[macro_use]
 extern crate log;
 
+mod actors;
 mod auth;
 mod context;
 mod database;
@@ -21,10 +22,6 @@ use database::Database;
 use logger::Logger;
 use mailer::Mailer;
 use settings::Settings;
-
-use actix::Actor;
-
-use models::integration::listas_subscription::ListasSubscriptionActor;
 
 #[actix_web::main]
 async fn main() {
@@ -50,8 +47,7 @@ async fn main() {
 
   let models = models::Models::new(database.clone());
   let rss = integrations::rss::RSS::new(settings.rss.token.clone());
-
-  let _listas_subscription_actor = ListasSubscriptionActor::new(models.clone()).start();
+  let actors = actors::Actors::new(models.clone());
 
   let context = web::Data::new(Context {
     database: database.clone(),
@@ -59,6 +55,7 @@ async fn main() {
     settings: settings.clone(),
     rss: rss.clone(),
     models: models.clone(),
+    actors: actors.clone(),
   });
 
   let port = settings.server.port;

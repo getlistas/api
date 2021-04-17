@@ -1,4 +1,5 @@
-pub mod listas_subscription;
+pub mod rss;
+pub mod subscription;
 
 use actix_web::web;
 use serde::{Deserialize, Serialize};
@@ -11,7 +12,8 @@ use wither::Model;
 
 use crate::errors::Error;
 use crate::lib::date;
-use crate::models::integration::listas_subscription::ListasSubscription;
+use crate::models::integration::rss::RSS;
+use crate::models::integration::subscription::ListasSubscription;
 use crate::Context;
 
 type CTX = web::Data<Context>;
@@ -24,21 +26,6 @@ pub enum Kind {
   #[serde(rename = "listas-subscription")]
   #[strum(serialize = "listas-subscription")]
   ListasSubscription,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RSS {
-  pub url: String,
-  pub subscription_id: String,
-  pub status: String,
-  pub feed_type: String,
-  pub metadata: Option<String>,
-}
-
-impl RSS {
-  pub fn to_response_schema(&self) -> JSON {
-    serde_json::to_value(self).unwrap()
-  }
 }
 
 #[derive(Debug, Clone, Model, Serialize, Deserialize)]

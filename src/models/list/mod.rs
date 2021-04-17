@@ -10,6 +10,7 @@ use serde_with::skip_serializing_none;
 use std::convert::From;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId, Bson};
+use wither::mongodb::options::FindOneOptions;
 use wither::mongodb::options::FindOptions;
 use wither::Model;
 
@@ -204,6 +205,23 @@ impl List {
       .await
       .into_iter()
       .collect::<Result<(), Error>>()
+  }
+
+  pub async fn get_next_resource_position(
+    models: &Models,
+    list_id: &ObjectId,
+  ) -> Result<i32, Error> {
+    let sort = doc! { "position": -1 };
+    let options = FindOneOptions::builder().sort(sort).build();
+    let last_resource = models
+      .find_one::<Resource>(doc! { "list": list_id }, Some(options))
+      .await?;
+
+    let position = last_resource
+      .map(|resource| resource.position + 1)
+      .unwrap_or(0);
+
+    Ok(position)
   }
 }
 

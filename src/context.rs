@@ -1,3 +1,4 @@
+use crate::actors::Actors;
 use crate::database::Database;
 use crate::integrations::rss::RSS;
 use crate::mailer::Mailer;
@@ -11,4 +12,5 @@ pub struct Context {
   pub settings: Settings,
   pub rss: RSS,
   pub models: Models,
+  pub actors: Actors,
 }

@@ -10,6 +10,7 @@ use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::mongodb::options::FindOptions;
 use wither::Model;
 
+use crate::actors::subscription;
 use crate::lib::id::ID;
 use crate::lib::util::to_object_id;
 use crate::models::resource::Resource;
@@ -178,6 +179,13 @@ async fn create_resource(ctx: CTX, body: ResourceCreateBody, user_id: UserID) ->
   };
 
   let resource = ctx.models.create(resource).await?;
+  let resource_id = resource.id.clone().unwrap();
+
+  ctx
+    .actors
+    .subscription
+    .try_send(subscription::Message { resource_id })
+    .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
 
   debug!("Returning created resource");
   let res = HttpResponse::Created().json(resource.to_json());
