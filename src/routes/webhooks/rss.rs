@@ -28,7 +28,7 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
   let subscription_id = body.subscription_id.clone();
   let integration = ctx
     .models
-    .find_one::<Integration>(doc! { "rss.subscription_id": &subscription_id })
+    .find_one::<Integration>(doc! { "rss.subscription_id": &subscription_id }, None)
     .await?;
 
   let integration = match integration {
@@ -45,7 +45,7 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
 
   let list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
+    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id }, None)
     .await?;
 
   if list.is_none() {

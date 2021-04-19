@@ -101,7 +101,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
 
   let list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id })
+    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id }, None)
     .await?;
 
   if list.is_none() {
@@ -176,7 +176,7 @@ async fn create_follow_integration(ctx: Ctx, body: FollowCreateBody, user_id: Us
 
   let follower_list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &follower_list_id, "user": &user_id })
+    .find_one::<List>(doc! { "_id": &follower_list_id, "user": &user_id }, None)
     .await?;
 
   if follower_list.is_none() {
@@ -186,7 +186,7 @@ async fn create_follow_integration(ctx: Ctx, body: FollowCreateBody, user_id: Us
 
   let following_list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &following_list_id, "is_public": true })
+    .find_one::<List>(doc! { "_id": &following_list_id, "is_public": true }, None)
     .await?;
 
   if following_list.is_none() {
@@ -222,7 +222,7 @@ async fn remove_integration(ctx: Ctx, id: ID, user_id: UserID) -> Response {
 
   let integration = ctx
     .models
-    .find_one::<Integration>(doc! { "_id": &integration_id, "user": &user_id })
+    .find_one::<Integration>(doc! { "_id": &integration_id, "user": &user_id }, None)
     .await?;
 
   let integration = match integration {

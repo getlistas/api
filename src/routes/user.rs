@@ -126,7 +126,10 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
 
 async fn get_session(ctx: Ctx, user: UserID) -> Response {
   let user_id = user.0;
-  let user = ctx.models.find_one::<User>(doc! { "_id": user_id }).await?;
+  let user = ctx
+    .models
+    .find_one::<User>(doc! { "_id": user_id }, None)
+    .await?;
 
   let user: PrivateUser = match user {
     Some(user) => user.into(),
@@ -418,7 +421,10 @@ async fn update_password(ctx: web::Data<Context>, body: web::Json<PasswordUpdate
 
 async fn find_user_by_slug(ctx: web::Data<Context>, slug: web::Path<String>) -> Response {
   let slug = slug.clone();
-  let user = ctx.models.find_one::<User>(doc! { "slug": &slug }).await?;
+  let user = ctx
+    .models
+    .find_one::<User>(doc! { "slug": &slug }, None)
+    .await?;
 
   let user: user::PublicUser = match user {
     Some(user) => user.into(),

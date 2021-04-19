@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use serde_with::skip_serializing_none;
 use validator::Validate;
 use wither::bson::{doc, oid::ObjectId, Bson};
 use wither::bson::{DateTime, Document};
@@ -8,7 +9,11 @@ use wither::mongodb::Database;
 use wither::Model;
 
 use crate::errors::Error;
+use crate::lib::serde::serialize_bson_datetime_as_iso_string;
+use crate::lib::serde::serialize_bson_datetime_option_as_iso_string;
+use crate::lib::serde::serialize_object_id_as_hex_string;
 use crate::lib::{date, util};
+use crate::models::Models;
 
 #[derive(Debug, Model, Validate, Serialize, Deserialize)]
 pub struct Resource {
@@ -42,40 +47,26 @@ impl Resource {
       .map_err(Error::WitherError)
   }
 
-  pub async fn find_next(
-    conn: &Database,
-    user_id: &ObjectId,
-    list_id: &ObjectId,
-  ) -> Result<Option<Self>, Error> {
-    let query = doc! {
-        "user": user_id,
-        "list": list_id,
-        "completed_at": Bson::Null
-    };
+  pub async fn find_next(models: &Models, list_id: &ObjectId) -> Result<Option<Self>, Error> {
+    let query = doc! { "list": list_id, "completed_at": Bson::Null };
     let sort = doc! { "position": 1 };
-    let options = FindOneOptions::builder().sort(Some(sort)).build();
+    let options = FindOneOptions::builder().sort(sort).build();
 
-    Self::find_one(conn, query, Some(options))
-      .await
-      .map_err(Error::WitherError)
+    models.find_one::<Resource>(query, Some(options)).await
   }
 
   pub async fn find_last_completed(
-    conn: &Database,
-    user_id: &ObjectId,
+    models: &Models,
     list_id: &ObjectId,
   ) -> Result<Option<Self>, Error> {
     let query = doc! {
-        "user": user_id,
         "list": list_id,
-        "completed_at": doc! { "$exists": true }
+        "completed_at": { "$exists": true, "$ne": Bson::Null }
     };
     let sort = doc! { "completed_at": -1 };
     let options = FindOneOptions::builder().sort(sort).build();
 
-    Self::find_one(conn, query, Some(options))
-      .await
-      .map_err(Error::WitherError)
+    models.find_one(query, Some(options)).await
   }
 
   pub async fn get_position(conn: &Database, query: Document) -> Result<Option<i32>, Error> {
@@ -120,19 +111,14 @@ impl Resource {
   }
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResourceUpdate {
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub list: Option<ObjectId>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub url: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub title: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub description: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub tags: Option<Vec<String>>,
-  #[serde(skip_serializing_if = "Option::is_none")]
   pub updated_at: Option<DateTime>,
 }
 
@@ -150,5 +136,46 @@ impl ResourceUpdate {
 
     update.updated_at = Some(date::now());
     update
+  }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PrivateResource {
+  #[serde(alias = "_id", serialize_with = "serialize_object_id_as_hex_string")]
+  pub id: ObjectId,
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
+  pub user: ObjectId,
+  #[serde(serialize_with = "serialize_object_id_as_hex_string")]
+  pub list: ObjectId,
+  pub url: String,
+  pub title: String,
+  pub position: i32,
+  pub description: Option<String>,
+  pub thumbnail: Option<String>,
+  pub tags: Vec<String>,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub created_at: DateTime,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub updated_at: DateTime,
+  #[serde(serialize_with = "serialize_bson_datetime_option_as_iso_string")]
+  pub completed_at: Option<DateTime>,
+}
+
+impl From<Resource> for PrivateResource {
+  fn from(resource: Resource) -> Self {
+    Self {
+      id: resource.id.unwrap(),
+      user: resource.user,
+      list: resource.list,
+      url: resource.url,
+      title: resource.title,
+      position: resource.position,
+      description: resource.description,
+      thumbnail: resource.thumbnail,
+      tags: resource.tags,
+      created_at: resource.created_at,
+      updated_at: resource.updated_at,
+      completed_at: resource.completed_at,
+    }
   }
 }

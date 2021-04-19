@@ -6,11 +6,9 @@ pub fn create_discover_query(query: Document, skip: i64, limit: i64) -> Vec<Docu
     doc! { "$match": query },
     doc! {
       "$lookup": {
-        "from":"resources",
-        "as": "resources",
-        "let": {
-          "list": "$_id"
-        },
+        "from": "resources",
+        "as":   "resources",
+        "let": { "list": "$_id" },
         "pipeline": vec![
           doc! {
             "$match": {
@@ -19,11 +17,7 @@ pub fn create_discover_query(query: Document, skip: i64, limit: i64) -> Vec<Docu
               }
             }
           },
-          doc! {
-            "$sort": {
-              "created_at": -1
-            }
-          },
+          doc! { "$sort": { "created_at": -1 } },
           doc! { "$limit": 1 }
         ]
       }
@@ -33,35 +27,31 @@ pub fn create_discover_query(query: Document, skip: i64, limit: i64) -> Vec<Docu
         "resources": { "$ne": [] }
       }
     },
-    doc! {
-      "$sort": {
-        "created_at": -1
-      }
-    },
+    doc! { "$sort": { "created_at": -1 } },
     doc! { "$skip":  skip },
     doc! { "$limit": limit },
     doc! {
       "$lookup": {
-        "from":"users",
-        "localField": "user",
+        "from":         "users",
+        "localField":   "user",
         "foreignField": "_id",
-        "as": "user",
+        "as":           "user",
       }
     },
     doc! { "$unwind": "$user" },
     doc! {
       "$project": {
-        "_id": false,
-        "id": "$_id",
-        "title": "$title",
+        "_id":         false,
+        "id":          "$_id",
+        "title":       "$title",
         "description": "$description",
-        "tags": "$tags",
-        "created_at": "$created_at",
-        "slug": "$slug",
+        "tags":        "$tags",
+        "created_at":  "$created_at",
+        "slug":        "$slug",
         "user": {
-          "id": "$user._id",
-          "slug": "$user.slug",
-          "name": "$user.name",
+          "id":     "$user._id",
+          "slug":   "$user.slug",
+          "name":   "$user.name",
           "avatar": "$user.avatar",
         }
       }

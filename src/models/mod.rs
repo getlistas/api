@@ -5,11 +5,13 @@ pub mod user;
 
 use futures::stream::TryStreamExt;
 use serde::{de::DeserializeOwned, ser::Serialize};
-use wither::bson;
+use wither::bson::doc;
 use wither::bson::from_bson;
 use wither::bson::Bson;
 use wither::bson::Document;
+use wither::bson::{self, oid::ObjectId};
 use wither::mongodb::options::FindOneAndUpdateOptions;
+use wither::mongodb::options::FindOneOptions;
 use wither::mongodb::options::FindOptions;
 use wither::mongodb::results::DeleteResult;
 
@@ -38,11 +40,24 @@ impl Models {
     Ok(model)
   }
 
-  pub async fn find_one<T>(&self, query: Document) -> Result<Option<T>, Error>
+  pub async fn find_by_id<T>(&self, id: &ObjectId) -> Result<Option<T>, Error>
   where
     T: wither::Model + Send,
   {
-    T::find_one(&self.db.conn, query, None)
+    T::find_one(&self.db.conn, doc! { "_id": id }, None)
+      .await
+      .map_err(Error::WitherError)
+  }
+
+  pub async fn find_one<T>(
+    &self,
+    query: Document,
+    options: Option<FindOneOptions>,
+  ) -> Result<Option<T>, Error>
+  where
+    T: wither::Model + Send,
+  {
+    T::find_one(&self.db.conn, query, options)
       .await
       .map_err(Error::WitherError)
   }

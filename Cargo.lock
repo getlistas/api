@@ -1682,6 +1682,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_qs",
+ "serde_with",
  "slug",
  "strum",
  "thiserror",

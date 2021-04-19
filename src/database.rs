@@ -11,9 +11,13 @@ impl Database {
   pub async fn new(settings: &Settings) -> Result<Self, mongodb::error::Error> {
     let db_uri = settings.database.uri.as_str();
     let db_name = settings.database.name.as_str();
-    let connection = mongodb::Client::with_uri_str(db_uri)
-      .await?
-      .database(db_name);
+
+    let mut client_options = mongodb::options::ClientOptions::parse(db_uri).await?;
+
+    // Mongo Atlas current tier support 500 concurrent connections
+    client_options.max_pool_size = Some(400);
+
+    let connection = mongodb::Client::with_options(client_options)?.database(db_name);
 
     Ok(Self { conn: connection })
   }
