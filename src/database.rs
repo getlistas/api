@@ -14,8 +14,9 @@ impl Database {
 
     let mut client_options = mongodb::options::ClientOptions::parse(db_uri).await?;
 
-    // Mongo Atlas current tier support 500 concurrent connections
-    client_options.max_pool_size = Some(400);
+    // Mongo Atlas current tier support 500 concurrent connections. Default value
+    // is 100.
+    client_options.max_pool_size = Some(150);
 
     let connection = mongodb::Client::with_options(client_options)?.database(db_name);
 

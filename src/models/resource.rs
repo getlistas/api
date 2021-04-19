@@ -15,7 +15,7 @@ use crate::lib::serde::serialize_object_id_as_hex_string;
 use crate::lib::{date, util};
 use crate::models::Models;
 
-#[derive(Debug, Model, Validate, Serialize, Deserialize)]
+#[derive(Debug, Clone, Model, Validate, Serialize, Deserialize)]
 pub struct Resource {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
   pub id: Option<ObjectId>,
