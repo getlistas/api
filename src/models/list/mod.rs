@@ -302,6 +302,7 @@ pub struct PopulatedListWithResourceMetadata {
 pub struct PrivateList {
   #[serde(alias = "_id", serialize_with = "serialize_object_id_as_hex_string")]
   pub id: ObjectId,
+  #[serde(alias = "_id", serialize_with = "serialize_object_id_as_hex_string")]
   pub user: ObjectId,
   pub title: String,
   pub slug: String,
