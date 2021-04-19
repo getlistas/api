@@ -93,13 +93,15 @@ async fn find_list_by_slug(
 
   let list = ctx.models.find_one::<List>(query, None).await?;
 
-  let list: PrivateList = match list {
-    Some(list) => list.into(),
+  let list = match list {
+    Some(list) => list,
     None => {
       debug!("List not found, returning 404 status code");
       return Ok(HttpResponse::NotFound().finish());
     }
   };
+
+  let list = list.to_schema(&ctx.models).await?;
 
   debug!("Returning list to the user");
   let res = HttpResponse::Ok().json(list);
