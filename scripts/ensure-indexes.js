@@ -29,6 +29,7 @@ resource.index({ user: 1, list: 1 })
 // Integration 
 integration.index({ user: 1 })
 integration.index({ user: 1, list: 1 })
+integration.index({ kind: 1 })
 
 
 async function runScript() {

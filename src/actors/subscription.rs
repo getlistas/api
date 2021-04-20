@@ -63,7 +63,7 @@ async fn send(models: Models, resource_id: ObjectId) -> Result<(), Error> {
 
   let integrations = models
     .find::<Integration>(
-      doc! { "kind": "listas-subscription", "list": &list_id },
+      doc! { "kind": "listas-subscription", "listas_subscription.list": &list_id },
       None,
     )
     .await?;
