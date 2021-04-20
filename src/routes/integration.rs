@@ -27,8 +27,8 @@ struct RSSPayload {
 
 #[derive(Deserialize)]
 struct SubscriptionPayload {
-  from: String,
-  to: String,
+  subscribe_from: String,
+  subscribe_to: String,
 }
 #[derive(Deserialize)]
 struct Query {
@@ -175,8 +175,8 @@ async fn create_subscription_integration(
   user_id: UserID,
 ) -> Response {
   let user_id = user_id.0;
-  let follower_list_id = to_object_id(body.from.clone())?;
-  let following_list_id = to_object_id(body.to.clone())?;
+  let follower_list_id = to_object_id(body.subscribe_from.clone())?;
+  let following_list_id = to_object_id(body.subscribe_to.clone())?;
 
   let follower_list = ctx
     .models
