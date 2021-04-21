@@ -211,9 +211,10 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
 
   debug!("Creating forked resources");
   let forked_list_id = forked_list.id.clone().unwrap();
+  let models = ctx.models.clone();
   let forked_resources = resources.into_iter().map(move |resource| {
-    let conn = ctx.database.conn.clone();
-    let mut forked_resource = Resource {
+    let models = models.clone();
+    let forked_resource = Resource {
       id: None,
       user: user_id.clone(),
       list: forked_list_id.clone(),
@@ -229,10 +230,8 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     };
 
     async move {
-      forked_resource
-        .save(&conn, None)
-        .await
-        .map_err(Error::WitherError)
+      models.create::<Resource>(forked_resource).await?;
+      Ok::<(), Error>(())
     }
   });
 
@@ -244,7 +243,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     .into_iter()
     .collect::<Result<(), Error>>()?;
 
-  let forked_list: PrivateList = forked_list.into();
+  let forked_list = forked_list.to_schema(&ctx.models).await?;
 
   debug!("Returning forked list");
   let res = HttpResponse::Ok().json(forked_list);
