@@ -183,19 +183,30 @@ async fn create_subscription_integration(
     .find_one::<List>(doc! { "_id": &follower_list_id, "user": &user_id }, None)
     .await?;
 
-  if follower_list.is_none() {
-    debug!("Follower List not found, returning 404 status code");
-    return Ok(HttpResponse::NotFound().finish());
-  }
+  let follower_list = match follower_list {
+    Some(list) => list,
+    None => {
+      debug!("Follower List not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
 
   let following_list = ctx
     .models
     .find_one::<List>(doc! { "_id": &following_list_id, "is_public": true }, None)
     .await?;
 
-  if following_list.is_none() {
-    debug!("Following List not found or private, returning 404 status code");
-    return Ok(HttpResponse::NotFound().finish());
+  let following_list = match following_list {
+    Some(list) => list,
+    None => {
+      debug!("Following List not found or private, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
+  if follower_list.user == following_list.user {
+    debug!("User can not subscribe to its own list");
+    return Ok(HttpResponse::BadRequest().finish());
   }
 
   let now = date::now();
