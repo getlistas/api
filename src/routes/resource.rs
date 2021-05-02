@@ -8,14 +8,16 @@ use wither::bson::{doc, Bson};
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::mongodb::options::FindOptions;
-use wither::Model;
+use wither::Model as WitherModelTrait;
 
 use crate::actors::subscription;
 use crate::lib::id::ID;
 use crate::lib::util::to_object_id;
+use crate::models::resource::PrivateResource;
 use crate::models::resource::Resource;
 use crate::models::resource::ResourceUpdate;
 use crate::models::user::UserID;
+use crate::models::Model as ModelTrait;
 use crate::Context;
 use crate::{auth, lib::date};
 use crate::{errors::Error, lib::util};
@@ -82,9 +84,11 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
 async fn get_resource_by_id(ctx: CTX, id: ID, user_id: UserID) -> Response {
   let resource_id = id.0;
   let user_id = user_id.0;
+
   let resource = ctx
     .models
-    .find_one::<Resource>(doc! { "_id": &resource_id, "user": &user_id }, None)
+    .resource
+    .find_one(doc! { "_id": &resource_id, "user": &user_id }, None)
     .await?;
 
   let resource = match resource {
@@ -127,12 +131,12 @@ async fn query_resources(ctx: CTX, user_id: UserID, qs: web::Query<Query>) -> Re
     query.insert("completed_at", doc! { key: Bson::Null });
   }
 
-  let resources = ctx.models.find::<Resource>(query, Some(options)).await?;
+  let resources = ctx.models.resource.find(query, Some(options)).await?;
 
   let resources = resources
-    .iter()
-    .map(|resource| resource.to_json())
-    .collect::<Vec<serde_json::Value>>();
+    .into_iter()
+    .map(Into::into)
+    .collect::<Vec<PrivateResource>>();
 
   debug!("Returning resources");
   let res = HttpResponse::Ok().json(resources);
@@ -149,7 +153,30 @@ async fn create_resource(ctx: CTX, body: ResourceCreateBody, user_id: UserID) ->
     .map(util::sanitize_tags)
     .unwrap_or_default();
 
-  let last_resource = Resource::find_last(&ctx.database.conn, &user_id, &list_id).await?;
+  let list = ctx
+    .models
+    .list
+    .find_one(doc! { "_id": &list_id,"user": &user_id }, None)
+    .await?;
+
+  let list = match list {
+    Some(list) => list,
+    None => {
+      debug!("Failed creating Resource, asociated List not found");
+      return Ok(HttpResponse::BadRequest().finish());
+    }
+  };
+
+  if list.user != user_id {
+    debug!("Failed creating Resource, Can not create resource in a not owned List");
+    return Ok(HttpResponse::BadRequest().finish());
+  }
+
+  let last_resource = ctx
+    .models
+    .list
+    .get_last_completed_resource(&list_id)
+    .await?;
 
   let position = last_resource
     .map(|resource| resource.position + 1)
@@ -178,7 +205,7 @@ async fn create_resource(ctx: CTX, body: ResourceCreateBody, user_id: UserID) ->
     }
   };
 
-  let resource = ctx.models.create(resource).await?;
+  let resource = ctx.models.resource.create(resource).await?;
   let resource_id = resource.id.clone().unwrap();
 
   ctx
@@ -188,7 +215,8 @@ async fn create_resource(ctx: CTX, body: ResourceCreateBody, user_id: UserID) ->
     .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
 
   debug!("Returning created resource");
-  let res = HttpResponse::Created().json(resource.to_json());
+  let resource: PrivateResource = resource.into();
+  let res = HttpResponse::Created().json(resource);
   Ok(res)
 }
 
@@ -212,7 +240,8 @@ async fn update_resource(
 
   let resource = ctx
     .models
-    .find_one_and_update::<Resource>(
+    .resource
+    .find_one_and_update(
       doc! { "_id": &resource_id, "user": &user_id },
       update,
       Some(options),
@@ -233,25 +262,23 @@ async fn update_resource(
 }
 
 async fn remove_resource(ctx: CTX, id: ID, user_id: UserID) -> Response {
-  let resource = Resource::find_one_and_delete(
-    &ctx.database.conn,
-    doc! {
-        "_id": id.0,
-        "user": user_id.0
-    },
-    None,
-  )
-  .await
-  .map_err(Error::WitherError)?;
+  let resource_id = id.0;
+  let user_id = user_id.0;
 
-  let res = match resource {
-    Some(_) => {
-      debug!("Resource removed, returning 204 status code");
-      HttpResponse::NoContent().finish()
-    }
-    None => {
+  let result = ctx
+    .models
+    .resource
+    .delete_one(doc! { "_id": resource_id, "user": user_id })
+    .await?;
+
+  let res = match result.deleted_count {
+    0 => {
       debug!("Resource not found, returning 404 status code");
       HttpResponse::NotFound().finish()
+    }
+    _ => {
+      debug!("Resource removed, returning 204 status code");
+      HttpResponse::NoContent().finish()
     }
   };
 
@@ -259,16 +286,14 @@ async fn remove_resource(ctx: CTX, id: ID, user_id: UserID) -> Response {
 }
 
 async fn complete_resource(ctx: CTX, id: ID, user_id: UserID) -> Response {
-  let resource = Resource::find_one(
-    &ctx.database.conn,
-    doc! {
-        "_id": id.0,
-        "user": user_id.0
-    },
-    None,
-  )
-  .await
-  .map_err(Error::WitherError)?;
+  let resource_id = id.0;
+  let user_id = user_id.0;
+
+  let resource = ctx
+    .models
+    .resource
+    .find_one(doc! { "_id": resource_id, "user": user_id }, None)
+    .await?;
 
   let mut resource = match resource {
     Some(resource) => resource,
@@ -302,7 +327,8 @@ async fn update_position(ctx: CTX, id: ID, user_id: UserID, body: PositionUpdate
 
   let resource = ctx
     .models
-    .find_one::<Resource>(
+    .resource
+    .find_one(
       doc! { "_id": &resource_id, "user": &user_id, "list": &list_id },
       None,
     )
@@ -324,7 +350,7 @@ async fn update_position(ctx: CTX, id: ID, user_id: UserID, body: PositionUpdate
           "user": &user_id,
           "list": &list_id,
       };
-      let position = match Resource::get_position(&ctx.database.conn, query).await? {
+      let position = match ctx.models.resource.get_position(query).await? {
         Some(position) => position,
         None => {
           debug!("Resource not found, returning 404 status code");
@@ -337,7 +363,9 @@ async fn update_position(ctx: CTX, id: ID, user_id: UserID, body: PositionUpdate
     None => 0,
   };
 
-  Resource::collection(&ctx.database.conn)
+  ctx
+    .models
+    .resource
     .update_many(
       doc! {
           "_id": doc! { "$ne": &resource_id },
@@ -350,8 +378,7 @@ async fn update_position(ctx: CTX, id: ID, user_id: UserID, body: PositionUpdate
       },
       None,
     )
-    .await
-    .map_err(Error::MongoError)?;
+    .await?;
 
   // TODO: Use an atomic update
   resource.position = position;

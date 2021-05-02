@@ -5,9 +5,8 @@ use wither::bson::oid::ObjectId;
 
 use crate::errors::Error;
 use crate::lib::date;
-use crate::models::integration::Integration;
-use crate::models::list::List;
 use crate::models::resource::Resource;
+use crate::models::Model as ModelTrait;
 use crate::models::Models;
 
 #[derive(Clone)]
@@ -47,7 +46,8 @@ pub struct Message {
 
 async fn send(models: Models, resource_id: ObjectId) -> Result<(), Error> {
   let resource = models
-    .find_one::<Resource>(doc! { "_id": &resource_id }, None)
+    .resource
+    .find_one(doc! { "_id": &resource_id }, None)
     .await
     .unwrap();
 
@@ -62,7 +62,8 @@ async fn send(models: Models, resource_id: ObjectId) -> Result<(), Error> {
   let list_id = resource.list.clone();
 
   let integrations = models
-    .find::<Integration>(
+    .integration
+    .find(
       doc! { "kind": "listas-subscription", "listas_subscription.list": &list_id },
       None,
     )
@@ -77,9 +78,13 @@ async fn send(models: Models, resource_id: ObjectId) -> Result<(), Error> {
     let resource = resource.clone();
     let models = models.clone();
     async move {
-      let position = List::get_next_resource_position(&models, &integration.list).await?;
+      let position = models
+        .list
+        .get_next_resource_position(&integration.list)
+        .await?;
       models
-        .create::<Resource>(Resource {
+        .resource
+        .create(Resource {
           id: None,
           list: integration.list.clone(),
           user: integration.user.clone(),

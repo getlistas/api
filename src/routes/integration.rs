@@ -4,7 +4,6 @@ use futures::stream::StreamExt;
 use serde::Deserialize;
 use std::str::FromStr;
 use wither::bson::doc;
-use wither::Model;
 
 use crate::auth;
 use crate::errors::Error;
@@ -14,9 +13,9 @@ use crate::lib::util::parse_url;
 use crate::lib::util::to_object_id;
 use crate::models::integration;
 use crate::models::integration::rss::RSS;
-use crate::models::integration::Integration;
-use crate::models::list::List;
-use crate::models::{resource::Resource, user::UserID};
+use crate::models::integration::PrivateIntegration;
+use crate::models::user::UserID;
+use crate::models::Model as ModelTrait;
 use crate::Context;
 
 #[derive(Deserialize)]
@@ -83,11 +82,11 @@ async fn query_integrations(ctx: CTX, user: UserID, qs: web::Query<Query>) -> Re
     query.insert("kind", kind);
   }
 
-  let integrations = ctx.models.find::<Integration>(query, None).await?;
+  let integrations = ctx.models.integration.find(query, None).await?;
   let integrations = integrations
-    .iter()
-    .map(|integrations| integrations.to_response_schema())
-    .collect::<Vec<serde_json::Value>>();
+    .into_iter()
+    .map(Into::into)
+    .collect::<Vec<PrivateIntegration>>();
 
   debug!("Returning integrations");
   let res = HttpResponse::Ok().json(integrations);
@@ -101,7 +100,8 @@ async fn create_rss_integration(ctx: CTX, body: RSSCreateBody, user_id: UserID) 
 
   let list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id }, None)
+    .list
+    .find_one(doc! { "_id": &list_id, "user": &user_id }, None)
     .await?;
 
   if list.is_none() {
@@ -118,6 +118,7 @@ async fn create_rss_integration(ctx: CTX, body: RSSCreateBody, user_id: UserID) 
   let subscription = ctx.rss.subscribe(&url).await?;
   let integration = ctx
     .models
+    .integration
     .create(integration::Integration {
       id: None,
       user: user_id.clone(),
@@ -136,24 +137,29 @@ async fn create_rss_integration(ctx: CTX, body: RSSCreateBody, user_id: UserID) 
     })
     .await?;
 
-  let mut resources = ctx
+  let resources = ctx
     .rss
     .build_resources_from_feed(&url, &user_id, &list_id)
     .await?;
 
-  let last_resource = Resource::find_last(&ctx.database.conn, &user_id, &list_id).await?;
+  let last_resource = ctx
+    .models
+    .list
+    .get_last_completed_resource(&list_id)
+    .await?;
   let position = last_resource
     .map(|resource| resource.position + 1)
     .unwrap_or(0);
 
   let resources = resources
-    .iter_mut()
+    .into_iter()
     .enumerate()
-    .map(move |(index, resource)| {
-      let conn = ctx.database.conn.clone();
+    .map(|(index, mut resource)| {
       resource.position = position + (index as i32);
-
-      async move { resource.save(&conn, None).await.map_err(Error::WitherError) }
+      async {
+        ctx.models.resource.create(resource).await?;
+        Ok(())
+      }
     });
 
   debug!("Creating resources from RSS feed");
@@ -165,7 +171,8 @@ async fn create_rss_integration(ctx: CTX, body: RSSCreateBody, user_id: UserID) 
     .collect::<Result<(), Error>>()?;
 
   debug!("Returning integration and 200 status code");
-  let res = HttpResponse::Ok().json(integration.to_response_schema());
+  let integration: PrivateIntegration = integration.into();
+  let res = HttpResponse::Ok().json(integration);
   Ok(res)
 }
 
@@ -180,7 +187,8 @@ async fn create_subscription_integration(
 
   let follower_list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &follower_list_id, "user": &user_id }, None)
+    .list
+    .find_one(doc! { "_id": &follower_list_id, "user": &user_id }, None)
     .await?;
 
   let follower_list = match follower_list {
@@ -193,7 +201,8 @@ async fn create_subscription_integration(
 
   let following_list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &following_list_id, "is_public": true }, None)
+    .list
+    .find_one(doc! { "_id": &following_list_id, "is_public": true }, None)
     .await?;
 
   let following_list = match following_list {
@@ -212,6 +221,7 @@ async fn create_subscription_integration(
   let now = date::now();
   let integration = ctx
     .models
+    .integration
     .create(integration::Integration {
       id: None,
       user: user_id.clone(),
@@ -227,7 +237,8 @@ async fn create_subscription_integration(
     .await?;
 
   debug!("Returning integration and 200 status code");
-  let res = HttpResponse::Ok().json(integration.to_response_schema());
+  let integration: PrivateIntegration = integration.into();
+  let res = HttpResponse::Ok().json(integration);
   Ok(res)
 }
 
@@ -237,7 +248,8 @@ async fn remove_integration(ctx: CTX, id: ID, user_id: UserID) -> Response {
 
   let integration = ctx
     .models
-    .find_one::<Integration>(doc! { "_id": &integration_id, "user": &user_id }, None)
+    .integration
+    .find_one(doc! { "_id": &integration_id, "user": &user_id }, None)
     .await?;
 
   let integration = match integration {
@@ -249,7 +261,11 @@ async fn remove_integration(ctx: CTX, id: ID, user_id: UserID) -> Response {
   };
 
   debug!("Removing integration");
-  integration.remove(&ctx).await?;
+  ctx
+    .models
+    .integration
+    .remove(integration.id.as_ref().unwrap())
+    .await?;
 
   debug!("Integration removed, returning 204 status code");
   let res = HttpResponse::NoContent().finish();

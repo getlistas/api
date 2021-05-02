@@ -5,17 +5,17 @@ use serde_json::json;
 use validator::Validate;
 use wither::bson::doc;
 use wither::bson::Bson;
-use wither::Model;
+use wither::Model as WitherModelTrait;
 
 use crate::auth;
 use crate::lib::create_demo_data_for_user;
 use crate::lib::date;
 use crate::lib::token;
-use crate::models::resource::Resource;
 use crate::models::user;
 use crate::models::user::PrivateUser;
 use crate::models::user::User;
 use crate::models::user::UserID;
+use crate::models::Model as ModelTrait;
 use crate::Context;
 use crate::{emails, lib::google};
 use crate::{errors::Error, lib::util};
@@ -107,7 +107,7 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
     }
   };
 
-  let user = ctx.models.create(user).await?;
+  let user = ctx.models.user.create(user).await?;
 
   debug!("Sending confirm email to the user {}", &user.email);
   let send_from = ctx.settings.mailer.from.as_str();
@@ -128,7 +128,8 @@ async fn get_session(ctx: Ctx, user: UserID) -> Response {
   let user_id = user.0;
   let user = ctx
     .models
-    .find_one::<User>(doc! { "_id": user_id }, None)
+    .user
+    .find_one(doc! { "_id": user_id }, None)
     .await?;
 
   let user: PrivateUser = match user {
@@ -169,7 +170,7 @@ async fn get_metrics(ctx: Ctx, user: UserID) -> Response {
     doc! { "$sort": { "_id": 1 } },
   ];
 
-  let metrics = ctx.models.aggregate::<Resource, Metric>(pipeline).await?;
+  let metrics = ctx.models.resource.aggregate::<Metric>(pipeline).await?;
 
   debug!("Returning user metrics");
   let res = HttpResponse::Ok().json(metrics);
@@ -281,7 +282,8 @@ async fn create_token_from_google(
       let update = doc! { "$set": { "avatar": avatar } };
       ctx
         .models
-        .find_one_and_update::<User>(query, update, None)
+        .user
+        .find_one_and_update(query, update, None)
         .await?;
 
       user
@@ -325,7 +327,7 @@ async fn create_token_from_google(
         ctx.mailer.send(confirm_email).await?;
       }
 
-      let user = ctx.models.create(user).await?;
+      let user = ctx.models.user.create(user).await?;
 
       user
     }
@@ -423,7 +425,8 @@ async fn find_user_by_slug(ctx: web::Data<Context>, slug: web::Path<String>) -> 
   let slug = slug.clone();
   let user = ctx
     .models
-    .find_one::<User>(doc! { "slug": &slug }, None)
+    .user
+    .find_one(doc! { "slug": &slug }, None)
     .await?;
 
   let user: user::PublicUser = match user {

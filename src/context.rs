@@ -11,6 +11,6 @@ pub struct Context {
   pub mailer: Mailer,
   pub settings: Settings,
   pub rss: RSS,
-  pub models: Models,
   pub actors: Actors,
+  pub models: Models,
 }

@@ -1720,6 +1720,7 @@ dependencies = [
  "actix-files",
  "actix-web",
  "actix-web-httpauth",
+ "async-trait",
  "bcrypt",
  "cargo-husky",
  "chrono",

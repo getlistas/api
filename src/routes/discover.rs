@@ -8,7 +8,7 @@ use crate::lib::serde::serialize_bson_datetime_as_iso_string;
 use crate::lib::serde::serialize_object_id_as_hex_string;
 use crate::lib::util::parse_query_string;
 use crate::models::list;
-use crate::models::list::List;
+use crate::models::Model as ModelTrait;
 use crate::Context;
 
 #[derive(Deserialize)]
@@ -59,7 +59,7 @@ async fn discover_lists(
   }
 
   let pipeline = list::queries::create_discover_query(query, skip, limit);
-  let res = ctx.models.aggregate::<List, ListResponse>(pipeline).await?;
+  let res = ctx.models.list.aggregate::<ListResponse>(pipeline).await?;
 
   debug!("Returning lists to the client");
   let res = HttpResponse::Ok().json(res);
