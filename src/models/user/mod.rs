@@ -1,3 +1,5 @@
+pub mod model;
+
 use actix_web::web::block as to_future;
 use inflector::cases::snakecase::to_snake_case;
 use serde::{Deserialize, Serialize};

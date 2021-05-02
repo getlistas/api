@@ -7,7 +7,7 @@ use wither::bson;
 use wither::bson::doc;
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
-use wither::Model;
+use wither::Model as WitherModelTrait;
 
 use crate::auth;
 use crate::errors::Error;
@@ -17,9 +17,9 @@ use crate::lib::util;
 use crate::models::list;
 use crate::models::list::List;
 use crate::models::list::ListUpdate;
-use crate::models::list::PrivateList;
 use crate::models::resource::Resource;
 use crate::models::user::UserID;
+use crate::models::Model as ModelTrait;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
@@ -77,7 +77,8 @@ async fn find_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respo
 
   let list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id }, None)
+    .list
+    .find_one(doc! { "_id": &list_id, "user": &user_id }, None)
     .await?;
 
   let list = match list {
@@ -89,16 +90,19 @@ async fn find_list_by_id(ctx: web::Data<Context>, id: ID, user: UserID) -> Respo
   };
 
   debug!("Returning list");
-  let list = list.to_schema(&ctx.models).await?;
+  let list = ctx.models.list.to_private_schema(&list).await?;
   let res = HttpResponse::Ok().json(list);
   Ok(res)
 }
 
 async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
-  let user_id = &user.0;
+  let user_id = user.0;
 
-  let models = &ctx.models;
-  let lists = List::find_populated(models, user_id).await?;
+  let lists = ctx
+    .models
+    .list
+    .get_private_lists(doc! { "user": &user_id })
+    .await?;
 
   debug!("Returning lists");
   let res = HttpResponse::Ok().json(lists);
@@ -123,8 +127,8 @@ async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) ->
     archived_at: None,
   };
 
-  let list = ctx.models.create(list).await?;
-  let list: PrivateList = list.into();
+  let list = ctx.models.list.create(list).await?;
+  let list = ctx.models.list.to_private_schema(&list).await?;
 
   debug!("Returning created list");
   let res = HttpResponse::Created().json(list);
@@ -144,16 +148,19 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
 
   let list = ctx
     .models
-    .find_one_and_update::<List>(doc! { "_id": list_id }, update, Some(update_options))
+    .list
+    .find_one_and_update(doc! { "_id": list_id }, update, Some(update_options))
     .await?;
 
-  let list: PrivateList = match list {
-    Some(list) => list.into(),
+  let list = match list {
+    Some(list) => list,
     None => {
       debug!("List not found, returning 404 status code");
       return Ok(HttpResponse::NotFound().finish());
     }
   };
+
+  let list = ctx.models.list.to_private_schema(&list).await?;
 
   debug!("Returning updated list");
   let res = HttpResponse::Ok().json(list);
@@ -166,7 +173,8 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
 
   let list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &list_id, "is_public": true }, None)
+    .list
+    .find_one(doc! { "_id": &list_id, "is_public": true }, None)
     .await?;
 
   let list = match list {
@@ -202,11 +210,12 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     }),
   };
 
-  let forked_list = ctx.models.create(forked_list).await?;
+  let forked_list = ctx.models.list.create(forked_list).await?;
 
   let resources = ctx
     .models
-    .find::<Resource>(doc! { "list": list.id.clone().unwrap() }, None)
+    .resource
+    .find(doc! { "list": list.id.clone().unwrap() }, None)
     .await?;
 
   debug!("Creating forked resources");
@@ -230,7 +239,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     };
 
     async move {
-      models.create::<Resource>(forked_resource).await?;
+      models.resource.create(forked_resource).await?;
       Ok::<(), Error>(())
     }
   });
@@ -243,7 +252,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     .into_iter()
     .collect::<Result<(), Error>>()?;
 
-  let forked_list = forked_list.to_schema(&ctx.models).await?;
+  let forked_list = ctx.models.list.to_private_schema(&forked_list).await?;
 
   debug!("Returning forked list");
   let res = HttpResponse::Ok().json(forked_list);
@@ -256,7 +265,8 @@ async fn follow_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
 
   let parent_list = ctx
     .models
-    .find_one::<List>(doc! { "_id": parent_list_id, "is_public": true }, None)
+    .list
+    .find_one(doc! { "_id": parent_list_id, "is_public": true }, None)
     .await?;
 
   let parent_list = match parent_list {
@@ -289,11 +299,12 @@ async fn follow_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
     fork: None,
   };
 
-  let list = ctx.models.create(list).await?;
+  let list = ctx.models.list.create(list).await?;
 
   let parent_list_resources = ctx
     .models
-    .find::<Resource>(doc! { "list": parent_list_id }, None)
+    .resource
+    .find(doc! { "list": parent_list_id }, None)
     .await?;
 
   debug!("Creating resources from parent list");
@@ -317,6 +328,7 @@ async fn follow_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
         completed_at: None,
       };
 
+      // TODO: Use model.create method
       async move { resource.save(&conn, None).await.map_err(Error::WitherError) }
     });
 
@@ -333,25 +345,25 @@ async fn follow_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
   Ok(res)
 }
 
+// TODO: Update route to use ctx.models.list.delete_one instead of first finding
+// the list.
 async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
   let user_id = user.0;
   let list_id = id.0;
 
   let list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id }, None)
+    .list
+    .find_one(doc! { "_id": &list_id, "user": &user_id }, None)
     .await?;
 
-  let list = match list {
-    Some(list) => list,
-    None => {
-      debug!("List not found, returning 404 status code");
-      return Ok(HttpResponse::NotFound().finish());
-    }
-  };
+  if list.is_none() {
+    debug!("List not found, returning 404 status code");
+    return Ok(HttpResponse::NotFound().finish());
+  }
 
   debug!("Removing list");
-  list.remove(&ctx).await?;
+  ctx.models.list.remove(&list_id).await?;
 
   debug!("List removed, returning 204 status code");
   let res = HttpResponse::NoContent().finish();
@@ -365,7 +377,8 @@ async fn archive_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response
 
   let list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id }, None)
+    .list
+    .find_one(doc! { "_id": &list_id, "user": &user_id }, None)
     .await?;
 
   let list = match list {
@@ -383,10 +396,8 @@ async fn archive_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response
 
   let completed_resources_count = ctx
     .models
-    .count::<Resource>(doc! {
-      "list": &list_id,
-      "completed_at": { "$exists": true }
-    })
+    .resource
+    .count(doc! { "list": &list_id, "completed_at": { "$exists": true } })
     .await?;
 
   if completed_resources_count == 0 {
@@ -395,7 +406,7 @@ async fn archive_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response
   }
 
   debug!("Archiving list");
-  list.archive(&ctx).await?;
+  ctx.models.list.archive(&list_id).await?;
 
   debug!("List archived, returning 204 status code");
   let res = HttpResponse::NoContent().finish();

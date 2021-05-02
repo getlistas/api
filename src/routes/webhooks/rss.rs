@@ -1,13 +1,12 @@
 use actix_web::{web, HttpResponse};
 use futures::StreamExt;
 use wither::bson::doc;
-use wither::Model;
+use wither::Model as WitherModelTrait;
 
 use crate::errors::Error;
 use crate::integrations::rss;
-use crate::models::integration::Integration;
-use crate::models::list::List;
 use crate::models::resource::Resource;
+use crate::models::Model as ModelTrait;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
@@ -28,7 +27,8 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
   let subscription_id = body.subscription_id.clone();
   let integration = ctx
     .models
-    .find_one::<Integration>(doc! { "rss.subscription_id": &subscription_id }, None)
+    .integration
+    .find_one(doc! { "rss.subscription_id": &subscription_id }, None)
     .await?;
 
   let integration = match integration {
@@ -45,14 +45,16 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
 
   let list = ctx
     .models
-    .find_one::<List>(doc! { "_id": &list_id, "user": &user_id }, None)
+    .list
+    .find_one(doc! { "_id": &list_id, "user": &user_id }, None)
     .await?;
 
   if list.is_none() {
     error!("List not found, removing integration, unsubscribing and returning 404 status code");
     ctx
       .models
-      .delete_one::<Integration>(doc! { "_id": integration.id.unwrap() })
+      .integration
+      .delete_one(doc! { "_id": integration.id.unwrap() })
       .await?;
     ctx.rss.unsuscribe(subscription_id.as_str()).await?;
     return Ok(HttpResponse::Ok().finish());
@@ -70,10 +72,7 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
     .into_iter()
     .collect::<Result<Vec<Resource>, Error>>()?;
 
-  let last_resource = Resource::find_last(&ctx.database.conn, &user_id, &list_id).await?;
-  let position = last_resource
-    .map(|resource| resource.position + 1)
-    .unwrap_or(0);
+  let position = ctx.models.list.get_next_resource_position(&list_id).await?;
 
   let resources = resources
     .iter_mut()
@@ -82,6 +81,7 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
       let conn = ctx.database.conn.clone();
       resource.position = position + (index as i32);
 
+      // TODO: Use model.create method
       async move { resource.save(&conn, None).await.map_err(Error::WitherError) }
     });
 

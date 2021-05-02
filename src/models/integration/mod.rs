@@ -1,22 +1,18 @@
+pub mod model;
 pub mod rss;
 pub mod subscription;
 
-use actix_web::web;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use serde_json::Value as JSON;
 use strum::EnumString;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
 
-use crate::errors::Error;
-use crate::lib::date;
+use crate::lib::serde::serialize_bson_datetime_as_iso_string;
+use crate::lib::serde::serialize_object_id_as_hex_string;
 use crate::models::integration::rss::RSS;
 use crate::models::integration::subscription::ListasSubscription;
-use crate::Context;
-
-type CTX = web::Data<Context>;
+use crate::models::integration::subscription::PrivateListasSubscription;
 
 #[derive(Debug, Clone, Serialize, Deserialize, EnumString)]
 pub enum Kind {
@@ -42,37 +38,34 @@ pub struct Integration {
   pub listas_subscription: Option<ListasSubscription>,
 }
 
-impl Integration {
-  pub async fn remove(&self, ctx: &CTX) -> Result<(), Error> {
-    match self.kind {
-      Kind::RSS => {
-        ctx
-          .rss
-          .unsuscribe(self.rss.as_ref().unwrap().subscription_id.as_str())
-          .await?;
-      }
-      _ => {}
-    };
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrivateIntegration {
+  #[serde(alias = "_id", serialize_with = "serialize_object_id_as_hex_string")]
+  pub id: ObjectId,
+  #[serde(alias = "_id", serialize_with = "serialize_object_id_as_hex_string")]
+  pub user: ObjectId,
+  #[serde(alias = "_id", serialize_with = "serialize_object_id_as_hex_string")]
+  pub list: ObjectId,
+  pub kind: Kind,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub created_at: DateTime,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub updated_at: DateTime,
+  pub rss: Option<RSS>,
+  pub listas_subscription: Option<PrivateListasSubscription>,
+}
 
-    ctx
-      .models
-      .delete_one::<Integration>(doc! { "_id": self.id.clone().unwrap() })
-      .await?;
-
-    Ok(())
-  }
-
-  pub fn to_response_schema(&self) -> JSON {
-    let this = self.clone();
-    json!({
-        "id": this.id.clone().unwrap().to_hex(),
-        "user": this.user.to_hex(),
-        "list": this.list.to_hex(),
-        "kind": this.kind,
-        "rss": this.rss.map(|rss| rss.to_response_schema()),
-        "listas_subscription": this.listas_subscription.map(|subscription| subscription.to_response_schema()),
-        "created_at": date::to_rfc3339(this.created_at),
-        "updated_at": date::to_rfc3339(this.updated_at),
-    })
+impl From<Integration> for PrivateIntegration {
+  fn from(integration: Integration) -> Self {
+    Self {
+      id: integration.id.clone().unwrap(),
+      user: integration.user.clone(),
+      list: integration.list.clone(),
+      created_at: integration.created_at.clone(),
+      updated_at: integration.updated_at.clone(),
+      kind: integration.kind.clone(),
+      rss: integration.rss.clone(),
+      listas_subscription: integration.listas_subscription.clone().map(Into::into),
+    }
   }
 }

@@ -1,16 +1,24 @@
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use serde_json::Value as JSON;
 use wither::bson::doc;
 use wither::bson::oid::ObjectId;
+
+use crate::lib::serde::serialize_object_id_as_hex_string;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListasSubscription {
   pub list: ObjectId,
 }
 
-impl ListasSubscription {
-  pub fn to_response_schema(&self) -> JSON {
-    json!({ "list": self.list.to_hex() })
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrivateListasSubscription {
+  #[serde(alias = "_id", serialize_with = "serialize_object_id_as_hex_string")]
+  pub list: ObjectId,
+}
+
+impl From<ListasSubscription> for PrivateListasSubscription {
+  fn from(listas_subscription: ListasSubscription) -> Self {
+    Self {
+      list: listas_subscription.list.clone(),
+    }
   }
 }

@@ -4,6 +4,7 @@ use crate::errors::Error;
 use crate::lib::date;
 use crate::models::list::List;
 use crate::models::resource::Resource;
+use crate::models::Model as ModelTrait;
 use crate::models::Models;
 
 pub async fn create(models: &Models, user: ObjectId) -> Result<(), Error> {
@@ -22,6 +23,7 @@ pub async fn create(models: &Models, user: ObjectId) -> Result<(), Error> {
 
   let now = date::now();
   let list = models
+    .list
     .create(List {
       id: None,
       user: user.clone(),
@@ -38,6 +40,7 @@ pub async fn create(models: &Models, user: ObjectId) -> Result<(), Error> {
     .await?;
 
   models
+    .resource
     .create(Resource {
       id: None,
       position: 0,

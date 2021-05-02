@@ -1,19 +1,17 @@
+pub mod model;
+
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_with::skip_serializing_none;
 use validator::Validate;
-use wither::bson::{doc, oid::ObjectId, Bson};
-use wither::bson::{DateTime, Document};
-use wither::mongodb::options::FindOneOptions;
-use wither::mongodb::Database;
+use wither::bson::DateTime;
+use wither::bson::{doc, oid::ObjectId};
 use wither::Model;
 
-use crate::errors::Error;
 use crate::lib::serde::serialize_bson_datetime_as_iso_string;
 use crate::lib::serde::serialize_bson_datetime_option_as_iso_string;
 use crate::lib::serde::serialize_object_id_as_hex_string;
 use crate::lib::{date, util};
-use crate::models::Models;
 
 #[derive(Debug, Clone, Model, Validate, Serialize, Deserialize)]
 pub struct Resource {
@@ -34,64 +32,6 @@ pub struct Resource {
 }
 
 impl Resource {
-  pub async fn find_last(
-    conn: &Database,
-    user_id: &ObjectId,
-    list_id: &ObjectId,
-  ) -> Result<Option<Self>, Error> {
-    let query = doc! { "user": user_id, "list": list_id };
-    let sort = doc! { "position": -1 };
-    let options = FindOneOptions::builder().sort(Some(sort)).build();
-    Self::find_one(conn, query, Some(options))
-      .await
-      .map_err(Error::WitherError)
-  }
-
-  pub async fn find_next(models: &Models, list_id: &ObjectId) -> Result<Option<Self>, Error> {
-    let query = doc! { "list": list_id, "completed_at": Bson::Null };
-    let sort = doc! { "position": 1 };
-    let options = FindOneOptions::builder().sort(sort).build();
-
-    models.find_one::<Resource>(query, Some(options)).await
-  }
-
-  pub async fn find_last_completed(
-    models: &Models,
-    list_id: &ObjectId,
-  ) -> Result<Option<Self>, Error> {
-    let query = doc! {
-        "list": list_id,
-        "completed_at": { "$exists": true, "$ne": Bson::Null }
-    };
-    let sort = doc! { "completed_at": -1 };
-    let options = FindOneOptions::builder().sort(sort).build();
-
-    models.find_one(query, Some(options)).await
-  }
-
-  pub async fn get_position(conn: &Database, query: Document) -> Result<Option<i32>, Error> {
-    let resource = Self::find_one(conn, query, None)
-      .await
-      .map_err(Error::WitherError)?;
-
-    match resource {
-      Some(resource) => Ok(Some(resource.position)),
-      None => Ok(None),
-    }
-  }
-
-  pub async fn find_by_url(
-    conn: &Database,
-    user_id: &ObjectId,
-    url: String,
-  ) -> Result<Option<Self>, Error> {
-    let query = doc! { "user": user_id, "url": url };
-
-    Self::find_one(conn, query, None)
-      .await
-      .map_err(Error::WitherError)
-  }
-
   pub fn to_json(&self) -> serde_json::Value {
     let this = self.clone();
     json!({

@@ -3,9 +3,7 @@ use serde::Deserialize;
 use wither::bson::doc;
 
 use crate::auth::AuthenticationMetadata;
-use crate::models::list::List;
-use crate::models::list::PrivateList;
-use crate::models::user::User;
+use crate::models::Model as ModelTrait;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
@@ -31,7 +29,8 @@ async fn query_lists_by_slug(
 ) -> Response {
   let user = ctx
     .models
-    .find_one::<User>(doc! { "slug": &params.user_slug }, None)
+    .user
+    .find_one(doc! { "slug": &params.user_slug }, None)
     .await?;
 
   let user = match user {
@@ -49,12 +48,9 @@ async fn query_lists_by_slug(
     query.insert("is_public", true);
   }
 
-  let lists = ctx.models.find::<List>(query, None).await?;
-
-  let lists = lists
-    .into_iter()
-    .map(|list| list.into())
-    .collect::<Vec<PrivateList>>();
+  // TODO: Review where we plan to use this endpoint, we might be exposing
+  // too much information from the list.
+  let lists = ctx.models.list.get_private_lists(query).await?;
 
   debug!("Returning list to the user");
   let res = HttpResponse::Ok().json(lists);
@@ -70,7 +66,8 @@ async fn find_list_by_slug(
   let user_slug = &params.user_slug;
   let user = ctx
     .models
-    .find_one::<User>(doc! { "slug": user_slug }, None)
+    .user
+    .find_one(doc! { "slug": user_slug }, None)
     .await?;
 
   let user = match user {
@@ -91,7 +88,7 @@ async fn find_list_by_slug(
     query.insert("is_public", true);
   }
 
-  let list = ctx.models.find_one::<List>(query, None).await?;
+  let list = ctx.models.list.find_one(query, None).await?;
 
   let list = match list {
     Some(list) => list,
@@ -101,7 +98,9 @@ async fn find_list_by_slug(
     }
   };
 
-  let list = list.to_schema(&ctx.models).await?;
+  // TODO: Review where we plan to use this endpoint, we might be exposing
+  // too much information from the list.
+  let list = ctx.models.list.to_private_schema(&list).await?;
 
   debug!("Returning list to the user");
   let res = HttpResponse::Ok().json(list);
