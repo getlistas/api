@@ -100,7 +100,7 @@ async fn create_rss_integration(ctx: CTX, body: RSSCreateBody, user_id: UserID) 
 
   let list = ctx
     .models
-    .integration
+    .list
     .find_one(doc! { "_id": &list_id, "user": &user_id }, None)
     .await?;
 
