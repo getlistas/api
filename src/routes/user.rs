@@ -170,7 +170,7 @@ async fn get_metrics(ctx: Ctx, user: UserID) -> Response {
     doc! { "$sort": { "_id": 1 } },
   ];
 
-  let metrics = ctx.models.user.aggregate::<Metric>(pipeline).await?;
+  let metrics = ctx.models.resource.aggregate::<Metric>(pipeline).await?;
 
   debug!("Returning user metrics");
   let res = HttpResponse::Ok().json(metrics);
