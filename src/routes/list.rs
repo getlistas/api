@@ -345,8 +345,6 @@ async fn follow_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
   Ok(res)
 }
 
-// TODO: Update route to use ctx.models.list.delete_one instead of first finding
-// the list.
 async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
   let user_id = user.0;
   let list_id = id.0;
