@@ -62,17 +62,17 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
       .route(web::get().to(get_session))
       .wrap(auth.clone()),
   );
-  cfg.service(
-    web::resource("/users/me/metrics")
-      .route(web::get().to(get_metrics))
-      .wrap(auth.clone()),
-  );
   cfg.service(web::resource("/users/verification/{token}").route(web::get().to(verify_user_email)));
   cfg.service(web::resource("/users/auth").route(web::post().to(create_token)));
   cfg.service(web::resource("/users/google-auth").route(web::post().to(create_token_from_google)));
   cfg.service(web::resource("/users/reset-password").route(web::post().to(request_password_reset)));
   cfg.service(web::resource("/users/update-password").route(web::post().to(update_password)));
   cfg.service(web::resource("/users/{slug}").route(web::get().to(find_user_by_slug)));
+  cfg.service(
+    web::resource("/users/{slug}/metrics")
+      .route(web::get().to(get_metrics))
+      .wrap(auth.clone()),
+  );
 }
 
 async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -> Response {
@@ -145,12 +145,26 @@ async fn get_session(ctx: Ctx, user: UserID) -> Response {
   Ok(res)
 }
 
-async fn get_metrics(ctx: Ctx, user: UserID) -> Response {
-  let user_id = user.0;
+async fn get_metrics(ctx: Ctx, slug: web::Path<String>) -> Response {
+  let slug = slug.clone();
+  let user = ctx
+    .models
+    .user
+    .find_one(doc! { "slug": &slug }, None)
+    .await?;
+
+  let user = match user {
+    Some(user) => user,
+    None => {
+      debug!("User not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
   let pipeline = vec![
     doc! {
       "$match": {
-        "user": user_id,
+        "user": user.id.unwrap(),
         "completed_at": { "$exists": true, "$ne": Bson::Null }
       }
     },
