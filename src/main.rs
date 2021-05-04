@@ -47,7 +47,7 @@ async fn main() {
 
   let rss = integrations::rss::RSS::new(settings.rss.token.clone());
   let models = models::Models::new(database.clone(), rss.clone());
-  let actors = actors::Actors::new(models.clone());
+  let actors = actors::Actors::new(models.clone(), settings.clone(), mailer.clone());
 
   let context = web::Data::new(Context {
     database: database.clone(),
