@@ -92,12 +92,12 @@ pub fn create_subscription_removed_email(
           h2 { "Subscription to " (removed_list.title) " list removed" }
           p { "Dear " (user.name) "," }
           p {
-              "We are sorry to let you know that we had to remove your subscription from"
-              "the " (removed_list.title) " list. The list owner removed or made the list"
+              "We are sorry to let you know that we had to remove your subscription from "
+              "the " (removed_list.title) " list. The list owner removed or made the list "
               "private."
           }
           p {
-              "To review your current " (list.title) " list integrations, click"
+              "To review your current " (list.title) " list integrations, click "
               a href={(list_url)} { "here" }
           }
       }
@@ -106,7 +106,7 @@ pub fn create_subscription_removed_email(
   EmailBuilder::new()
     .from(from)
     .to(user.email.as_str())
-    .subject("Integration removed")
+    .subject("Subscription integration removed")
     .html(html.into_string())
     .build()
     .map_err(Error::BuildEmail)
