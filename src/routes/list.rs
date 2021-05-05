@@ -9,7 +9,6 @@ use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::Model as WitherModelTrait;
 
-use crate::auth;
 use crate::errors::Error;
 use crate::lib::date;
 use crate::lib::id::ID;
@@ -21,6 +20,7 @@ use crate::models::resource::Resource;
 use crate::models::user::UserID;
 use crate::models::Model as ModelTrait;
 use crate::Context;
+use crate::{actors::subscription, auth};
 
 type Response = actix_web::Result<HttpResponse>;
 type Ctx = web::Data<Context>;
@@ -149,7 +149,7 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
   let list = ctx
     .models
     .list
-    .find_one_and_update(doc! { "_id": list_id }, update, Some(update_options))
+    .find_one_and_update(doc! { "_id": &list_id }, update, Some(update_options))
     .await?;
 
   let list = match list {
@@ -159,6 +159,18 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
       return Ok(HttpResponse::NotFound().finish());
     }
   };
+
+  let visibility_was_updated = body.is_public.unwrap_or(false);
+  if visibility_was_updated {
+    debug!("Removing related list subscription integration");
+    ctx
+      .actors
+      .subscription
+      .try_send(subscription::on_list_removed::ListRemoved {
+        list_id: list_id.clone(),
+      })
+      .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
+  }
 
   let list = ctx.models.list.to_private_schema(&list).await?;
 
@@ -362,6 +374,15 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
 
   debug!("Removing list");
   ctx.models.list.remove(&list_id).await?;
+
+  debug!("Removing related list subscription integration");
+  ctx
+    .actors
+    .subscription
+    .try_send(subscription::on_list_removed::ListRemoved {
+      list_id: list_id.clone(),
+    })
+    .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
 
   debug!("List removed, returning 204 status code");
   let res = HttpResponse::NoContent().finish();
