@@ -111,7 +111,7 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
 
   debug!("Sending confirm email to the user {}", &user.email);
   let send_from = ctx.settings.mailer.from.as_str();
-  let base_url = &ctx.settings.base_url.as_str();
+  let base_url = ctx.settings.base_url.as_str();
   let confirm_email = emails::create_confirm_email(send_from, base_url, &user)?;
   ctx.mailer.send(confirm_email).await?;
 

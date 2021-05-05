@@ -3,6 +3,7 @@ use lettre_email::EmailBuilder;
 use maud::html;
 
 use crate::errors::Error;
+use crate::models::list::List;
 use crate::models::user::User;
 
 pub fn create_confirm_email(from: &str, base_url: &str, user: &User) -> Result<Email, Error> {
@@ -66,6 +67,38 @@ pub fn create_password_reset_email(
     .from(from)
     .to(user.email.as_ref())
     .subject("Reset your Listas password")
+    .html(html.into_string())
+    .build()
+    .map_err(Error::BuildEmail)
+}
+
+pub fn create_subscription_removed_email(
+  from: &str,
+  user: &User,
+  list: &List,
+) -> Result<Email, Error> {
+  let html = html! {
+      head {
+          title { "Subscription removed" }
+          style type="text/css" {
+              "h2, h4 { font-family: Arial, Helvetica, sans-serif; }"
+          }
+      }
+      div {
+          h2 { "Subscription removed" }
+          p { "Dear " (user.name) "," }
+          p {
+            "We are sorry to let you know that we had to remove your " (list.title) " "
+            "List subscription integration because the owner has removed or set "
+            "the List private."
+          }
+      }
+  };
+
+  EmailBuilder::new()
+    .from(from)
+    .to(user.email.as_str())
+    .subject("Integration removed")
     .html(html.into_string())
     .build()
     .map_err(Error::BuildEmail)

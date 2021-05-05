@@ -211,7 +211,7 @@ async fn create_resource(ctx: CTX, body: ResourceCreateBody, user_id: UserID) ->
   ctx
     .actors
     .subscription
-    .try_send(subscription::Message { resource_id })
+    .try_send(subscription::on_resource_created::ResourceCreated { resource_id })
     .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
 
   debug!("Returning created resource");
