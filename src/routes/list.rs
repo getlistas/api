@@ -160,14 +160,15 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
     }
   };
 
-  let visibility_was_updated = body.is_public.unwrap_or(false);
-  if visibility_was_updated {
+  let list_has_become_private = !body.is_public.unwrap_or(true);
+  if list_has_become_private {
     debug!("Removing related list subscription integration");
     ctx
       .actors
       .subscription
       .try_send(subscription::on_list_removed::ListRemoved {
-        list_id: list_id.clone(),
+        id: list_id.clone(),
+        title: list.title.clone(),
       })
       .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
   }
@@ -367,10 +368,13 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
     .find_one(doc! { "_id": &list_id, "user": &user_id }, None)
     .await?;
 
-  if list.is_none() {
-    debug!("List not found, returning 404 status code");
-    return Ok(HttpResponse::NotFound().finish());
-  }
+  let list = match list {
+    Some(list) => list,
+    None => {
+      debug!("List not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
 
   debug!("Removing list");
   ctx.models.list.remove(&list_id).await?;
@@ -380,7 +384,8 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
     .actors
     .subscription
     .try_send(subscription::on_list_removed::ListRemoved {
-      list_id: list_id.clone(),
+      id: list_id.clone(),
+      title: list.title.clone(),
     })
     .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
 

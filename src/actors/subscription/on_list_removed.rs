@@ -23,29 +23,30 @@ impl actix::Handler<ListRemoved> for SubscriptionActor {
     let models = self.models.clone();
     let settings = self.settings.clone();
     let mailer = self.mailer.clone();
-    let task = on_list_removed(settings, models, mailer, msg.list_id);
+    let task = on_list_removed(settings, models, mailer, msg);
     let task = actix::fut::wrap_future::<_, Self>(task);
 
     Box::pin(task)
   }
 }
 
-#[derive(Debug, Message)]
+#[derive(Debug, Message, Clone)]
 #[rtype(result = "Result<(), Error>")]
 pub struct ListRemoved {
-  pub list_id: ObjectId,
+  pub id: ObjectId,
+  pub title: String,
 }
 
 async fn on_list_removed(
   settings: Settings,
   models: Models,
   mailer: Mailer,
-  list_id: ObjectId,
+  removed_list: ListRemoved,
 ) -> Result<(), Error> {
   let integrations = models
     .integration
     .find(
-      doc! { "kind": "listas-subscription", "listas_subscription.list": &list_id },
+      doc! { "kind": "listas-subscription", "listas_subscription.list": &removed_list.id },
       None,
     )
     .await?;
@@ -57,6 +58,7 @@ async fn on_list_removed(
   let list_futures = integrations.iter().map(|integration| {
     let models = models.clone();
     let mailer = mailer.clone();
+    let removed_list = removed_list.clone();
     async move {
       let list = models.list.find_by_id(&integration.list).await?;
       let list = match list {
@@ -84,7 +86,7 @@ async fn on_list_removed(
       models.integration.remove(integration_id).await?;
 
       let subscription_removed_email =
-        emails::create_subscription_removed_email(send_email_from, &user, &list)?;
+        emails::create_subscription_removed_email(send_email_from, &user, &list, &removed_list)?;
 
       mailer.send(subscription_removed_email).await?;
 
