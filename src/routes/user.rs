@@ -68,11 +68,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(web::resource("/users/reset-password").route(web::post().to(request_password_reset)));
   cfg.service(web::resource("/users/update-password").route(web::post().to(update_password)));
   cfg.service(web::resource("/users/{slug}").route(web::get().to(find_user_by_slug)));
-  cfg.service(
-    web::resource("/users/{slug}/metrics")
-      .route(web::get().to(get_metrics))
-      .wrap(auth.clone()),
-  );
+  cfg.service(web::resource("/users/{slug}/metrics").route(web::get().to(get_metrics)));
 }
 
 async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -> Response {
