@@ -11,8 +11,8 @@ use crate::auth;
 use crate::lib::create_demo_data_for_user;
 use crate::lib::date;
 use crate::lib::token;
-use crate::models::user;
 use crate::models::user::PrivateUser;
+use crate::models::user::PublicUser;
 use crate::models::user::User;
 use crate::models::user::UserID;
 use crate::models::Model as ModelTrait;
@@ -21,7 +21,7 @@ use crate::{emails, lib::google};
 use crate::{errors::Error, lib::util};
 
 type Response = actix_web::Result<HttpResponse>;
-type Ctx = web::Data<Context>;
+type CTX = web::Data<Context>;
 
 #[derive(Deserialize)]
 struct UserCreateBody {
@@ -120,7 +120,7 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
   Ok(res)
 }
 
-async fn get_session(ctx: Ctx, user: UserID) -> Response {
+async fn get_session(ctx: CTX, user: UserID) -> Response {
   let user_id = user.0;
   let user = ctx
     .models
@@ -141,7 +141,7 @@ async fn get_session(ctx: Ctx, user: UserID) -> Response {
   Ok(res)
 }
 
-async fn get_metrics(ctx: Ctx, slug: web::Path<String>) -> Response {
+async fn get_metrics(ctx: CTX, slug: web::Path<String>) -> Response {
   let slug = slug.clone();
   let user = ctx
     .models
@@ -439,7 +439,7 @@ async fn find_user_by_slug(ctx: web::Data<Context>, slug: web::Path<String>) -> 
     .find_one(doc! { "slug": &slug }, None)
     .await?;
 
-  let user: user::PublicUser = match user {
+  let user: PublicUser = match user {
     Some(user) => user.into(),
     None => {
       debug!("User not found, returning 404 status code");
