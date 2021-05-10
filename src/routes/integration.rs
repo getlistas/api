@@ -218,6 +218,21 @@ async fn create_subscription_integration(
     return Ok(HttpResponse::BadRequest().finish());
   }
 
+  let is_already_subscribed_to_list = ctx
+    .models
+    .integration
+    .find_one(
+      doc! { "user": &user_id, "listas-subscription.list": &following_list_id },
+      None,
+    )
+    .await?
+    .is_some();
+
+  if is_already_subscribed_to_list {
+    debug!("User can not subscribe twice to the same list");
+    return Ok(HttpResponse::BadRequest().finish());
+  }
+
   let now = date::now();
   let integration = ctx
     .models
