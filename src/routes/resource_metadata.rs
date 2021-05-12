@@ -34,7 +34,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::resource("/resource-metadata")
       .route(web::post().to(get_resource_metadata))
-      .wrap(auth.clone()),
+      .wrap(auth),
   );
 }
 

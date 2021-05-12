@@ -15,7 +15,7 @@ use crate::models::resource;
 use crate::models::resource::Resource;
 use crate::models::user;
 use crate::models::Model as ModelTrait;
-use crate::{database, integrations::rss::RSS};
+use crate::{database, integrations::rss::Rss};
 use crate::{errors::Error, lib::date};
 
 #[derive(Clone)]
@@ -33,10 +33,10 @@ impl models::Model<List> for Model {
 }
 
 impl Model {
-  pub fn new(database: database::Database, rss: RSS) -> Self {
+  pub fn new(database: database::Database, rss: Rss) -> Self {
     let resource = resource::model::Model::new(database.clone());
     let user = user::model::Model::new(database.clone());
-    let integration = integration::model::Model::new(database.clone(), rss.clone());
+    let integration = integration::model::Model::new(database.clone(), rss);
 
     Self {
       database,
@@ -64,9 +64,9 @@ impl Model {
       description: list.description.clone(),
       tags: list.tags.clone(),
       is_public: list.is_public,
-      created_at: list.created_at.clone(),
-      updated_at: list.updated_at.clone(),
-      archived_at: list.archived_at.clone(),
+      created_at: list.created_at,
+      updated_at: list.updated_at,
+      archived_at: list.archived_at,
       fork: list.fork.clone().map(Into::into),
       resource_metadata: ListResourceMetadata {
         count: metadata.count,

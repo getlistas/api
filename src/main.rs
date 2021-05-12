@@ -45,7 +45,7 @@ async fn main() {
     Err(_) => panic!("Failed to setup mailer"),
   };
 
-  let rss = integrations::rss::RSS::new(settings.rss.token.clone());
+  let rss = integrations::rss::Rss::new(settings.rss.token.clone());
   let models = models::Models::new(database.clone(), rss.clone());
   let actors = actors::Actors::new(models.clone(), settings.clone(), mailer.clone());
 
@@ -80,7 +80,7 @@ async fn main() {
       .service(web::scope("/").configure(routes::index::create_router))
   })
   .bind(("0.0.0.0", port))
-  .expect(format!("Failed to bind server to port {}", port).as_str())
+  .unwrap_or_else(|_| panic!("Failed to bind server to port {}", port))
   .run()
   .await
   .expect("Failed to start server");

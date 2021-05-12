@@ -1,6 +1,6 @@
 use actix_web::error::BlockingError;
 use lettre::smtp::authentication::Credentials;
-use lettre::smtp::error::Error as SMTPError;
+use lettre::smtp::error::Error as SmtpError;
 use lettre::{SmtpClient, SmtpTransport, Transport};
 use lettre_email::Email;
 use std::sync::{Arc, Mutex};
@@ -15,7 +15,7 @@ pub enum MailerError {
   LockTransport,
 
   #[error("Failed to send email using SMTP transport {0}")]
-  SMTP(#[from] SMTPError),
+  Smtp(#[from] SmtpError),
 
   #[error("Failed to send email actix_web::web::block operation was cancelled")]
   Canceled,
@@ -49,7 +49,7 @@ impl Mailer {
         .lock()
         .map_err(|_| MailerError::LockTransport)?
         .send(email.into())
-        .map_err(MailerError::SMTP)?;
+        .map_err(MailerError::Smtp)?;
 
       Ok(())
     })

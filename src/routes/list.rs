@@ -67,7 +67,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::resource("/lists/{id}/archive")
       .route(web::post().to(archive_list))
-      .wrap(auth.clone()),
+      .wrap(auth),
   );
 }
 
@@ -111,14 +111,14 @@ async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
 
 async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) -> Response {
   let now = date::now();
-  let tags = body.tags.clone().map(util::sanitize_tags).unwrap_or(vec![]);
+  let tags = body.tags.clone().map(util::sanitize_tags).unwrap_or_default();
   let slug = util::to_slug_case(body.title.clone());
   let list = List {
     id: None,
     user: user.0,
     title: body.title.clone(),
     description: body.description.clone(),
-    is_public: body.is_public.clone(),
+    is_public: body.is_public,
     tags,
     slug,
     fork: None,
@@ -245,7 +245,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
       title: resource.title.clone(),
       description: resource.description.clone(),
       thumbnail: resource.thumbnail.clone(),
-      tags: resource.tags.clone(),
+      tags: resource.tags,
       created_at: now,
       updated_at: now,
       completed_at: None,
@@ -335,7 +335,7 @@ async fn follow_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
         title: parent_resource.title.clone(),
         description: parent_resource.description.clone(),
         thumbnail: parent_resource.thumbnail.clone(),
-        tags: parent_resource.tags.clone(),
+        tags: parent_resource.tags,
         created_at: now,
         updated_at: now,
         completed_at: None,

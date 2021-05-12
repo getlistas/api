@@ -55,7 +55,7 @@ impl ListUpdate {
           .tags
           .clone()
           .map(util::sanitize_tags)
-          .unwrap_or(vec![]),
+          .unwrap_or_default()
       );
     }
 

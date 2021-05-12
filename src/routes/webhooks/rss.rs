@@ -63,7 +63,7 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
   let mut entries = body.new_entries.clone();
   let resources = entries
     .iter_mut()
-    .map(|entry| rss::RSS::create_resource_from_entry(entry, &user_id, &list_id));
+    .map(|entry| rss::Rss::create_resource_from_entry(entry, &user_id, &list_id));
 
   let mut resources = futures::stream::iter(resources)
     .buffered(50)

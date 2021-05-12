@@ -21,7 +21,7 @@ use crate::{emails, lib::google};
 use crate::{errors::Error, lib::util};
 
 type Response = actix_web::Result<HttpResponse>;
-type CTX = web::Data<Context>;
+type Ctx = web::Data<Context>;
 
 #[derive(Deserialize)]
 struct UserCreateBody {
@@ -60,7 +60,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::resource("/users/me")
       .route(web::get().to(get_session))
-      .wrap(auth.clone()),
+      .wrap(auth),
   );
   cfg.service(web::resource("/users/verification/{token}").route(web::get().to(verify_user_email)));
   cfg.service(web::resource("/users/auth").route(web::post().to(create_token)));
@@ -120,7 +120,7 @@ async fn create_user(ctx: web::Data<Context>, body: web::Json<UserCreateBody>) -
   Ok(res)
 }
 
-async fn get_session(ctx: CTX, user: UserID) -> Response {
+async fn get_session(ctx: Ctx, user: UserID) -> Response {
   let user_id = user.0;
   let user = ctx
     .models
@@ -141,7 +141,7 @@ async fn get_session(ctx: CTX, user: UserID) -> Response {
   Ok(res)
 }
 
-async fn get_metrics(ctx: CTX, slug: web::Path<String>) -> Response {
+async fn get_metrics(ctx: Ctx, slug: web::Path<String>) -> Response {
   let slug = slug.clone();
   let user = ctx
     .models

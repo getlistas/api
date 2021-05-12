@@ -6,7 +6,7 @@ use crate::errors::Error;
 // Read more about this implementation
 // https://developers.google.com/identity/sign-in/web/backend-auth
 
-const HOSTED_DOMAINS: [&'static str; 0] = [];
+const HOSTED_DOMAINS: [&str; 0] = [];
 
 // https://github.com/wyyerd/google-signin-rs/blob/master/src/token.rs
 #[derive(Debug, Deserialize)]
@@ -44,12 +44,12 @@ impl GoogleToken {
     }
 
     // Check the token belongs to the Listas application
-    if audiences.len() > 0 && !audiences.contains(&self.aud.as_str()) {
+    if !audiences.is_empty() && !audiences.contains(&self.aud.as_str()) {
       return false;
     }
 
     // Check the token belongs to the hosted domain(s)
-    if HOSTED_DOMAINS.len() > 0 {
+    if !HOSTED_DOMAINS.is_empty() {
       match self.hd {
         Some(ref domain) if HOSTED_DOMAINS.contains(&domain.as_str()) => {}
         _ => return false,

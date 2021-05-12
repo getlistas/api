@@ -20,7 +20,7 @@ impl actix::Handler<ResourceCreated> for SubscriptionActor {
       &msg
     );
     let models = self.models.clone();
-    let task = on_resource_created(models.clone(), msg.resource_id.clone());
+    let task = on_resource_created(models, msg.resource_id);
     let task = actix::fut::wrap_future::<_, Self>(task);
 
     Box::pin(task)

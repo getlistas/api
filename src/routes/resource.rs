@@ -46,7 +46,7 @@ pub struct PositionUpdate {
 }
 
 type Response = actix_web::Result<HttpResponse>;
-type CTX = web::Data<Context>;
+type Ctx = web::Data<Context>;
 type ResourceCreateBody = web::Json<ResourceCreate>;
 type PositionUpdateBody = web::Json<PositionUpdate>;
 
@@ -77,11 +77,11 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
     web::resource("/resources")
       .route(web::get().to(query_resources))
       .route(web::post().to(create_resource))
-      .wrap(auth.clone()),
+      .wrap(auth),
   );
 }
 
-async fn get_resource_by_id(ctx: CTX, id: ID, user_id: UserID) -> Response {
+async fn get_resource_by_id(ctx: Ctx, id: ID, user_id: UserID) -> Response {
   let resource_id = id.0;
   let user_id = user_id.0;
 
@@ -104,7 +104,7 @@ async fn get_resource_by_id(ctx: CTX, id: ID, user_id: UserID) -> Response {
   Ok(res)
 }
 
-async fn query_resources(ctx: CTX, user_id: UserID, qs: web::Query<Query>) -> Response {
+async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Response {
   let sort_option = qs.sort.clone().unwrap_or_else(|| "position_asc".into());
   let mut query = doc! { "user": user_id.0 };
 
@@ -143,7 +143,7 @@ async fn query_resources(ctx: CTX, user_id: UserID, qs: web::Query<Query>) -> Re
   Ok(res)
 }
 
-async fn create_resource(ctx: CTX, body: ResourceCreateBody, user_id: UserID) -> Response {
+async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) -> Response {
   let list_id = to_object_id(body.list.clone())?;
   let user_id = user_id.0;
   let url = util::parse_url(body.url.clone().as_str())?;
@@ -221,7 +221,7 @@ async fn create_resource(ctx: CTX, body: ResourceCreateBody, user_id: UserID) ->
 }
 
 async fn update_resource(
-  ctx: CTX,
+  ctx: Ctx,
   id: ID,
   body: web::Json<ResourceUpdate>,
   user_id: UserID,
@@ -261,7 +261,7 @@ async fn update_resource(
   Ok(res)
 }
 
-async fn remove_resource(ctx: CTX, id: ID, user_id: UserID) -> Response {
+async fn remove_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
   let resource_id = id.0;
   let user_id = user_id.0;
 
@@ -285,7 +285,7 @@ async fn remove_resource(ctx: CTX, id: ID, user_id: UserID) -> Response {
   Ok(res)
 }
 
-async fn complete_resource(ctx: CTX, id: ID, user_id: UserID) -> Response {
+async fn complete_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
   let resource_id = id.0;
   let user_id = user_id.0;
 
@@ -320,7 +320,7 @@ async fn complete_resource(ctx: CTX, id: ID, user_id: UserID) -> Response {
   Ok(res)
 }
 
-async fn update_position(ctx: CTX, id: ID, user_id: UserID, body: PositionUpdateBody) -> Response {
+async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdateBody) -> Response {
   let resource_id = id.0;
   let list_id = to_object_id(body.list.clone())?;
   let user_id = user_id.0;

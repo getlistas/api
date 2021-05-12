@@ -35,7 +35,7 @@ pub enum Error {
   MissingAuthorizationToken {},
 
   #[error("{0}")]
-  JWT(#[from] jsonwebtoken::errors::Error),
+  Jwt(#[from] jsonwebtoken::errors::Error),
 
   #[error("Failed authenticating Google token")]
   GoogleAuthentication {},
@@ -80,7 +80,7 @@ impl Error {
       }
 
       // 401
-      Error::JWT(_) => (StatusCode::UNAUTHORIZED, 4015),
+      Error::Jwt(_) => (StatusCode::UNAUTHORIZED, 4015),
       Error::MissingAuthorizationToken {} => (StatusCode::UNAUTHORIZED, 4016),
       Error::GoogleAuthentication {} => (StatusCode::UNAUTHORIZED, 4017),
 

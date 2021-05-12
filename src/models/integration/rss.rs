@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RSS {
+pub struct Rss {
   pub url: String,
   pub subscription_id: String,
   pub status: String,

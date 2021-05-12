@@ -11,7 +11,7 @@ use crate::models::resource::Resource;
 
 // https://rssapi.net/docs
 #[derive(Clone)]
-pub struct RSS {
+pub struct Rss {
   pub application_key: String,
   pub base_url: String,
   pub client: reqwest::Client,
@@ -67,7 +67,7 @@ pub struct Response<T> {
   result: Option<T>,
 }
 
-impl RSS {
+impl Rss {
   pub fn new(application_key: String) -> Self {
     Self {
       base_url: format!("https://api.rssapi.net/v1/{}", application_key),

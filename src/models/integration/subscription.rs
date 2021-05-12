@@ -18,7 +18,7 @@ pub struct PrivateListasSubscription {
 impl From<ListasSubscription> for PrivateListasSubscription {
   fn from(listas_subscription: ListasSubscription) -> Self {
     Self {
-      list: listas_subscription.list.clone(),
+      list: listas_subscription.list,
     }
   }
 }
