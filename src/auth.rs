@@ -77,7 +77,7 @@ impl actix_web::FromRequest for UserFromToken {
       .get("authorization")
       .and_then(|header| header.to_str().ok())
       .map(|header| header.replace("Bearer ", ""))
-      .ok_or_else(|| Error::MissingAuthorizationToken {});
+      .ok_or(Error::MissingAuthorizationToken {});
 
     let token = match token_result {
       Ok(token) => token,
@@ -86,7 +86,7 @@ impl actix_web::FromRequest for UserFromToken {
 
     let token_payload = token::get_token_payload(token.as_str());
 
-    match token_payload.map_err(Error::JWT) {
+    match token_payload.map_err(Error::Jwt) {
       Ok(payload) => future::ok(payload.claims.into()),
       Err(err) => future::err(err),
     }
@@ -104,7 +104,7 @@ impl actix_web::FromRequest for UserID {
       .get("authorization")
       .and_then(|header| header.to_str().ok())
       .map(|header| header.replace("Bearer ", ""))
-      .ok_or_else(|| Error::MissingAuthorizationToken {});
+      .ok_or(Error::MissingAuthorizationToken {});
 
     let token = match token {
       Ok(token) => token,
@@ -113,7 +113,7 @@ impl actix_web::FromRequest for UserID {
 
     let payload = token::get_token_payload(token.as_str());
 
-    match payload.map_err(Error::JWT) {
+    match payload.map_err(Error::Jwt) {
       Ok(payload) => {
         let claims = payload.claims;
         let user_id = ObjectId::with_string(claims.user.id.as_str()).unwrap();
@@ -167,7 +167,7 @@ impl actix_web::FromRequest for AuthenticationMetadata {
 
     let payload = token::decode_token(token.as_str(), private_key);
 
-    match payload.map_err(Error::JWT) {
+    match payload.map_err(Error::Jwt) {
       Ok(payload) => {
         let claims = payload.claims;
         let user_id = ObjectId::with_string(claims.user.id.as_str()).unwrap();

@@ -3,7 +3,6 @@ use itertools::Itertools;
 use rand::Rng;
 use serde::de::Deserialize;
 use slug::slugify;
-use url;
 use wither::bson::oid::ObjectId;
 
 use crate::errors::Error;
@@ -59,7 +58,7 @@ pub fn sanitize_tags(tags: Vec<String>) -> Vec<String> {
   tags
     .into_iter()
     .map(|tag| tag.to_lowercase().trim().to_owned())
-    .filter(|tag| tag.len() >= 1)
+    .filter(|tag| !tag.is_empty())
     .unique()
     .collect()
 }

@@ -10,7 +10,7 @@ use wither::Model;
 
 use crate::lib::serde::serialize_bson_datetime_as_iso_string;
 use crate::lib::serde::serialize_object_id_as_hex_string;
-use crate::models::integration::rss::RSS;
+use crate::models::integration::rss::Rss;
 use crate::models::integration::subscription::ListasSubscription;
 use crate::models::integration::subscription::PrivateListasSubscription;
 
@@ -18,7 +18,7 @@ use crate::models::integration::subscription::PrivateListasSubscription;
 pub enum Kind {
   #[serde(rename = "rss")]
   #[strum(serialize = "rss")]
-  RSS,
+  Rss,
   #[serde(rename = "listas-subscription")]
   #[strum(serialize = "listas-subscription")]
   ListasSubscription,
@@ -34,7 +34,7 @@ pub struct Integration {
   pub created_at: DateTime,
   pub updated_at: DateTime,
 
-  pub rss: Option<RSS>,
+  pub rss: Option<Rss>,
   pub listas_subscription: Option<ListasSubscription>,
 }
 
@@ -51,7 +51,7 @@ pub struct PrivateIntegration {
   pub created_at: DateTime,
   #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
   pub updated_at: DateTime,
-  pub rss: Option<RSS>,
+  pub rss: Option<Rss>,
   pub listas_subscription: Option<PrivateListasSubscription>,
 }
 
@@ -61,11 +61,11 @@ impl From<Integration> for PrivateIntegration {
       id: integration.id.clone().unwrap(),
       user: integration.user.clone(),
       list: integration.list.clone(),
-      created_at: integration.created_at.clone(),
-      updated_at: integration.updated_at.clone(),
+      created_at: integration.created_at,
+      updated_at: integration.updated_at,
       kind: integration.kind.clone(),
       rss: integration.rss.clone(),
-      listas_subscription: integration.listas_subscription.clone().map(Into::into),
+      listas_subscription: integration.listas_subscription.map(Into::into),
     }
   }
 }

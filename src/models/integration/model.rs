@@ -6,12 +6,12 @@ use crate::errors::Error;
 use crate::models;
 use crate::models::integration::Integration;
 use crate::models::Model as ModelTrait;
-use crate::{integrations::rss::RSS, models::integration::Kind};
+use crate::{integrations::rss::Rss, models::integration::Kind};
 
 #[derive(Clone)]
 pub struct Model {
   database: database::Database,
-  rss: RSS,
+  rss: Rss,
 }
 
 impl models::Model<Integration> for Model {
@@ -21,7 +21,7 @@ impl models::Model<Integration> for Model {
 }
 
 impl Model {
-  pub fn new(database: database::Database, rss: RSS) -> Self {
+  pub fn new(database: database::Database, rss: Rss) -> Self {
     Self { database, rss }
   }
 
@@ -39,7 +39,7 @@ impl Model {
     };
 
     match integration.kind {
-      Kind::RSS => {
+      Kind::Rss => {
         self
           .rss
           .unsuscribe(integration.rss.as_ref().unwrap().subscription_id.as_str())

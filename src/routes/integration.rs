@@ -12,7 +12,7 @@ use crate::lib::id::ID;
 use crate::lib::util::parse_url;
 use crate::lib::util::to_object_id;
 use crate::models::integration;
-use crate::models::integration::rss::RSS;
+use crate::models::integration::rss::Rss;
 use crate::models::integration::PrivateIntegration;
 use crate::models::user::UserID;
 use crate::models::Model as ModelTrait;
@@ -35,7 +35,7 @@ struct Query {
   kind: Option<String>,
 }
 
-type CTX = web::Data<Context>;
+type Ctx = web::Data<Context>;
 type Response = actix_web::Result<HttpResponse>;
 type RSSCreateBody = web::Json<RSSPayload>;
 type SubscriptionCreateBody = web::Json<SubscriptionPayload>;
@@ -64,11 +64,11 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::resource("/integrations/{id}")
       .route(web::delete().to(remove_integration))
-      .wrap(auth.clone()),
+      .wrap(auth),
   );
 }
 
-async fn query_integrations(ctx: CTX, user: UserID, qs: web::Query<Query>) -> Response {
+async fn query_integrations(ctx: Ctx, user: UserID, qs: web::Query<Query>) -> Response {
   let user_id = user.0;
   let mut query = doc! { "user": &user_id };
 
@@ -93,7 +93,7 @@ async fn query_integrations(ctx: CTX, user: UserID, qs: web::Query<Query>) -> Re
   Ok(res)
 }
 
-async fn create_rss_integration(ctx: CTX, body: RSSCreateBody, user_id: UserID) -> Response {
+async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) -> Response {
   let list_id = to_object_id(body.list.clone())?;
   let user_id = user_id.0;
   let url = parse_url(body.url.as_str())?;
@@ -127,7 +127,7 @@ async fn create_rss_integration(ctx: CTX, body: RSSCreateBody, user_id: UserID) 
       updated_at: now,
       kind: integration::Kind::from_str("rss").unwrap(),
       listas_subscription: None,
-      rss: Some(RSS {
+      rss: Some(Rss {
         url: subscription.url,
         subscription_id: subscription.subscription_id,
         status: subscription.status,
@@ -177,7 +177,7 @@ async fn create_rss_integration(ctx: CTX, body: RSSCreateBody, user_id: UserID) 
 }
 
 async fn create_subscription_integration(
-  ctx: CTX,
+  ctx: Ctx,
   body: SubscriptionCreateBody,
   user_id: UserID,
 ) -> Response {
@@ -257,7 +257,7 @@ async fn create_subscription_integration(
   Ok(res)
 }
 
-async fn remove_integration(ctx: CTX, id: ID, user_id: UserID) -> Response {
+async fn remove_integration(ctx: Ctx, id: ID, user_id: UserID) -> Response {
   let user_id = user_id.0;
   let integration_id = id.0;
 

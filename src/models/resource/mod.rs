@@ -46,7 +46,7 @@ impl Resource {
         "tags": this.tags,
         "created_at": date::to_rfc3339(this.created_at),
         "updated_at": date::to_rfc3339(this.updated_at),
-        "completed_at": this.completed_at.map(|date| date::to_rfc3339(date))
+        "completed_at": this.completed_at.map(date::to_rfc3339)
     })
   }
 }
@@ -70,7 +70,7 @@ impl ResourceUpdate {
           .tags
           .clone()
           .map(util::sanitize_tags)
-          .unwrap_or(vec![]),
+          .unwrap_or_default()
       );
     }
 

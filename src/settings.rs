@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::{env, fmt};
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct RSS {
+pub struct Rss {
   pub token: String,
 }
 
@@ -58,7 +58,7 @@ pub struct Settings {
   pub mailer: Mailer,
   pub base_url: String,
   pub client_url: String,
-  pub rss: RSS,
+  pub rss: Rss,
   pub sendgrid: Sendgrid,
 }
 
