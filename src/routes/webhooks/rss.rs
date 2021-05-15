@@ -72,7 +72,11 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
     .into_iter()
     .collect::<Result<Vec<Resource>, Error>>()?;
 
-  let position = ctx.models.list.get_next_resource_position(&list_id).await?;
+  let position = ctx
+    .models
+    .list
+    .get_position_for_new_resource(&list_id)
+    .await?;
 
   let resources = resources
     .iter_mut()

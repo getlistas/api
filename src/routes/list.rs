@@ -111,7 +111,12 @@ async fn query_lists(ctx: web::Data<Context>, user: UserID) -> Response {
 
 async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) -> Response {
   let now = date::now();
-  let tags = body.tags.clone().map(util::sanitize_tags).unwrap_or_default();
+  let tags = body
+    .tags
+    .clone()
+    .map(util::sanitize_tags)
+    .unwrap_or_default();
+
   let slug = util::to_slug_case(body.title.clone());
   let list = List {
     id: None,
