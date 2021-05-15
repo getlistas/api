@@ -172,15 +172,11 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     return Ok(HttpResponse::BadRequest().finish());
   }
 
-  let last_resource = ctx
+  let position = ctx
     .models
     .list
-    .get_last_completed_resource(&list_id)
+    .get_position_for_new_resource(&list_id)
     .await?;
-
-  let position = last_resource
-    .map(|resource| resource.position + 1)
-    .unwrap_or(0);
 
   let resource = Resource {
     id: None,

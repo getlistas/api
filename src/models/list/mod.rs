@@ -55,7 +55,7 @@ impl ListUpdate {
           .tags
           .clone()
           .map(util::sanitize_tags)
-          .unwrap_or_default()
+          .unwrap_or_default(),
       );
     }
 
