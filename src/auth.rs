@@ -8,7 +8,6 @@ use wither::bson::oid::ObjectId;
 use crate::errors::Error;
 use crate::lib::token;
 use crate::models::user::User;
-use crate::models::user::UserID;
 use crate::settings::Settings;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -92,6 +91,9 @@ impl actix_web::FromRequest for UserFromToken {
     }
   }
 }
+
+#[derive(Clone)]
+pub struct UserID(pub ObjectId);
 
 impl actix_web::FromRequest for UserID {
   type Config = ();

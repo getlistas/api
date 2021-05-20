@@ -6,6 +6,7 @@ use std::str::FromStr;
 use wither::bson::doc;
 
 use crate::auth;
+use crate::auth::UserID;
 use crate::errors::Error;
 use crate::lib::date;
 use crate::lib::id::ID;
@@ -14,7 +15,6 @@ use crate::lib::util::to_object_id;
 use crate::models::integration;
 use crate::models::integration::rss::Rss;
 use crate::models::integration::PrivateIntegration;
-use crate::models::user::UserID;
 use crate::models::Model as ModelTrait;
 use crate::Context;
 

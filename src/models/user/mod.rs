@@ -107,11 +107,14 @@ impl User {
   }
 
   pub fn create_slug(email: &str) -> String {
-    // TODO: Validate email to unwrap here safely.
-    let prefix = email.split('@').next().unwrap();
+    let prefix = email
+      .split('@')
+      .next()
+      .expect("Failed to unwrap, user email does not have an '@'");
     let slug = to_slug_case(prefix.to_owned());
     let slug = to_snake_case(slug.as_str());
     let random_string = create_random_string(5).to_lowercase();
+
     format!("{}_{}", slug, random_string)
   }
 }
@@ -163,9 +166,3 @@ impl From<User> for PrivateUser {
     }
   }
 }
-
-// This struct is used in actix extractors to retrieve the user ObjectID from
-// the authentication token.
-// TODO: Move this to auth source code.
-#[derive(Clone)]
-pub struct UserID(pub ObjectId);

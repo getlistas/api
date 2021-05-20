@@ -9,6 +9,7 @@ use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 use wither::Model as WitherModelTrait;
 
+use crate::auth::UserID;
 use crate::errors::Error;
 use crate::lib::date;
 use crate::lib::id::ID;
@@ -17,7 +18,6 @@ use crate::models::list;
 use crate::models::list::List;
 use crate::models::list::ListUpdate;
 use crate::models::resource::Resource;
-use crate::models::user::UserID;
 use crate::models::Model as ModelTrait;
 use crate::Context;
 use crate::{actors::subscription, auth};
