@@ -145,6 +145,7 @@ async fn query_resources(
     }
   };
 
+  // TODO: Review what private resource content we are exposing.
   let resources = ctx
     .models
     .resource

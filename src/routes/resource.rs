@@ -132,9 +132,11 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
     query.insert("completed_at", doc! { key: Bson::Null });
   }
 
-  let resources = ctx.models.resource.find(query, Some(options)).await?;
-
-  let resources = resources
+  let resources = ctx
+    .models
+    .resource
+    .find(query, Some(options))
+    .await?
     .into_iter()
     .map(Into::into)
     .collect::<Vec<PrivateResource>>();
