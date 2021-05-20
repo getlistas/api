@@ -82,6 +82,8 @@ pub struct PrivateList {
   #[serde(serialize_with = "serialize_bson_datetime_option_as_iso_string")]
   pub archived_at: Option<DateTime>,
   pub fork: Option<PublicFork>,
+  pub forks_count: i64,
+  pub subscriptions_count: i64,
   pub resource_metadata: ListResourceMetadata,
 }
 

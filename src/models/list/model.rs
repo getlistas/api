@@ -1,4 +1,5 @@
 use futures::future::try_join3;
+use futures::future::try_join5;
 use futures::future::try_join_all;
 use serde::{Deserialize, Serialize};
 use wither::bson::{doc, oid::ObjectId, Bson};
@@ -49,12 +50,15 @@ impl Model {
   pub async fn to_private_schema(&self, list: &List) -> Result<PrivateList, Error> {
     let list_id = list.id.clone().expect("Failed to unwrap List ID");
 
-    let (metadata, last_completed_resource, next_resource) = try_join3(
-      self.get_resource_metadata(&list_id),
-      self.get_last_completed_resource(&list_id),
-      self.get_next_resource(&list_id),
-    )
-    .await?;
+    let (metadata, last_completed_resource, next_resource, forks_count, subscriptions_count) =
+      try_join5(
+        self.get_resource_metadata(&list_id),
+        self.get_last_completed_resource(&list_id),
+        self.get_next_resource(&list_id),
+        self.get_forks_count(&list_id),
+        self.get_subscriptions_count(&list_id),
+      )
+      .await?;
 
     let private_list = PrivateList {
       id: list_id,
@@ -68,6 +72,8 @@ impl Model {
       updated_at: list.updated_at,
       archived_at: list.archived_at,
       fork: list.fork.clone().map(Into::into),
+      forks_count,
+      subscriptions_count,
       resource_metadata: ListResourceMetadata {
         count: metadata.count,
         completed_count: metadata.completed_count,
@@ -188,6 +194,17 @@ impl Model {
     let options = FindOneOptions::builder().sort(sort).build();
 
     self.resource.find_one(query, Some(options)).await
+  }
+
+  pub async fn get_forks_count(&self, list_id: &ObjectId) -> Result<i64, Error> {
+    self.count(doc! { "fork.list": list_id }).await
+  }
+
+  pub async fn get_subscriptions_count(&self, list_id: &ObjectId) -> Result<i64, Error> {
+    self
+      .integration
+      .count(doc! { "listas_subscription.list": list_id })
+      .await
   }
 }
 
