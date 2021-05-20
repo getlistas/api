@@ -105,8 +105,9 @@ async fn get_resource_by_id(ctx: Ctx, id: ID, user_id: UserID) -> Response {
 }
 
 async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Response {
+  let user_id = user_id.0;
   let sort_option = qs.sort.clone().unwrap_or_else(|| "position_asc".into());
-  let mut query = doc! { "user": user_id.0 };
+  let mut query = doc! { "user": user_id };
 
   let sort = match sort_option.as_str() {
     "position_asc" => doc! { "position": 1 },

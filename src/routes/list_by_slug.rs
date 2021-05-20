@@ -3,6 +3,7 @@ use serde::Deserialize;
 use wither::bson::doc;
 
 use crate::auth::AuthenticationMetadata;
+use crate::models::resource::PrivateResource;
 use crate::models::Model as ModelTrait;
 use crate::Context;
 
@@ -15,14 +16,15 @@ struct Params {
 }
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
-  cfg.service(web::resource("users/{user_slug}/lists").route(web::get().to(query_lists_by_slug)));
-
+  cfg.service(web::resource("users/{user_slug}/lists").route(web::get().to(query_lists)));
+  cfg.service(web::resource("users/{user_slug}/lists/{list_slug}").route(web::get().to(find_list)));
   cfg.service(
-    web::resource("users/{user_slug}/lists/{list_slug}").route(web::get().to(find_list_by_slug)),
+    web::resource("users/{user_slug}/lists/{list_slug}/resources")
+      .route(web::get().to(query_resources)),
   );
 }
 
-async fn query_lists_by_slug(
+async fn query_lists(
   ctx: web::Data<Context>,
   params: web::Path<Params>,
   auth: AuthenticationMetadata,
@@ -57,7 +59,7 @@ async fn query_lists_by_slug(
   Ok(res)
 }
 
-async fn find_list_by_slug(
+async fn find_list(
   ctx: web::Data<Context>,
   params: web::Path<Params>,
   auth: AuthenticationMetadata,
@@ -104,5 +106,55 @@ async fn find_list_by_slug(
 
   debug!("Returning list to the user");
   let res = HttpResponse::Ok().json(list);
+  Ok(res)
+}
+
+async fn query_resources(
+  ctx: web::Data<Context>,
+  params: web::Path<Params>,
+  auth: AuthenticationMetadata,
+) -> Response {
+  let user = ctx
+    .models
+    .user
+    .find_one(doc! { "slug": &params.user_slug }, None)
+    .await?;
+
+  let user = match user {
+    Some(user) => user,
+    None => {
+      debug!("User not found for slug, returning 404 status code to the user");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
+  let user_id = user.id.unwrap();
+  let is_authenticated = auth.is_authenticated;
+  let is_self = is_authenticated && auth.user_id.clone().unwrap() == user_id;
+  let mut find_list_query = doc! { "user": &user_id };
+  if !is_self {
+    find_list_query.insert("is_public", true);
+  }
+
+  let list = ctx.models.list.find_one(find_list_query, None).await?;
+  let list = match list {
+    Some(list) => list,
+    None => {
+      debug!("List not found for slug, returning 404 status code to the user");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
+  let resources = ctx
+    .models
+    .resource
+    .find(doc! { "user": user_id, "list": list.id.unwrap() }, None)
+    .await?
+    .into_iter()
+    .map(Into::into)
+    .collect::<Vec<PrivateResource>>();
+
+  debug!("Returning resources to the user");
+  let res = HttpResponse::Ok().json(resources);
   Ok(res)
 }
