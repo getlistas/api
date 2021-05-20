@@ -11,12 +11,12 @@ use wither::mongodb::options::FindOptions;
 use wither::Model as WitherModelTrait;
 
 use crate::actors::subscription;
+use crate::auth::UserID;
 use crate::lib::id::ID;
 use crate::lib::util::to_object_id;
 use crate::models::resource::PrivateResource;
 use crate::models::resource::Resource;
 use crate::models::resource::ResourceUpdate;
-use crate::models::user::UserID;
 use crate::models::Model as ModelTrait;
 use crate::Context;
 use crate::{auth, lib::date};

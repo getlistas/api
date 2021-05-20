@@ -8,13 +8,13 @@ use wither::bson::Bson;
 use wither::Model as WitherModelTrait;
 
 use crate::auth;
+use crate::auth::UserID;
 use crate::lib::create_demo_data_for_user;
 use crate::lib::date;
 use crate::lib::token;
 use crate::models::user::PrivateUser;
 use crate::models::user::PublicUser;
 use crate::models::user::User;
-use crate::models::user::UserID;
 use crate::models::Model as ModelTrait;
 use crate::Context;
 use crate::{emails, lib::google};

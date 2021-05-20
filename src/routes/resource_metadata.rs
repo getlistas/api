@@ -2,7 +2,7 @@ use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use serde::{Deserialize, Serialize};
 
-use crate::models::user::UserID;
+use crate::auth::UserID;
 use crate::Context;
 use crate::{auth, lib::util};
 use crate::{
