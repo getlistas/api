@@ -1,12 +1,13 @@
 use actix_web::{web, HttpResponse};
 use futures::StreamExt;
 use wither::bson::doc;
-use wither::Model as WitherModelTrait;
+use wither::bson::oid::ObjectId;
 
 use crate::errors::Error;
 use crate::integrations::rss;
-use crate::models::resource::Resource;
+use crate::integrations::rss::Entry as RssEntry;
 use crate::models::Model as ModelTrait;
+use crate::models::Models;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
@@ -60,44 +61,43 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
     return Ok(HttpResponse::Ok().finish());
   }
 
-  let mut entries = body.new_entries.clone();
-  let resources = entries
-    .iter_mut()
-    .map(|entry| rss::Rss::create_resource_from_entry(entry, &user_id, &list_id));
-
-  let mut resources = futures::stream::iter(resources)
-    .buffered(50)
-    .collect::<Vec<Result<Resource, Error>>>()
-    .await
-    .into_iter()
-    .collect::<Result<Vec<Resource>, Error>>()?;
-
-  let position = ctx
+  let next_resource_position = ctx
     .models
     .list
     .get_position_for_new_resource(&list_id)
     .await?;
 
-  let resources = resources
-    .iter_mut()
+  futures::stream::iter(body.new_entries.clone())
     .enumerate()
-    .map(move |(index, resource)| {
-      let conn = ctx.database.conn.clone();
-      resource.position = position + (index as i32);
-
-      // TODO: Use model.create method
-      async move { resource.save(&conn, None).await.map_err(Error::WitherError) }
-    });
-
-  debug!("Creating resources from RSS webhook");
-  futures::stream::iter(resources)
-    .buffer_unordered(50)
+    .map(|(index, entry)| {
+      create_resource_from_rss_entry(
+        &ctx.models,
+        entry,
+        &user_id,
+        &list_id,
+        next_resource_position + (index as i32),
+      )
+    })
+    .buffered(10)
     .collect::<Vec<Result<(), Error>>>()
     .await
     .into_iter()
-    .collect::<Result<(), Error>>()?;
+    .collect::<Result<Vec<()>, Error>>()?;
 
   debug!("Returning 200 status code");
   let res = HttpResponse::Ok().finish();
   Ok(res)
+}
+
+pub async fn create_resource_from_rss_entry(
+  models: &Models,
+  entry: RssEntry,
+  user_id: &ObjectId,
+  list_id: &ObjectId,
+  position: i32,
+) -> Result<(), Error> {
+  let mut resource = rss::Rss::create_resource_payload_from_entry(entry, &user_id, &list_id).await?;
+  resource.position = position;
+  models.resource.create(resource).await?;
+  Ok(())
 }

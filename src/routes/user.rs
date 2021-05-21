@@ -170,8 +170,6 @@ async fn get_metrics(ctx: Ctx, slug: web::Path<String>) -> Response {
           "$dateToString": {
             "date":   "$completed_at",
             "format": "%Y-%m-%d",
-            // TODO: Send and probably store the user timezone from the front-end
-            // timezone: timezone
           }
         },
         "completed_count": { "$sum": 1 }

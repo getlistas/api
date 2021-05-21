@@ -150,8 +150,8 @@ impl Rss {
     }
   }
 
-  pub async fn create_resource_from_entry(
-    entry: &Entry,
+  pub async fn create_resource_payload_from_entry(
+    entry: Entry,
     user: &ObjectId,
     list: &ObjectId,
   ) -> Result<Resource, Error> {
@@ -185,17 +185,16 @@ impl Rss {
     Ok(resource)
   }
 
-  pub async fn build_resources_from_feed(
+  pub async fn create_resources_payload_from_feed(
     &self,
     url: &Url,
     user: &ObjectId,
     list: &ObjectId,
   ) -> Result<Vec<Resource>, Error> {
-    let mut entries = self.get_entries(&url).await?;
-
+    let entries = self.get_entries(&url).await?;
     let resource_futures = entries
-      .iter_mut()
-      .map(|entry| Self::create_resource_from_entry(entry, &user, &list));
+      .into_iter()
+      .map(|entry| Self::create_resource_payload_from_entry(entry, &user, &list));
 
     try_join_all(resource_futures).await
   }
