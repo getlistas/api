@@ -139,7 +139,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
 
   let resources = ctx
     .rss
-    .build_resources_from_feed(&url, &user_id, &list_id)
+    .create_resources_payload_from_feed(&url, &user_id, &list_id)
     .await?;
 
   let last_resource = ctx
