@@ -1,4 +1,5 @@
 pub mod integration;
+pub mod like;
 pub mod list;
 pub mod resource;
 pub mod user;
@@ -28,6 +29,7 @@ pub struct Models {
   pub list: list::model::Model,
   pub resource: resource::model::Model,
   pub integration: integration::model::Model,
+  pub like: like::model::Model,
 }
 
 impl Models {
@@ -35,13 +37,15 @@ impl Models {
     let list = list::model::Model::new(database.clone(), rss.clone());
     let resource = resource::model::Model::new(database.clone());
     let user = user::model::Model::new(database.clone());
-    let integration = integration::model::Model::new(database, rss);
+    let integration = integration::model::Model::new(database.clone(), rss);
+    let like = like::model::Model::new(database);
 
     Self {
       user,
       list,
       resource,
       integration,
+      like,
     }
   }
 }
