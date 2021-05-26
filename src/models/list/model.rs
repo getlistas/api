@@ -54,15 +54,6 @@ impl Model {
   pub async fn to_private_schema(&self, list: &List) -> Result<PrivateList, Error> {
     let list_id = list.id.clone().expect("Failed to unwrap List ID");
 
-    let metadata = try_join!(
-      self.get_resource_metadata(&list_id),
-      self.get_last_completed_resource(&list_id),
-      self.get_next_resource(&list_id),
-      self.get_forks_count(&list_id),
-      self.get_subscriptions_count(&list_id),
-      self.get_likes_count(&list_id),
-    );
-
     let (
       resource_metadata,
       last_completed_resource,
@@ -70,7 +61,14 @@ impl Model {
       forks_count,
       subscriptions_count,
       likes_count,
-    ) = metadata?;
+    ) = try_join!(
+      self.get_resource_metadata(&list_id),
+      self.get_last_completed_resource(&list_id),
+      self.get_next_resource(&list_id),
+      self.get_forks_count(&list_id),
+      self.get_subscriptions_count(&list_id),
+      self.get_likes_count(&list_id),
+    )?;
 
     let private_list = PrivateList {
       id: list_id,
