@@ -1,4 +1,3 @@
-use futures::future::try_join3;
 use futures::future::try_join_all;
 use futures::try_join;
 use serde::{Deserialize, Serialize};
@@ -111,14 +110,13 @@ impl Model {
   }
 
   pub async fn get_resource_metadata(&self, list_id: &ObjectId) -> Result<ResourceMetadata, Error> {
-    let (count, uncompleted_count, last_completed_resource) = try_join3(
+    let (count, uncompleted_count, last_completed_resource) = try_join!(
       self.resource.count(doc! { "list": &list_id }),
       self
         .resource
         .count(doc! { "list": &list_id, "completed_at": Bson::Null }),
       self.get_last_completed_resource(&list_id),
-    )
-    .await?;
+    )?;
 
     Ok(ResourceMetadata {
       count,
