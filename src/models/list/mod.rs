@@ -84,6 +84,7 @@ pub struct PrivateList {
   pub fork: Option<PublicFork>,
   pub forks_count: i64,
   pub subscriptions_count: i64,
+  pub likes_count: i64,
   pub resource_metadata: ListResourceMetadata,
 }
 

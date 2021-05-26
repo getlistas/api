@@ -1,6 +1,6 @@
 use futures::future::try_join3;
-use futures::future::try_join5;
 use futures::future::try_join_all;
+use futures::try_join;
 use serde::{Deserialize, Serialize};
 use wither::bson::{doc, oid::ObjectId, Bson};
 use wither::bson::{DateTime, Document};
@@ -9,6 +9,7 @@ use wither::mongodb::options::FindOptions;
 
 use crate::models;
 use crate::models::integration;
+use crate::models::like;
 use crate::models::list::List;
 use crate::models::list::ListResourceMetadata;
 use crate::models::list::PrivateList;
@@ -25,6 +26,7 @@ pub struct Model {
   user: user::model::Model,
   resource: resource::model::Model,
   integration: integration::model::Model,
+  like: like::model::Model,
 }
 
 impl models::Model<List> for Model {
@@ -38,27 +40,35 @@ impl Model {
     let resource = resource::model::Model::new(database.clone());
     let user = user::model::Model::new(database.clone());
     let integration = integration::model::Model::new(database.clone(), rss);
+    let like = like::model::Model::new(database.clone());
 
     Self {
       database,
       user,
       resource,
       integration,
+      like,
     }
   }
 
   pub async fn to_private_schema(&self, list: &List) -> Result<PrivateList, Error> {
     let list_id = list.id.clone().expect("Failed to unwrap List ID");
 
-    let (metadata, last_completed_resource, next_resource, forks_count, subscriptions_count) =
-      try_join5(
-        self.get_resource_metadata(&list_id),
-        self.get_last_completed_resource(&list_id),
-        self.get_next_resource(&list_id),
-        self.get_forks_count(&list_id),
-        self.get_subscriptions_count(&list_id),
-      )
-      .await?;
+    let (
+      resource_metadata,
+      last_completed_resource,
+      next_resource,
+      forks_count,
+      subscriptions_count,
+      likes_count,
+    ) = try_join!(
+      self.get_resource_metadata(&list_id),
+      self.get_last_completed_resource(&list_id),
+      self.get_next_resource(&list_id),
+      self.get_forks_count(&list_id),
+      self.get_subscriptions_count(&list_id),
+      self.get_likes_count(&list_id),
+    )?;
 
     let private_list = PrivateList {
       id: list_id,
@@ -74,9 +84,10 @@ impl Model {
       fork: list.fork.clone().map(Into::into),
       forks_count,
       subscriptions_count,
+      likes_count,
       resource_metadata: ListResourceMetadata {
-        count: metadata.count,
-        completed_count: metadata.completed_count,
+        count: resource_metadata.count,
+        completed_count: resource_metadata.completed_count,
         last_completed_at: last_completed_resource.and_then(|resource| resource.completed_at),
         next: next_resource.map(Into::into),
       },
@@ -205,6 +216,10 @@ impl Model {
       .integration
       .count(doc! { "listas_subscription.list": list_id })
       .await
+  }
+
+  pub async fn get_likes_count(&self, list_id: &ObjectId) -> Result<i64, Error> {
+    self.like.count(doc! { "list": list_id }).await
   }
 }
 
