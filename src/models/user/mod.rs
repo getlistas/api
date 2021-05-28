@@ -34,6 +34,8 @@ pub struct Subscription {
 }
 
 #[derive(Debug, Model, Validate, Serialize, Deserialize)]
+#[model(index(keys = r#"doc!{ "email": 1 }"#, options = r#"doc!{ "unique": true }"#))]
+#[model(index(keys = r#"doc!{ "slug": 1 }"#, options = r#"doc!{ "unique": true }"#))]
 pub struct User {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
   pub id: Option<ObjectId>,

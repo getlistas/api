@@ -50,6 +50,9 @@ impl Models {
   }
 
   pub async fn sync_indexes(&self) -> Result<(), Error> {
+    self.user.sync_indexes().await?;
+    self.list.sync_indexes().await?;
+    self.resource.sync_indexes().await?;
     self.like.sync_indexes().await?;
     self.integration.sync_indexes().await?;
 
