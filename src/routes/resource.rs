@@ -332,14 +332,11 @@ async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdate
       None,
     )
     .await?;
-
-  let mut resource = match resource {
-    Some(resource) => resource,
-    None => {
-      debug!("Resource not found, returning 404 status code");
-      return Ok(HttpResponse::NotFound().finish());
-    }
-  };
+  
+  if resource.is_none() {
+    debug!("Resource not found, returning 404 status code");
+    return Ok(HttpResponse::NotFound().finish());
+  }
 
   let position = match body.previus.clone() {
     Some(previus) => {
@@ -379,13 +376,13 @@ async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdate
     )
     .await?;
 
-  // TODO: Use an atomic update
-  resource.position = position;
-  resource.updated_at = date::now();
-  resource
-    .save(&ctx.database.conn, None)
-    .await
-    .map_err(Error::WitherError)?;
+  let update = json! ({ "$set": { "position": position, "updated_at": date::now() } });
+  let update = bson::to_document(&update).unwrap();
+  ctx
+    .models
+    .resource
+    .update_one(doc! { "_id": &resource_id }, update,None)
+    .await?;
 
   debug!("Resource position updated, returning 202 status code");
   let res = HttpResponse::Accepted().finish();
