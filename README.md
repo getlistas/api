@@ -24,13 +24,3 @@ $ npm run migrate:up
 ```bash
 $ npm run migrate:down
 ```
-
-### Scripts
-
-#### Sync indexes
-
-```bash
-./scripts/sync-indexes.js
-```
-
-
