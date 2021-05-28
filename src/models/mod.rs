@@ -129,6 +129,22 @@ pub trait Model<T: wither::Model + Send> {
       .map_err(Error::WitherError)
   }
 
+  async fn update_one(
+    &self,
+    query: Document,
+    update: Document,
+    options: Option<UpdateOptions>,
+  ) -> Result<UpdateResult, Error>
+  where
+    T: wither::Model + Send,
+  {
+    let db = self.get_database();
+    T::collection(&db.conn)
+      .update_one(query, update, options)
+      .await
+      .map_err(Error::MongoError)
+  }
+
   async fn update_many(
     &self,
     query: Document,
