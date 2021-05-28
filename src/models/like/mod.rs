@@ -10,6 +10,7 @@ use crate::lib::serde::serialize_bson_datetime_as_iso_string;
 use crate::lib::serde::serialize_object_id_as_hex_string;
 
 #[derive(Debug, Clone, Model, Validate, Serialize, Deserialize)]
+#[model(index(keys=r#"doc!{ "user": 1, "list": 1 }"#, options=r#"doc!{ "unique": true }"#))]
 pub struct Like {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
   pub id: Option<ObjectId>,
