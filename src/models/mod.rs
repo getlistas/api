@@ -51,6 +51,7 @@ impl Models {
 
   pub async fn sync_indexes(&self) -> Result<(), Error> {
     self.like.sync_indexes().await?;
+    self.integration.sync_indexes().await?;
 
     Ok(())
   }

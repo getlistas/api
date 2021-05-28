@@ -25,6 +25,24 @@ pub enum Kind {
 }
 
 #[derive(Debug, Clone, Model, Serialize, Deserialize)]
+#[model(index(keys = r#"doc!{ "user": 1 }"#))]
+// Partial filter to make sure the user can subscribe to only one list at a
+// given time.
+#[model(index(
+  keys = r#"doc!{ "user": 1, "listas_subscription.list": 1 }"#,
+  options = r#"doc!{
+    "unique": true,
+    "partialFilterExpression": { "kind": "listas-subscription" }
+  }"#
+))]
+// Partial filter used by the RSS webhook endpoint to find an integration.
+#[model(index(
+  keys = r#"doc!{ "rss.subscription_id": 1 }"#,
+  options = r#"doc!{
+      "unique": true,
+      "partialFilterExpression": { "kind": "rss" }
+    }"#
+))]
 pub struct Integration {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
   pub id: Option<ObjectId>,
