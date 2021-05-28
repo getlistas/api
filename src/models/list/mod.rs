@@ -22,6 +22,11 @@ pub struct Fork {
 }
 
 #[derive(Debug, Model, Serialize, Deserialize)]
+#[model(index(keys = r#"doc!{ "user": 1 }"#))]
+#[model(index(
+  keys = r#"doc!{ "user": 1, "slug": 1 }"#,
+  options = r#"doc!{ "unique": true }"#
+))]
 pub struct List {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
   pub id: Option<ObjectId>,
