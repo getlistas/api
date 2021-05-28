@@ -48,6 +48,12 @@ impl Models {
       like,
     }
   }
+
+  pub async fn sync_indexes(&self) -> Result<(), Error> {
+    self.like.sync_indexes().await?;
+
+    Ok(())
+  }
 }
 
 #[async_trait]
@@ -188,5 +194,15 @@ pub trait Model<T: wither::Model + Send> {
       .map_err(Error::SerializeMongoResponse)?;
 
     Ok(documents)
+  }
+
+  async fn sync_indexes(&self) -> Result<(), Error>
+  where
+    T: wither::Model + Send,
+  {
+    let db = self.get_database();
+    T::sync(&db.conn).await.map_err(Error::WitherError)?;
+
+    Ok(())
   }
 }

@@ -60,6 +60,11 @@ async fn main() {
 
   let port = settings.server.port;
 
+  // At some point this operation should not be run on every start.
+  if let Err(err) = models.sync_indexes().await {
+    panic!("Failed to sync model indexes with the Database. {}", err)
+  }
+
   HttpServer::new(move || {
     App::new()
       .wrap(middleware::Compress::default())
