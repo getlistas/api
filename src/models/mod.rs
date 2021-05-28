@@ -201,9 +201,7 @@ pub trait Model<T: wither::Model + Send> {
     T: wither::Model + Send,
   {
     let db = self.get_database();
-    T::sync(&db.conn)
-      .await
-      .map_err(Error::WitherError)?;
+    T::sync(&db.conn).await.map_err(Error::WitherError)?;
 
     Ok(())
   }
