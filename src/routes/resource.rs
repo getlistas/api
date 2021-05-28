@@ -332,7 +332,7 @@ async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdate
       None,
     )
     .await?;
-  
+
   if resource.is_none() {
     debug!("Resource not found, returning 404 status code");
     return Ok(HttpResponse::NotFound().finish());
@@ -376,12 +376,20 @@ async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdate
     )
     .await?;
 
-  let update = json! ({ "$set": { "position": position, "updated_at": date::now() } });
-  let update = bson::to_document(&update).unwrap();
+
   ctx
     .models
     .resource
-    .update_one(doc! { "_id": &resource_id }, update,None)
+    .update_one(
+      doc! { "_id": &resource_id },
+      doc! {
+        "$set": {
+          "position": position,
+          "updated_at": bson::to_bson(&date::now()).unwrap()
+        }
+      },
+      None,
+    )
     .await?;
 
   debug!("Resource position updated, returning 202 status code");
