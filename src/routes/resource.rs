@@ -25,8 +25,7 @@ use crate::{errors::Error, lib::util};
 #[derive(Deserialize)]
 struct Query {
   list: Option<String>,
-  completed: Option<bool>,
-  sort: Option<String>,
+  is_completed: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -106,31 +105,26 @@ async fn get_resource_by_id(ctx: Ctx, id: ID, user_id: UserID) -> Response {
 
 async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Response {
   let user_id = user_id.0;
-  let sort_option = qs.sort.clone().unwrap_or_else(|| "position_asc".into());
   let mut query = doc! { "user": user_id };
 
-  let sort = match sort_option.as_str() {
-    "position_asc" => doc! { "position": 1 },
-    "position_des" => doc! { "position": -1 },
-    "date_asc" => doc! { "completed_at": 1, "created_at": 1 },
-    "date_des" => doc! { "completed_at": -1, "created_at": -1 },
-    _ => doc! { "position": 1 },
-  };
-
-  let options = FindOptions::builder().sort(Some(sort)).build();
-
-  if qs.list.is_some() {
-    let list_id = util::to_object_id(qs.list.clone().unwrap())?;
+  if let Some(list_id) = qs.list.clone() {
+    let list_id = util::to_object_id(list_id)?;
     query.insert("list", list_id);
   }
 
-  if qs.completed.is_some() {
-    let completed = qs.completed.unwrap();
+  if let Some(is_complete) = qs.is_completed {
     // The { item : null } query matches documents that either contain the
     // item field whose value is null or that do not contain the item field.
-    let key = if completed { "$ne" } else { "$eq" };
+    let key = if is_complete { "$ne" } else { "$eq" };
     query.insert("completed_at", doc! { key: Bson::Null });
   }
+
+  let sort = match qs.is_completed {
+    Some(true) => doc! { "completed_at": -1 },
+    _ => doc! { "created_at": -1 },
+  };
+
+  let options = FindOptions::builder().sort(Some(sort)).build();
 
   let resources = ctx
     .models
