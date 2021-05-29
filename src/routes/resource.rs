@@ -25,7 +25,7 @@ use crate::{errors::Error, lib::util};
 #[derive(Deserialize)]
 struct Query {
   list: Option<String>,
-  is_completed: Option<bool>,
+  completed: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -112,14 +112,14 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
     query.insert("list", list_id);
   }
 
-  if let Some(is_complete) = qs.is_completed {
+  if let Some(is_complete) = qs.completed {
     // The { item : null } query matches documents that either contain the
     // item field whose value is null or that do not contain the item field.
     let key = if is_complete { "$ne" } else { "$eq" };
     query.insert("completed_at", doc! { key: Bson::Null });
   }
 
-  let sort = match qs.is_completed {
+  let sort = match qs.completed {
     Some(true) => doc! { "completed_at": -1 },
     _ => doc! { "created_at": -1 },
   };
