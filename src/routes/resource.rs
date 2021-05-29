@@ -26,6 +26,7 @@ use crate::{errors::Error, lib::util};
 struct Query {
   list: Option<String>,
   completed: Option<bool>,
+  sort: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -119,10 +120,21 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
     query.insert("completed_at", doc! { key: Bson::Null });
   }
 
-  let sort = match qs.completed {
+  let mut sort = match qs.completed {
     Some(true) => doc! { "completed_at": -1 },
     _ => doc! { "created_at": -1 },
   };
+
+  // For backwards compatibility 
+  if let Some(sort_option) = qs.sort.clone() {
+    sort = match sort_option.as_str() {
+     "position_asc" => doc! { "position": 1 },
+     "position_des" => doc! { "position": -1 },
+     "date_asc" => doc! { "completed_at": 1, "created_at": 1 },
+     "date_des" => doc! { "completed_at": -1, "created_at": -1 },
+     _ => doc! { "position": 1 },
+   };
+  }
 
   let options = FindOptions::builder().sort(Some(sort)).build();
 
