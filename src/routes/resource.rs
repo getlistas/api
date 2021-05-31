@@ -7,7 +7,6 @@ use wither::bson;
 use wither::bson::{doc, Bson};
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
-use wither::mongodb::options::FindOptions;
 use wither::Model as WitherModelTrait;
 
 use crate::actors::subscription;
@@ -27,6 +26,7 @@ struct Query {
   list: Option<String>,
   completed: Option<bool>,
   sort: Option<String>,
+  search_text: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -106,46 +106,73 @@ async fn get_resource_by_id(ctx: Ctx, id: ID, user_id: UserID) -> Response {
 
 async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Response {
   let user_id = user_id.0;
-  let mut query = doc! { "user": user_id };
+  let mut pipeline = vec![];
+  let mut filter = vec![];
+  let mut must = vec![];
+
+  filter.push(doc! {
+    "equals": {
+      "path": "user",
+      "value": user_id
+    }
+  });
 
   if let Some(list_id) = qs.list.clone() {
     let list_id = util::to_object_id(list_id)?;
-    query.insert("list", list_id);
+    filter.push(doc! {
+      "equals": {
+        "path": "list",
+        "value": list_id
+      }
+    });
   }
 
-  if let Some(is_complete) = qs.completed {
+  if let Some(ref search_text) = qs.search_text {
+    must.push(doc! {
+      "text": {
+        "query": search_text,
+        "path": ["title", "description", "tags"]
+      }
+    });
+  }
+
+  pipeline.push(doc! {
+    "$search": {
+      "index": "search",
+      "compound": {
+        "filter": filter,
+        "must": must
+      }
+    }
+  });
+
+  if let Some(is_completed) = qs.completed {
     // The { item : null } query matches documents that either contain the
     // item field whose value is null or that do not contain the item field.
-    let key = if is_complete { "$ne" } else { "$eq" };
-    query.insert("completed_at", doc! { key: Bson::Null });
+    let key = if is_completed { "$ne" } else { "$eq" };
+    pipeline.push(doc! {
+      "$match": {
+        "completed_at": { key: Bson::Null }
+      }
+    });
   }
 
-  let mut sort = match qs.completed {
-    Some(true) => doc! { "completed_at": -1 },
-    _ => doc! { "created_at": -1 },
+  let sort = match qs.sort.clone().as_deref() {
+    Some("position_asc") => doc! { "position": 1 },
+    Some("position_des") => doc! { "position": -1 },
+    _ => match qs.completed {
+      Some(true) => doc! { "completed_at": -1 },
+      _ => doc! { "created_at": -1 },
+    },
   };
 
-  // For backwards compatibility 
-  if let Some(sort_option) = qs.sort.clone() {
-    sort = match sort_option.as_str() {
-     "position_asc" => doc! { "position": 1 },
-     "position_des" => doc! { "position": -1 },
-     "date_asc" => doc! { "completed_at": 1, "created_at": 1 },
-     "date_des" => doc! { "completed_at": -1, "created_at": -1 },
-     _ => doc! { "position": 1 },
-   };
-  }
-
-  let options = FindOptions::builder().sort(Some(sort)).build();
+  pipeline.push(doc! { "$sort": sort });
 
   let resources = ctx
     .models
     .resource
-    .find(query, Some(options))
-    .await?
-    .into_iter()
-    .map(Into::into)
-    .collect::<Vec<PrivateResource>>();
+    .aggregate::<PrivateResource>(pipeline)
+    .await?;
 
   debug!("Returning resources");
   let res = HttpResponse::Ok().json(resources);
@@ -381,7 +408,6 @@ async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdate
       None,
     )
     .await?;
-
 
   ctx
     .models
