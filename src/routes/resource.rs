@@ -127,16 +127,16 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
     });
   }
 
-  if let Some(search_text) = qs.search_text.clone() {
+  if let Some(ref search_text) = qs.search_text {
     must.push(doc! {
       "text": {
         "query": search_text,
-        "path": ["title", "description"]
+        "path": ["title", "description", "tags"]
       }
     });
   }
 
-  pipeline.push(doc!{
+  pipeline.push(doc! {
     "$search": {
       "index": "search",
       "compound": {
@@ -157,38 +157,22 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
     });
   }
 
+  let sort = match qs.sort.clone().as_deref() {
+    Some("position_asc") => doc! { "position": 1 },
+    Some("position_des") => doc! { "position": -1 },
+    _ => match qs.completed {
+      Some(true) => doc! { "completed_at": -1 },
+      _ => doc! { "created_at": -1 },
+    },
+  };
+
+  pipeline.push(doc! { "$sort": sort });
+
   let resources = ctx
     .models
     .resource
     .aggregate::<PrivateResource>(pipeline)
     .await?;
-
-  // let mut sort = match qs.completed {
-  //   Some(true) => doc! { "completed_at": -1 },
-  //   _ => doc! { "created_at": -1 },
-  // };
-
-  // // For backwards compatibility
-  // if let Some(sort_option) = qs.sort.clone() {
-  //   sort = match sort_option.as_str() {
-  //    "position_asc" => doc! { "position": 1 },
-  //    "position_des" => doc! { "position": -1 },
-  //    "date_asc" => doc! { "completed_at": 1, "created_at": 1 },
-  //    "date_des" => doc! { "completed_at": -1, "created_at": -1 },
-  //    _ => doc! { "position": 1 },
-  //  };
-  // }
-
-  // let options = FindOptions::builder().sort(Some(sort)).build();
-
-  // let resources = ctx
-  //   .models
-  //   .resource
-  //   .find(query, Some(options))
-  //   .await?
-  //   .into_iter()
-  //   .map(Into::into)
-  //   .collect::<Vec<PrivateResource>>();
 
   debug!("Returning resources");
   let res = HttpResponse::Ok().json(resources);
