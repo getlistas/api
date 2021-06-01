@@ -27,6 +27,8 @@ struct Query {
   completed: Option<bool>,
   sort: Option<String>,
   search_text: Option<String>,
+  skip: Option<u32>,
+  limit: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -167,6 +169,14 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
   };
 
   pipeline.push(doc! { "$sort": sort });
+
+  if let Some(skip) = qs.skip {
+    pipeline.push(doc! { "$skip": skip });
+  }
+
+  if let Some(limit) = qs.limit {
+    pipeline.push(doc! { "$limit": limit });
+  }
 
   let resources = ctx
     .models
