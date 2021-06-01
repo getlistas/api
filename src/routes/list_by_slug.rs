@@ -131,7 +131,7 @@ async fn query_resources(
   let user_id = user.id.unwrap();
   let is_authenticated = auth.is_authenticated;
   let is_self = is_authenticated && auth.user_id.clone().unwrap() == user_id;
-  let mut find_list_query = doc! { "user": &user_id };
+  let mut find_list_query = doc! { "user": &user_id, "list": &params.user_slug };
   if !is_self {
     find_list_query.insert("is_public", true);
   }
