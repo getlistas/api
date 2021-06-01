@@ -2,11 +2,6 @@
   "name": "listas",
   "version": "0.1.0",
   "description": "",
-  "scripts": {
-    "nomad": "nomad",
-    "migrate:up": "nomad up",
-    "migrate:down": "nomad down create-users"
-  },
   "engines": {
     "node": "14"
   },
@@ -14,7 +9,6 @@
     "cli-progress": "3.8.2",
     "config": "^3.3.2",
     "mongoose": "^5.10.11",
-    "nomad-cli": "^1.1.2",
     "p-map": "^4.0.0",
     "to-slug-case": "^1.0.0"
   }
