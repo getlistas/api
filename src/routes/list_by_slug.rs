@@ -114,10 +114,13 @@ async fn query_resources(
   params: web::Path<Params>,
   auth: AuthenticationMetadata,
 ) -> Response {
+  let list_slug = params.list_slug.clone().unwrap();
+  let user_slug = &params.user_slug;
+
   let user = ctx
     .models
     .user
-    .find_one(doc! { "slug": &params.user_slug }, None)
+    .find_one(doc! { "slug": user_slug }, None)
     .await?;
 
   let user = match user {
@@ -131,7 +134,7 @@ async fn query_resources(
   let user_id = user.id.unwrap();
   let is_authenticated = auth.is_authenticated;
   let is_self = is_authenticated && auth.user_id.clone().unwrap() == user_id;
-  let mut find_list_query = doc! { "user": &user_id, "list": &params.user_slug };
+  let mut find_list_query = doc! { "user": &user_id, "slug": list_slug };
   if !is_self {
     find_list_query.insert("is_public", true);
   }
