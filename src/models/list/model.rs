@@ -1,7 +1,7 @@
 use futures::future::try_join_all;
 use futures::try_join;
 use serde::{Deserialize, Serialize};
-use wither::bson::{doc, oid::ObjectId, Bson};
+use wither::bson::{self, doc, oid::ObjectId, Bson};
 use wither::bson::{DateTime, Document};
 use wither::mongodb::options::FindOneOptions;
 use wither::mongodb::options::FindOptions;
@@ -218,6 +218,20 @@ impl Model {
 
   pub async fn get_likes_count(&self, list_id: &ObjectId) -> Result<i64, Error> {
     self.like.count(doc! { "list": list_id }).await
+  }
+
+  pub async fn update_last_activity_at(&self, list_id: &ObjectId) -> Result<(), Error> {
+    let update = doc! {
+      "$set": {
+        "last_activity_at": bson::to_bson(&date::now()).unwrap()
+      }
+    };
+
+    self
+      .update_one(doc! { "_id": list_id }, update, None)
+      .await?;
+
+    Ok(())
   }
 }
 
