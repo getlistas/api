@@ -256,6 +256,18 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     .try_send(subscription::on_resource_created::ResourceCreated { resource_id })
     .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
 
+  ctx
+    .models
+    .list
+    .update_last_activity_at(&resource.list)
+    .await
+    .map_err(|err| {
+      error!(
+        "Failed to update last activity for list {}. Error {}",
+        &resource.list, err
+      )
+    })?;
+
   debug!("Returning created resource");
   let resource: PrivateResource = resource.into();
   let res = HttpResponse::Created().json(resource);
@@ -334,7 +346,7 @@ async fn remove_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     .await
     .map_err(|err| {
       error!(
-        "Failed to update list {} last_activity_at attribute {}",
+        "Failed to update last activity for list {}. Error {}",
         &resource.list, err
       )
     })?;
