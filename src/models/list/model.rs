@@ -79,6 +79,7 @@ impl Model {
       is_public: list.is_public,
       created_at: list.created_at,
       updated_at: list.updated_at,
+      last_activity_at: list.last_activity_at,
       archived_at: list.archived_at,
       fork: list.fork.clone().map(Into::into),
       forks_count,

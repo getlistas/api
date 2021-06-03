@@ -88,6 +88,8 @@ pub struct PrivateList {
   pub created_at: DateTime,
   #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
   pub updated_at: DateTime,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub last_activity_at: DateTime,
   #[serde(serialize_with = "serialize_bson_datetime_option_as_iso_string")]
   pub archived_at: Option<DateTime>,
   pub fork: Option<PublicFork>,
