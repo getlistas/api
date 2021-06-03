@@ -256,6 +256,18 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     .try_send(subscription::on_resource_created::ResourceCreated { resource_id })
     .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
 
+  ctx
+    .models
+    .list
+    .update_last_activity_at(&resource.list)
+    .await
+    .map_err(|err| {
+      error!(
+        "Failed to update last activity for list {}. Error {}",
+        &resource.list, err
+      )
+    })?;
+
   debug!("Returning created resource");
   let resource: PrivateResource = resource.into();
   let res = HttpResponse::Created().json(resource);
@@ -307,23 +319,40 @@ async fn remove_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
   let resource_id = id.0;
   let user_id = user_id.0;
 
+  let resource = ctx.models.resource.find_by_id(&resource_id).await?;
+  let resource = match resource {
+    Some(resource) => resource,
+    None => {
+      debug!("Resource not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
   let result = ctx
     .models
     .resource
     .delete_one(doc! { "_id": resource_id, "user": user_id })
     .await?;
 
-  let res = match result.deleted_count {
-    0 => {
-      debug!("Resource not found, returning 404 status code");
-      HttpResponse::NotFound().finish()
-    }
-    _ => {
-      debug!("Resource removed, returning 204 status code");
-      HttpResponse::NoContent().finish()
-    }
-  };
+  if result.deleted_count == 0 {
+    debug!("Resource not found, returning 404 status code");
+    return Ok(HttpResponse::NotFound().finish());
+  }
 
+  ctx
+    .models
+    .list
+    .update_last_activity_at(&resource.list)
+    .await
+    .map_err(|err| {
+      error!(
+        "Failed to update last activity for list {}. Error {}",
+        &resource.list, err
+      )
+    })?;
+
+  debug!("Resource removed, returning 204 status code");
+  let res = HttpResponse::NoContent().finish();
   Ok(res)
 }
 

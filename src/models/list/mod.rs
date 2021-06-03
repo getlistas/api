@@ -39,6 +39,10 @@ pub struct List {
   pub fork: Option<Fork>,
   pub created_at: DateTime,
   pub updated_at: DateTime,
+  // Currently the following activities are tracked:
+  // * Resource creation, removal and position updates
+  // * Integration creation and removal
+  pub last_activity_at: DateTime,
   pub archived_at: Option<DateTime>,
 }
 
@@ -84,6 +88,8 @@ pub struct PrivateList {
   pub created_at: DateTime,
   #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
   pub updated_at: DateTime,
+  #[serde(serialize_with = "serialize_bson_datetime_as_iso_string")]
+  pub last_activity_at: DateTime,
   #[serde(serialize_with = "serialize_bson_datetime_option_as_iso_string")]
   pub archived_at: Option<DateTime>,
   pub fork: Option<PublicFork>,

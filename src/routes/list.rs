@@ -122,6 +122,7 @@ async fn create_list(ctx: Ctx, body: web::Json<ListCreateBody>, user: UserID) ->
     fork: None,
     created_at: now,
     updated_at: now,
+    last_activity_at: now,
     archived_at: None,
   };
 
@@ -214,6 +215,7 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
     slug: list.slug.clone(),
     created_at: now,
     updated_at: now,
+    last_activity_at: now,
     archived_at: None,
     fork: Some(list::Fork {
       list: list.id.clone().unwrap(),

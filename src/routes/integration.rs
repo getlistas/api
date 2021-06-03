@@ -147,6 +147,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
     .list
     .get_last_completed_resource(&list_id)
     .await?;
+
   let position = last_resource
     .map(|resource| resource.position + 1)
     .unwrap_or(0);
@@ -169,6 +170,18 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
     .await
     .into_iter()
     .collect::<Result<(), Error>>()?;
+
+  ctx
+    .models
+    .list
+    .update_last_activity_at(&list_id)
+    .await
+    .map_err(|err| {
+      error!(
+        "Failed to update last activity for list {}. Error {}",
+        &list_id, err
+      )
+    })?;
 
   debug!("Returning integration and 200 status code");
   let integration: PrivateIntegration = integration.into();
@@ -251,6 +264,18 @@ async fn create_subscription_integration(
     })
     .await?;
 
+  ctx
+    .models
+    .list
+    .update_last_activity_at(&follower_list_id)
+    .await
+    .map_err(|err| {
+      error!(
+        "Failed to update last activity for list {}. Error {}",
+        &follower_list_id, err
+      )
+    })?;
+
   debug!("Returning integration and 200 status code");
   let integration: PrivateIntegration = integration.into();
   let res = HttpResponse::Ok().json(integration);
@@ -281,6 +306,18 @@ async fn remove_integration(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     .integration
     .remove(integration.id.as_ref().unwrap())
     .await?;
+
+  ctx
+    .models
+    .list
+    .update_last_activity_at(&integration.list)
+    .await
+    .map_err(|err| {
+      error!(
+        "Failed to update last activity for list {}. Error {}",
+        &integration.list, err
+      )
+    })?;
 
   debug!("Integration removed, returning 204 status code");
   let res = HttpResponse::NoContent().finish();

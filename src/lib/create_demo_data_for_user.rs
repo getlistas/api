@@ -35,6 +35,7 @@ pub async fn create(models: &Models, user: ObjectId) -> Result<(), Error> {
       fork: None,
       created_at: now,
       updated_at: now,
+      last_activity_at: now,
       archived_at: None,
     })
     .await?;
