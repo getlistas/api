@@ -7,7 +7,6 @@ use wither::bson;
 use wither::bson::{doc, Bson};
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
-use wither::Model as WitherModelTrait;
 
 use crate::actors::subscription;
 use crate::auth::UserID;
@@ -19,7 +18,7 @@ use crate::models::resource::ResourceUpdate;
 use crate::models::Model as ModelTrait;
 use crate::Context;
 use crate::{auth, lib::date};
-use crate::{errors::Error, lib::util};
+use crate::lib::util;
 
 #[derive(Deserialize)]
 struct Query {
@@ -66,6 +65,12 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::resource("/resources/{id}/complete")
       .route(web::post().to(complete_resource))
+      .wrap(auth.clone()),
+  );
+
+  cfg.service(
+    web::resource("/resources/{id}/undo-complete")
+      .route(web::post().to(undo_complete_resource))
       .wrap(auth.clone()),
   );
 
@@ -363,10 +368,10 @@ async fn complete_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
   let resource = ctx
     .models
     .resource
-    .find_one(doc! { "_id": resource_id, "user": user_id }, None)
+    .find_one(doc! { "_id": &resource_id, "user": &user_id }, None)
     .await?;
 
-  let mut resource = match resource {
+  let resource = match resource {
     Some(resource) => resource,
     None => {
       debug!("Resource not found, returning 404 status code");
@@ -379,14 +384,55 @@ async fn complete_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
     return Ok(HttpResponse::BadRequest().finish());
   }
 
-  // TODO: Use an atomic update
-  resource.completed_at = Some(date::now());
-  resource
-    .save(&ctx.database.conn, None)
-    .await
-    .map_err(Error::WitherError)?;
+  ctx
+    .models
+    .resource
+    .update_one(
+      doc! { "_id": &resource_id, "user": &user_id },
+      doc! { "$set": { "completed_at": Bson::DateTime(date::now().into()) } },
+      None,
+    )
+    .await?;
 
   debug!("Resource marked as completed, returning 202 status code");
+  let res = HttpResponse::Accepted().finish();
+  Ok(res)
+}
+
+async fn undo_complete_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
+  let resource_id = id.0;
+  let user_id = user_id.0;
+
+  let resource = ctx
+    .models
+    .resource
+    .find_one(doc! { "_id": &resource_id, "user": &user_id }, None)
+    .await?;
+
+  let resource = match resource {
+    Some(resource) => resource,
+    None => {
+      debug!("Resource not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
+  if resource.completed_at.is_none() {
+    debug!("Resource is not complete, returnig 400 status code");
+    return Ok(HttpResponse::BadRequest().finish());
+  }
+
+  ctx
+    .models
+    .resource
+    .update_one(
+      doc! { "_id": &resource_id, "user": &user_id },
+      doc! { "$set": { "completed_at": Bson::Null } },
+      None,
+    )
+    .await?;
+
+  debug!("Resource unmarked as completed, returning 202 status code");
   let res = HttpResponse::Accepted().finish();
   Ok(res)
 }
