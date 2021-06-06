@@ -11,6 +11,7 @@ use wither::mongodb::options::FindOneAndUpdateOptions;
 use crate::actors::subscription;
 use crate::auth::UserID;
 use crate::lib::id::ID;
+use crate::lib::util;
 use crate::lib::util::to_object_id;
 use crate::models::resource::PrivateResource;
 use crate::models::resource::Resource;
@@ -18,7 +19,6 @@ use crate::models::resource::ResourceUpdate;
 use crate::models::Model as ModelTrait;
 use crate::Context;
 use crate::{auth, lib::date};
-use crate::lib::util;
 
 #[derive(Deserialize)]
 struct Query {
