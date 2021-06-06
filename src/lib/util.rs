@@ -4,6 +4,7 @@ use rand::Rng;
 use serde::de::Deserialize;
 use slug::slugify;
 use wither::bson::oid::ObjectId;
+use url::Url;
 
 use crate::errors::Error;
 
@@ -36,14 +37,14 @@ pub fn to_object_id(id: String) -> Result<ObjectId, Error> {
   ObjectId::with_string(id.as_str()).map_err(Error::ParseObjectID)
 }
 
-pub fn parse_url(url: &str) -> Result<url::Url, Error> {
+pub fn parse_url(url: &str) -> Result<Url, Error> {
   let mut url = url.to_owned();
-  // Removes the URL trailing slashes
-  while url.ends_with('/') {
+
+  while url.ends_with('/') { // Removes the URL trailing slashes
     url.pop();
   }
 
-  let url = url::Url::parse(url.as_str()).map_err(|_| Error::ParseURL())?;
+  let url = Url::parse(url.as_str()).map_err(|_| Error::ParseURL())?;
   Ok(url)
 }
 
