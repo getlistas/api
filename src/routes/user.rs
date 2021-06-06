@@ -194,7 +194,7 @@ async fn verify_user_email(ctx: web::Data<Context>, token: web::Path<String>) ->
   .await
   .map_err(Error::WitherError)?;
 
-  let mut user = match user {
+  let user = match user {
     Some(user) => user,
     None => {
       return util::redirect_to(&format!(
@@ -204,25 +204,30 @@ async fn verify_user_email(ctx: web::Data<Context>, token: web::Path<String>) ->
     }
   };
 
-  debug!("Verifying user with email {}", &user.email);
-  user.verified_at = Some(date::now());
-  user
-    .save(&ctx.database.conn, None)
-    .await
-    .map_err(Error::WitherError)?;
+  let user_id = user.id.clone().unwrap();
+  ctx
+    .models
+    .user
+    .update_one(
+      doc! { "_id": user_id },
+      doc! { "$set": { "verified_at": Bson::DateTime(date::now().into()) } },
+      None,
+    )
+    .await?;
 
-  util::redirect_to(&format!(
-    "{}/verify-email/success",
-    &ctx.settings.client_url
-  ))
+  let url = format!("{}/verify-email/success", &ctx.settings.client_url);
+  util::redirect_to(url.as_str())
 }
 
 async fn create_token(ctx: web::Data<Context>, body: web::Json<AuthenticateBody>) -> Response {
   let email = &body.email;
   let password = &body.password;
-  let user = User::find_one(&ctx.database.conn, doc! { "email": email }, None)
-    .await
-    .map_err(Error::WitherError)?;
+
+  let user = ctx
+    .models
+    .user
+    .find_one(doc! { "email": email }, None)
+    .await?;
 
   let user = match user {
     Some(user) => user,
@@ -280,9 +285,11 @@ async fn create_token_from_google(
   let is_google_email_verified = google_token.email_verified.unwrap();
   let avatar = google_token.picture.unwrap();
 
-  let user = User::find_one(&ctx.database.conn, doc! { "email": &email }, None)
-    .await
-    .map_err(Error::WitherError)?;
+  let user = ctx
+    .models
+    .user
+    .find_one(doc! { "email": &email }, None)
+    .await?;
 
   let user = match user {
     Some(user) => {
@@ -367,9 +374,11 @@ async fn request_password_reset(
 ) -> Response {
   let email = &body.email;
 
-  let user = User::find_one(&ctx.database.conn, doc! { "email": email }, None)
-    .await
-    .map_err(Error::WitherError)?;
+  let user = ctx
+    .models
+    .user
+    .find_one(doc! { "email": email }, None)
+    .await?;
 
   let mut user = match user {
     Some(user) => user,

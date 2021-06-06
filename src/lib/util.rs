@@ -3,8 +3,8 @@ use itertools::Itertools;
 use rand::Rng;
 use serde::de::Deserialize;
 use slug::slugify;
-use wither::bson::oid::ObjectId;
 use url::Url;
+use wither::bson::oid::ObjectId;
 
 use crate::errors::Error;
 
@@ -40,7 +40,8 @@ pub fn to_object_id(id: String) -> Result<ObjectId, Error> {
 pub fn parse_url(url: &str) -> Result<Url, Error> {
   let mut url = url.to_owned();
 
-  while url.ends_with('/') { // Removes the URL trailing slashes
+  while url.ends_with('/') {
+    // Removes the URL trailing slashes
     url.pop();
   }
 
