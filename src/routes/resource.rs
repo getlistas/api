@@ -1,6 +1,6 @@
 use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use validator::Validate;
 use wither::bson;
@@ -53,6 +53,12 @@ type PositionUpdateBody = web::Json<PositionUpdate>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
   let auth = HttpAuthentication::bearer(auth::validator);
+
+  cfg.service(
+    web::resource("/resources/metrics")
+      .route(web::get().to(get_resource_metrics))
+      .wrap(auth.clone()),
+  );
 
   cfg.service(
     web::resource("/resources/{id}")
@@ -512,4 +518,79 @@ async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdate
   debug!("Resource position updated, returning 202 status code");
   let res = HttpResponse::Accepted().finish();
   Ok(res)
+}
+
+async fn get_resource_metrics(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Response {
+  let user_id = user_id.0;
+  let mut pipeline = vec![];
+  let mut filter = vec![];
+  let mut must = vec![];
+
+  filter.push(doc! {
+    "equals": {
+      "path": "user",
+      "value": user_id
+    }
+  });
+
+  if let Some(list_id) = qs.list.clone() {
+    let list_id = util::to_object_id(list_id)?;
+    filter.push(doc! {
+      "equals": {
+        "path": "list",
+        "value": list_id
+      }
+    });
+  }
+
+  if let Some(ref search_text) = qs.search_text {
+    must.push(doc! {
+      "text": {
+        "query": search_text,
+        "path": ["title", "description", "tags"]
+      }
+    });
+  }
+
+  pipeline.push(doc! {
+    "$search": {
+      "index": "search",
+      "compound": {
+        "filter": filter,
+        "must": must
+      }
+    }
+  });
+
+  pipeline.push(doc! {
+    "$group": {
+      "_id":       Bson::Null,
+      "total":     { "$sum": 1 },
+      "completed": {
+        "$sum": {
+          "$cond": [{ "$eq": [ "$completed_at", Bson::Null ] }, 0, 1 ]
+        }
+      }
+    }
+  });
+
+  let metrics = ctx.models.resource.aggregate::<Metric>(pipeline).await?;
+
+  let metric = match metrics.get(0) {
+    Some(metric) => metric,
+    None => {
+      debug!("Resource metrics not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
+  debug!("Returning resource metrics");
+  let res = HttpResponse::Ok().json(metric);
+  Ok(res)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Metric {
+  total: i64,
+  completed: i64,
 }
