@@ -1,9 +1,9 @@
 use crate::actors::Actors;
 use crate::database::Database;
-use crate::integrations::rss::Rss;
 use crate::mailer::Mailer;
 use crate::models::Models;
 use crate::settings::Settings;
+use crate::thirdparty::rss::Rss;
 
 #[derive(Clone)]
 pub struct Context {
