@@ -6,7 +6,7 @@ use crate::errors::Error;
 use crate::models;
 use crate::models::integration::Integration;
 use crate::models::Model as ModelTrait;
-use crate::{integrations::rss::Rss, models::integration::Kind};
+use crate::{models::integration::Kind, thirdparty::rss::Rss};
 
 #[derive(Clone)]
 pub struct Model {

@@ -16,7 +16,7 @@ use crate::models::resource;
 use crate::models::resource::Resource;
 use crate::models::user;
 use crate::models::Model as ModelTrait;
-use crate::{database, integrations::rss::Rss};
+use crate::{database, thirdparty::rss::Rss};
 use crate::{errors::Error, lib::date};
 
 #[derive(Clone)]

@@ -4,10 +4,10 @@ use wither::bson::doc;
 use wither::bson::oid::ObjectId;
 
 use crate::errors::Error;
-use crate::integrations::rss;
-use crate::integrations::rss::Entry as RssEntry;
 use crate::models::Model as ModelTrait;
 use crate::models::Models;
+use crate::thirdparty::rss;
+use crate::thirdparty::rss::Entry as RssEntry;
 use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;

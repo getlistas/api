@@ -21,7 +21,7 @@ use wither::mongodb::results::UpdateResult;
 
 use crate::database::Database;
 use crate::errors::Error;
-use crate::integrations::rss::Rss;
+use crate::thirdparty::rss::Rss;
 
 #[derive(Clone)]
 pub struct Models {

@@ -4,13 +4,13 @@ mod context;
 mod database;
 mod emails;
 mod errors;
-mod integrations;
 mod lib;
 mod logger;
 mod mailer;
 mod models;
 mod routes;
 mod settings;
+mod thirdparty;
 
 use actix_cors::Cors;
 use actix_web::{middleware, web, App, HttpServer};
@@ -45,7 +45,7 @@ async fn main() {
     Err(_) => panic!("Failed to setup mailer"),
   };
 
-  let rss = integrations::rss::Rss::new(settings.rss.token.clone());
+  let rss = thirdparty::rss::Rss::new(settings.rss.token.clone());
   let models = models::Models::new(database.clone(), rss.clone());
   let actors = actors::Actors::new(models.clone(), settings.clone(), mailer.clone());
 
