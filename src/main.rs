@@ -46,7 +46,8 @@ async fn main() {
   };
 
   let rss = thirdparty::rss::Rss::new(settings.rss.token.clone());
-  let models = models::Models::new(database.clone(), rss.clone());
+  let traer = thirdparty::traer::Traer::new(settings.traer.token.clone());
+  let models = models::Models::new(database.clone(), rss.clone(), traer.clone());
   let actors = actors::Actors::new(models.clone(), settings.clone(), mailer.clone());
 
   let context = web::Data::new(Context {
@@ -54,6 +55,7 @@ async fn main() {
     mailer: mailer.clone(),
     settings: settings.clone(),
     rss: rss.clone(),
+    traer: traer.clone(),
     actors: actors.clone(),
     models: models.clone(),
   });

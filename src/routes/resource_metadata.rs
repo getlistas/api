@@ -1,15 +1,14 @@
 use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use serde::{Deserialize, Serialize};
-
-use crate::auth::UserID;
-use crate::Context;
-use crate::{auth, lib::util};
-use crate::{
-  lib::resource_metadata,
-  models::{resource::PrivateResource, Model},
-};
 use wither::bson::doc;
+
+use crate::auth;
+use crate::auth::UserID;
+use crate::lib::util;
+use crate::models::resource::PrivateResource;
+use crate::models::Model as ModelTrait;
+use crate::Context;
 
 type Response = actix_web::Result<HttpResponse>;
 type Ctx = web::Data<Context>;
@@ -20,7 +19,7 @@ struct Body {
 }
 
 #[derive(Debug, Serialize)]
-pub struct ResourceMetadata {
+pub struct ResourceMetadataResponse {
   can_resolve: bool,
   resource: Option<PrivateResource>,
   title: Option<String>,
@@ -42,7 +41,7 @@ async fn get_resource_metadata(ctx: Ctx, body: web::Json<Body>, user: UserID) ->
   let user_id = user.0;
   let url = util::parse_url(body.url.as_str())?;
 
-  let website_metadata = resource_metadata::get_website_metadata(&url).await;
+  let resource_metadata = ctx.models.resource.get_metadata(&url).await;
 
   let resource = ctx
     .models
@@ -50,11 +49,11 @@ async fn get_resource_metadata(ctx: Ctx, body: web::Json<Body>, user: UserID) ->
     .find_one(doc! { "user": &user_id, "url": url.as_str() }, None)
     .await?;
 
-  let website_metadata = match website_metadata {
-    Ok(metadata) => metadata,
-    Err(_) => {
-      debug!("Can not resolve url, returning metadata to the client");
-      let metadata = ResourceMetadata {
+  let resource_metadata = match resource_metadata {
+    Ok(Some(metadata)) => metadata,
+    Err(_) | Ok(None) => {
+      error!("Can not get resource metadata, returning empty metadata to the client");
+      let metadata = ResourceMetadataResponse {
         resource: resource.map(Into::into),
         can_resolve: false,
         title: None,
@@ -66,15 +65,15 @@ async fn get_resource_metadata(ctx: Ctx, body: web::Json<Body>, user: UserID) ->
     }
   };
 
-  let metadata = ResourceMetadata {
+  let metadata = ResourceMetadataResponse {
     resource: resource.map(Into::into),
     can_resolve: true,
-    title: website_metadata.title,
-    description: website_metadata.description,
-    thumbnail: website_metadata.thumbnail,
+    title: resource_metadata.title,
+    description: resource_metadata.description,
+    thumbnail: resource_metadata.thumbnail,
   };
 
-  debug!("Returning metadata to the client");
+  debug!("Returning resource metadata to the client");
   let res = HttpResponse::Ok().json(metadata);
   Ok(res)
 }

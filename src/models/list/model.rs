@@ -16,6 +16,7 @@ use crate::models::resource;
 use crate::models::resource::Resource;
 use crate::models::user;
 use crate::models::Model as ModelTrait;
+use crate::thirdparty::traer::Traer;
 use crate::{database, thirdparty::rss::Rss};
 use crate::{errors::Error, lib::date};
 
@@ -35,8 +36,8 @@ impl models::Model<List> for Model {
 }
 
 impl Model {
-  pub fn new(database: database::Database, rss: Rss) -> Self {
-    let resource = resource::model::Model::new(database.clone());
+  pub fn new(database: database::Database, rss: Rss, traer: Traer) -> Self {
+    let resource = resource::model::Model::new(database.clone(), traer.clone());
     let user = user::model::Model::new(database.clone());
     let integration = integration::model::Model::new(database.clone(), rss);
     let like = like::model::Model::new(database.clone());

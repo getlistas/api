@@ -48,6 +48,11 @@ pub struct Mailer {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct Traer {
+  pub token: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
   pub environment: String,
   pub server: Server,
@@ -60,6 +65,7 @@ pub struct Settings {
   pub client_url: String,
   pub rss: Rss,
   pub sendgrid: Sendgrid,
+  pub traer: Traer,
 }
 
 impl Settings {
