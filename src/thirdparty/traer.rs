@@ -11,13 +11,13 @@ pub struct Traer {
   pub client: reqwest::Client,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TraerReadResponse {
   pub can_resolve_url: bool,
   pub result: TraerReadResultResponse,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TraerReadResultResponse {
   pub title: Option<String>,
   pub description: Option<String>,
