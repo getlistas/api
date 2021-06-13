@@ -15,6 +15,7 @@ use crate::lib::util::to_object_id;
 use crate::models::integration;
 use crate::models::integration::rss::Rss;
 use crate::models::integration::PrivateIntegration;
+use crate::models::resource::Resource;
 use crate::models::Model as ModelTrait;
 use crate::Context;
 
@@ -137,6 +138,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
     })
     .await?;
 
+  // TODO: Move this to an actor / background job
   let resources = ctx
     .rss
     .create_resources_payload_from_feed(&url, &user_id, &list_id)
@@ -158,6 +160,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
     .map(|(index, mut resource)| {
       resource.position = position + (index as i32);
       async {
+        let resource = enrich_resource(&ctx, resource).await?;
         ctx.models.resource.create(resource).await?;
         Ok(())
       }
@@ -323,4 +326,28 @@ async fn remove_integration(ctx: Ctx, id: ID, user_id: UserID) -> Response {
   let res = HttpResponse::NoContent().finish();
 
   Ok(res)
+}
+
+async fn enrich_resource(ctx: &Ctx, mut resource: Resource) -> Result<Resource, Error> {
+  let url = parse_url(resource.url.as_str())?;
+  let metadata = ctx.models.resource.get_metadata(&url).await?;
+
+  let metadata = match metadata {
+    Some(metadata) => metadata,
+    None => return Ok(resource),
+  };
+
+  if let Some(title) = metadata.title {
+    resource.title = title
+  }
+
+  if let Some(description) = metadata.description {
+    resource.description = Some(description)
+  }
+
+  if let Some(thumbnail) = metadata.thumbnail {
+    resource.thumbnail = Some(thumbnail)
+  }
+
+  Ok(resource)
 }

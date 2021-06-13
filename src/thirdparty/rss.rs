@@ -5,14 +5,13 @@ use wither::bson::oid::ObjectId;
 
 use crate::errors::Error;
 use crate::lib::date;
-use crate::lib::resource_metadata;
 use crate::lib::util::parse_url;
 use crate::models::resource::Resource;
 
 // https://rssapi.net/docs
 #[derive(Clone)]
 pub struct Rss {
-  pub application_key: String,
+  pub token: String,
   pub base_url: String,
   pub client: reqwest::Client,
 }
@@ -68,10 +67,10 @@ pub struct Response<T> {
 }
 
 impl Rss {
-  pub fn new(application_key: String) -> Self {
+  pub fn new(token: String) -> Self {
     Self {
-      base_url: format!("https://api.rssapi.net/v1/{}", application_key),
-      application_key,
+      base_url: format!("https://api.rssapi.net/v1/{}", token),
+      token,
       client: reqwest::Client::new(),
     }
   }
@@ -157,13 +156,6 @@ impl Rss {
   ) -> Result<Resource, Error> {
     let now = date::now();
     let url = parse_url(entry.link.as_str())?;
-    let metadata = resource_metadata::get_website_metadata(&url).await?;
-
-    let description = if entry.description.is_empty() {
-      metadata.description
-    } else {
-      Some(entry.description.clone())
-    };
 
     let resource = Resource {
       id: None,
@@ -175,8 +167,8 @@ impl Rss {
       tags: vec!["rss".to_owned()],
       url: url.to_string(),
       title: entry.title.clone(),
-      description,
-      thumbnail: metadata.thumbnail,
+      description: entry.description.clone().into(),
+      thumbnail: None,
       created_at: now,
       updated_at: now,
       completed_at: None,
