@@ -22,6 +22,7 @@ use wither::mongodb::results::UpdateResult;
 use crate::database::Database;
 use crate::errors::Error;
 use crate::thirdparty::rss::Rss;
+use crate::thirdparty::traer::Traer;
 
 #[derive(Clone)]
 pub struct Models {
@@ -33,9 +34,9 @@ pub struct Models {
 }
 
 impl Models {
-  pub fn new(database: Database, rss: Rss) -> Self {
-    let list = list::model::Model::new(database.clone(), rss.clone());
-    let resource = resource::model::Model::new(database.clone());
+  pub fn new(database: Database, rss: Rss, traer: Traer) -> Self {
+    let list = list::model::Model::new(database.clone(), rss.clone(), traer.clone());
+    let resource = resource::model::Model::new(database.clone(), traer);
     let user = user::model::Model::new(database.clone());
     let integration = integration::model::Model::new(database.clone(), rss);
     let like = like::model::Model::new(database);

@@ -49,9 +49,6 @@ pub enum Error {
   #[error("Failed to parse query string {0}")]
   ParseQueryString(#[from] serde_qs::Error),
 
-  #[error("{0}")]
-  ContactRSSIntegration(#[from] reqwest::Error),
-
   #[error("RSS Integration error: {0}")]
   RSSIntegration(String),
 
@@ -60,6 +57,9 @@ pub enum Error {
 
   #[error("Failed to build email {0}")]
   BuildEmail(#[from] LettreEmailError),
+
+  #[error("{0}")]
+  ReqwestError(#[from] reqwest::Error),
 }
 
 impl Error {
@@ -89,7 +89,7 @@ impl Error {
       Error::ReadAppData() => (StatusCode::INTERNAL_SERVER_ERROR, 5002),
       Error::MongoError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5003),
       Error::HashPassword(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5004),
-      Error::ContactRSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5005),
+      Error::ReqwestError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5005),
       Error::RSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
       Error::SendEmail(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5007),
       Error::BuildEmail(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5008),
