@@ -14,6 +14,7 @@ use crate::lib::serde::serialize_object_id_as_hex_string;
   keys = r#"doc!{ "user": 1, "list": 1 }"#,
   options = r#"doc!{ "unique": true }"#
 ))]
+#[model(index(keys = r#"doc!{ "list": 1 }"#))]
 pub struct Like {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
   pub id: Option<ObjectId>,
