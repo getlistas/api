@@ -147,7 +147,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
   let last_resource = ctx
     .models
     .list
-    .get_last_completed_resource(&list_id)
+    .get_last_completed_resource(&user_id, &list_id)
     .await?;
 
   let position = last_resource

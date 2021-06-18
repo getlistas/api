@@ -15,7 +15,7 @@ use crate::lib::{date, util};
 
 #[derive(Debug, Clone, Model, Validate, Serialize, Deserialize)]
 #[model(index(keys = r#"doc!{ "user": 1 }"#))]
-#[model(index(keys = r#"doc!{ "user": 1, "list": 1 }"#))]
+#[model(index(keys = r#"doc!{ "user": 1, "list": 1, "completed_at": 1 }"#))]
 pub struct Resource {
   #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
   pub id: Option<ObjectId>,

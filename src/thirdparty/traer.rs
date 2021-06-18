@@ -32,7 +32,7 @@ pub struct TraerReadResultResponse {
 impl Traer {
   pub fn new(token: String) -> Self {
     Self {
-      base_url: format!("https://traer.herokuapp.com"),
+      base_url: "https://traer.herokuapp.com".to_string(),
       token,
       client: reqwest::Client::new(),
     }

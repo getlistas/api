@@ -37,7 +37,7 @@ impl models::Model<List> for Model {
 
 impl Model {
   pub fn new(database: database::Database, rss: Rss, traer: Traer) -> Self {
-    let resource = resource::model::Model::new(database.clone(), traer.clone());
+    let resource = resource::model::Model::new(database.clone(), traer);
     let user = user::model::Model::new(database.clone());
     let integration = integration::model::Model::new(database.clone(), rss);
     let like = like::model::Model::new(database.clone());
@@ -53,18 +53,10 @@ impl Model {
 
   pub async fn to_private_schema(&self, list: &List) -> Result<PrivateList, Error> {
     let list_id = list.id.clone().expect("Failed to unwrap List ID");
+    let user_id = list.user.clone();
 
-    let (
-      resource_metadata,
-      last_completed_resource,
-      next_resource,
-      forks_count,
-      subscriptions_count,
-      likes_count,
-    ) = try_join!(
-      self.get_resource_metadata(&list_id),
-      self.get_last_completed_resource(&list_id),
-      self.get_next_resource(&list_id),
+    let (resource_metadata, forks_count, subscriptions_count, likes_count) = try_join!(
+      self.get_resource_metadata(&user_id, &list_id),
       self.get_forks_count(&list_id),
       self.get_subscriptions_count(&list_id),
       self.get_likes_count(&list_id),
@@ -86,12 +78,7 @@ impl Model {
       forks_count,
       subscriptions_count,
       likes_count,
-      resource_metadata: ListResourceMetadata {
-        count: resource_metadata.count,
-        completed_count: resource_metadata.completed_count,
-        last_completed_at: last_completed_resource.and_then(|resource| resource.completed_at),
-        next: next_resource.map(Into::into),
-      },
+      resource_metadata,
     };
 
     Ok(private_list)
@@ -111,19 +98,27 @@ impl Model {
     Ok(lists)
   }
 
-  pub async fn get_resource_metadata(&self, list_id: &ObjectId) -> Result<ResourceMetadata, Error> {
-    let (count, uncompleted_count, last_completed_resource) = try_join!(
-      self.resource.count(doc! { "list": &list_id }),
+  pub async fn get_resource_metadata(
+    &self,
+    user_id: &ObjectId,
+    list_id: &ObjectId,
+  ) -> Result<ListResourceMetadata, Error> {
+    let (count, uncompleted_count, last_completed_resource, next_resource) = try_join!(
       self
         .resource
-        .count(doc! { "list": &list_id, "completed_at": Bson::Null }),
-      self.get_last_completed_resource(&list_id),
+        .count(doc! { "user": &user_id, "list": &list_id }),
+      self
+        .resource
+        .count(doc! { "user": &user_id, "list": &list_id, "completed_at": Bson::Null }),
+      self.get_last_completed_resource(&user_id, &list_id),
+      self.get_next_resource(&user_id, &list_id)
     )?;
 
-    Ok(ResourceMetadata {
+    Ok(ListResourceMetadata {
       count,
       completed_count: count - uncompleted_count,
       last_completed_at: last_completed_resource.and_then(|resource| resource.completed_at),
+      next: next_resource.map(Into::into),
     })
   }
 
@@ -187,9 +182,11 @@ impl Model {
 
   pub async fn get_last_completed_resource(
     &self,
+    user_id: &ObjectId,
     list_id: &ObjectId,
   ) -> Result<Option<Resource>, Error> {
     let query = doc! {
+        "user": user_id,
         "list": list_id,
         "completed_at": { "$exists": true, "$ne": Bson::Null }
     };
@@ -199,8 +196,12 @@ impl Model {
     self.resource.find_one(query, Some(options)).await
   }
 
-  pub async fn get_next_resource(&self, list_id: &ObjectId) -> Result<Option<Resource>, Error> {
-    let query = doc! { "list": list_id, "completed_at": Bson::Null };
+  pub async fn get_next_resource(
+    &self,
+    user_id: &ObjectId,
+    list_id: &ObjectId,
+  ) -> Result<Option<Resource>, Error> {
+    let query = doc! { "user": user_id, "list": list_id, "completed_at": Bson::Null };
     let sort = doc! { "position": 1 };
     let options = FindOneOptions::builder().sort(sort).build();
 
