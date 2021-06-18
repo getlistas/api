@@ -249,6 +249,11 @@ async fn fork_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response {
       created_at: now,
       updated_at: now,
       completed_at: None,
+      html: None,
+      text: None,
+      author: None,
+      length: None,
+      publisher: None,
     };
 
     async move {

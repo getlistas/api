@@ -55,6 +55,11 @@ pub async fn create(models: &Models, user: ObjectId) -> Result<(), Error> {
       created_at: now,
       updated_at: now,
       completed_at: None,
+      html: None,
+      text: None,
+      author: None,
+      length: None,
+      publisher: None,
     })
     .await?;
 

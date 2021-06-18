@@ -168,10 +168,15 @@ impl Rss {
       url: url.to_string(),
       title: entry.title.clone(),
       description: entry.description.into(),
-      thumbnail: None,
       created_at: now,
       updated_at: now,
+      thumbnail: None,
       completed_at: None,
+      html: None,
+      text: None,
+      author: None,
+      length: None,
+      publisher: None,
     };
 
     Ok(resource)

@@ -248,6 +248,11 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     created_at: date::now(),
     updated_at: date::now(),
     completed_at: None,
+    html: None,
+    text: None,
+    author: None,
+    length: None,
+    publisher: None,
   };
 
   match resource.validate() {
