@@ -3,10 +3,12 @@ use wither::bson::oid::ObjectId;
 
 use crate::errors::Error;
 use crate::models::Models;
+use crate::thirdparty::traer::Traer;
 
 #[derive(Clone)]
 pub struct ResourceActor {
   pub models: Models,
+  pub traer: Traer,
 }
 
 impl Actor for ResourceActor {
@@ -41,13 +43,18 @@ impl Handler<EnreachResourceMessage> for ResourceActor {
     );
 
     let models = self.models.clone();
-    let task = enreach_resource(msg.resource_id.clone());
+    let traer = self.traer.clone();
+    let task = enreach_resource(models, traer, msg.resource_id.clone());
     let task = actix::fut::wrap_future::<_, Self>(task);
 
     Box::pin(task)
   }
 }
 
-async fn enreach_resource(resource_id: ObjectId) -> Result<(), Error> {
+async fn enreach_resource(
+  models: Models,
+  traer: Traer,
+  resource_id: ObjectId,
+) -> Result<(), Error> {
   Ok(())
 }

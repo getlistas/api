@@ -6,6 +6,7 @@ use actix::{Actor, Addr};
 use crate::mailer::Mailer;
 use crate::models::Models;
 use crate::settings::Settings;
+use crate::thirdparty::traer::Traer;
 use resource::ResourceActor;
 
 #[derive(Clone)]
@@ -15,14 +16,14 @@ pub struct Actors {
 }
 
 impl Actors {
-  pub fn new(models: Models, settings: Settings, mailer: Mailer) -> Self {
+  pub fn new(models: Models, settings: Settings, mailer: Mailer, traer: Traer) -> Self {
     let subscription = subscription::Actor {
       models: models.clone(),
       settings,
       mailer,
     };
 
-    let resource = ResourceActor { models };
+    let resource = ResourceActor { models, traer };
 
     Self {
       subscription: subscription.start(),
