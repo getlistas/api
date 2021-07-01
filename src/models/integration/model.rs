@@ -38,14 +38,11 @@ impl Model {
       }
     };
 
-    match integration.kind {
-      Kind::Rss => {
-        self
-          .rss
-          .unsuscribe(integration.rss.as_ref().unwrap().subscription_id.as_str())
-          .await?;
-      }
-      _ => {}
+    if let Kind::Rss = integration.kind {
+      self
+        .rss
+        .unsuscribe(integration.rss.as_ref().unwrap().subscription_id.as_str())
+        .await?;
     };
 
     self

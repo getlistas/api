@@ -18,6 +18,8 @@ struct Params {
 pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(web::resource("users/{user_slug}/lists").route(web::get().to(query_lists)));
   cfg.service(web::resource("users/{user_slug}/lists/{list_slug}").route(web::get().to(find_list)));
+
+  // TODO: Solo un user public puede usar esta lista y va a pasar un list_id
   cfg.service(
     web::resource("users/{user_slug}/lists/{list_slug}/resources")
       .route(web::get().to(query_resources)),

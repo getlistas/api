@@ -1,7 +1,10 @@
 use actix::{Actor, Context, Handler, Message, ResponseActFuture};
+use wither::bson::doc;
 use wither::bson::oid::ObjectId;
 
 use crate::errors::Error;
+use crate::lib::util::parse_url;
+use crate::models::Model as ModelTrait;
 use crate::models::Models;
 use crate::thirdparty::traer::Traer;
 
@@ -25,7 +28,7 @@ impl Actor for ResourceActor {
 
 #[derive(Debug, Clone, Message)]
 #[rtype(result = "Result<(), Error>")]
-struct EnreachResourceMessage {
+pub struct EnreachResourceMessage {
   pub resource_id: ObjectId,
 }
 
@@ -44,7 +47,7 @@ impl Handler<EnreachResourceMessage> for ResourceActor {
 
     let models = self.models.clone();
     let traer = self.traer.clone();
-    let task = enreach_resource(models, traer, msg.resource_id.clone());
+    let task = enreach_resource(models, traer, msg.resource_id);
     let task = actix::fut::wrap_future::<_, Self>(task);
 
     Box::pin(task)
@@ -56,5 +59,48 @@ async fn enreach_resource(
   traer: Traer,
   resource_id: ObjectId,
 ) -> Result<(), Error> {
+  let resource = models.resource.find_by_id(&resource_id).await?;
+  let resource = match resource {
+    Some(resource) => resource,
+    None => {
+      warn!("Resource was not found when updating resource metadatas");
+      return Ok(());
+    }
+  };
+
+  let url = parse_url(resource.url.as_str())?;
+  let traer_response = traer.get_url_content(&url).await?;
+  let metadata = traer_response.result;
+
+  let mut update = doc! {};
+
+  if let Some(html) = metadata.html {
+    update.insert("html", html);
+  }
+  if let Some(text) = metadata.text {
+    update.insert("text", text);
+  }
+  if let Some(length) = metadata.length {
+    update.insert("length", length);
+  }
+  if let Some(publisher) = metadata.publisher {
+    update.insert("publisher", publisher);
+  }
+  if let Some(author) = metadata.author {
+    update.insert("author", author);
+  }
+
+  let has_update = !update.is_empty();
+  if !has_update {
+    return Ok(());
+  }
+
+  let update = doc! { "$set": update };
+
+  models
+    .resource
+    .update_one(doc! { "_id": resource_id }, update, None)
+    .await?;
+
   Ok(())
 }
