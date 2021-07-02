@@ -24,7 +24,8 @@ pub struct TraerReadResultResponse {
   pub html: Option<String>,
   pub text: Option<String>,
   pub length: Option<i64>,
-  pub website_name: Option<String>,
+  pub author: Option<String>,
+  pub publisher: Option<String>,
   pub image: Option<String>,
   pub logo: Option<String>,
 }

@@ -1,5 +1,4 @@
-use actix::Message;
-use actix::ResponseActFuture;
+use actix::{Message, ResponseActFuture};
 use futures::stream::StreamExt;
 use wither::bson::doc;
 use wither::bson::oid::ObjectId;
@@ -30,7 +29,7 @@ impl actix::Handler<ListRemoved> for SubscriptionActor {
   }
 }
 
-#[derive(Debug, Message, Clone)]
+#[derive(Debug, Clone, Message)]
 #[rtype(result = "Result<(), Error>")]
 pub struct ListRemoved {
   pub id: ObjectId,

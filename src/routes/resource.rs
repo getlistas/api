@@ -8,6 +8,7 @@ use wither::bson::{doc, Bson};
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 
+use crate::actors::resource::EnreachResourceMessage;
 use crate::actors::subscription;
 use crate::auth::UserID;
 use crate::lib::id::ID;
@@ -248,6 +249,11 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     created_at: date::now(),
     updated_at: date::now(),
     completed_at: None,
+    html: None,
+    text: None,
+    author: None,
+    length: None,
+    publisher: None,
   };
 
   match resource.validate() {
@@ -264,8 +270,18 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
   ctx
     .actors
     .subscription
-    .try_send(subscription::on_resource_created::ResourceCreated { resource_id })
+    .try_send(subscription::on_resource_created::ResourceCreated {
+      resource_id: resource_id.clone(),
+    })
     .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
+
+  ctx
+    .actors
+    .resource
+    .try_send(EnreachResourceMessage {
+      resource_id: resource_id.clone(),
+    })
+    .map_err(|err| error!("Failed to send message to resource actor, {}", err))?;
 
   ctx
     .models
