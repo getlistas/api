@@ -12,18 +12,28 @@ pub struct Traer {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TraerReadResponse {
+pub struct TraerResponse<T> {
   pub can_resolve_url: bool,
-  pub result: TraerReadResultResponse,
+  pub result: T,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TraerReadResultResponse {
+pub struct TraerReadResult {
   pub title: Option<String>,
   pub description: Option<String>,
   pub html: Option<String>,
   pub text: Option<String>,
   pub length: Option<i64>,
+  pub author: Option<String>,
+  pub publisher: Option<String>,
+  pub image: Option<String>,
+  pub logo: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TraerReadSomeResult {
+  pub title: Option<String>,
+  pub description: Option<String>,
   pub author: Option<String>,
   pub publisher: Option<String>,
   pub image: Option<String>,
@@ -39,7 +49,10 @@ impl Traer {
     }
   }
 
-  pub async fn get_url_content(&self, url: &Url) -> Result<TraerReadResponse, Error> {
+  pub async fn get_content_from_url(
+    &self,
+    url: &Url,
+  ) -> Result<TraerResponse<TraerReadResult>, Error> {
     let mut body = HashMap::new();
     body.insert("url".to_owned(), url.to_string());
 
@@ -50,7 +63,26 @@ impl Traer {
       .header("Authentication", self.token.clone())
       .send()
       .await?
-      .json::<TraerReadResponse>()
+      .json::<TraerResponse<TraerReadResult>>()
+      .await
+      .map_err(Error::ReqwestError)
+  }
+
+  pub async fn get_some_content_from_url(
+    &self,
+    url: &Url,
+  ) -> Result<TraerResponse<TraerReadSomeResult>, Error> {
+    let mut body = HashMap::new();
+    body.insert("url".to_owned(), url.to_string());
+
+    self
+      .client
+      .post(format!("{}/read/some", self.base_url).as_str())
+      .json(&body)
+      .header("Authentication", self.token.clone())
+      .send()
+      .await?
+      .json::<TraerResponse<TraerReadSomeResult>>()
       .await
       .map_err(Error::ReqwestError)
   }
