@@ -69,7 +69,7 @@ async fn enreach_resource(
   };
 
   let url = parse_url(resource.url.as_str())?;
-  let traer_response = traer.get_url_content(&url).await?;
+  let traer_response = traer.get_content_from_url(&url).await?;
   let metadata = traer_response.result;
 
   let mut update = doc! {};

@@ -43,7 +43,7 @@ impl Model {
   }
 
   pub async fn get_metadata(&self, url: &Url) -> Result<Option<ResourceMetadata>, Error> {
-    let traer_response = self.traer.get_url_content(&url).await?;
+    let traer_response = self.traer.get_some_content_from_url(&url).await?;
     if !traer_response.can_resolve_url {
       return Ok(None);
     }
