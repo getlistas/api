@@ -1,6 +1,7 @@
 use actix_web::{web, HttpResponse};
 use serde::Deserialize;
 use wither::bson::doc;
+use wither::bson::Bson;
 
 use crate::auth::AuthenticationMetadata;
 use crate::models::resource::PrivateResource;
@@ -15,11 +16,17 @@ struct Params {
   list_slug: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct Query {
+  completed: Option<bool>,
+  search_text: Option<String>,
+  skip: Option<u32>,
+  limit: Option<u32>,
+}
+
 pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(web::resource("users/{user_slug}/lists").route(web::get().to(query_lists)));
   cfg.service(web::resource("users/{user_slug}/lists/{list_slug}").route(web::get().to(find_list)));
-
-  // TODO: Solo un user public puede usar esta lista y va a pasar un list_id
   cfg.service(
     web::resource("users/{user_slug}/lists/{list_slug}/resources")
       .route(web::get().to(query_resources)),
@@ -115,6 +122,7 @@ async fn query_resources(
   ctx: web::Data<Context>,
   params: web::Path<Params>,
   auth: AuthenticationMetadata,
+  qs: web::Query<Query>,
 ) -> Response {
   let list_slug = params.list_slug.clone().unwrap();
   let user_slug = &params.user_slug;
@@ -128,7 +136,10 @@ async fn query_resources(
   let user = match user {
     Some(user) => user,
     None => {
-      debug!("User not found for slug, returning 404 status code to the user");
+      debug!(
+        "User not found for slug {}, returning 404 status code to the user",
+        user_slug
+      );
       return Ok(HttpResponse::NotFound().finish());
     }
   };
@@ -136,7 +147,7 @@ async fn query_resources(
   let user_id = user.id.unwrap();
   let is_authenticated = auth.is_authenticated;
   let is_self = is_authenticated && auth.user_id.clone().unwrap() == user_id;
-  let mut find_list_query = doc! { "user": &user_id, "slug": list_slug };
+  let mut find_list_query = doc! { "user": &user_id, "slug": &list_slug };
   if !is_self {
     find_list_query.insert("is_public", true);
   }
@@ -145,22 +156,79 @@ async fn query_resources(
   let list = match list {
     Some(list) => list,
     None => {
-      debug!("List not found for slug, returning 404 status code to the user");
+      debug!(
+        "List not found for slug {}, returning 404 status code to the user",
+        list_slug
+      );
       return Ok(HttpResponse::NotFound().finish());
     }
   };
 
-  // TODO: Review what private resource content we are exposing.
+  let mut pipeline = vec![];
+  let mut filter = vec![];
+  let mut must = vec![];
+
+  filter.push(doc! {
+    "equals": {
+      "path": "user",
+      "value": user_id
+    }
+  });
+
+  filter.push(doc! {
+    "equals": {
+      "path": "list",
+      "value": list.id.clone().unwrap()
+    }
+  });
+
+  if let Some(ref search_text) = qs.search_text {
+    must.push(doc! {
+      "text": {
+        "query": search_text,
+        "path": ["title", "description", "tags"]
+      }
+    });
+  }
+
+  pipeline.push(doc! {
+    "$search": {
+      "index": "search",
+      "compound": {
+        "filter": filter,
+        "must": must
+      }
+    }
+  });
+
+  if let Some(is_completed) = qs.completed {
+    // The { item : null } query matches documents that either contain the
+    // item field whose value is null or that do not contain the item field.
+    let key = if is_completed { "$ne" } else { "$eq" };
+    pipeline.push(doc! {
+      "$match": {
+        "completed_at": { key: Bson::Null }
+      }
+    });
+  }
+
+  pipeline.push(doc! { "$sort": { "position": 1 } });
+
+  if let Some(skip) = qs.skip {
+    pipeline.push(doc! { "$skip": skip });
+  }
+
+  if let Some(limit) = qs.limit {
+    pipeline.push(doc! { "$limit": limit });
+  }
+
   let resources = ctx
     .models
     .resource
-    .find(doc! { "user": user_id, "list": list.id.unwrap() }, None)
-    .await?
-    .into_iter()
-    .map(Into::into)
-    .collect::<Vec<PrivateResource>>();
+    .aggregate::<PrivateResource>(pipeline)
+    .await?;
 
-  debug!("Returning resources to the user");
+  debug!("Returning resources");
   let res = HttpResponse::Ok().json(resources);
   Ok(res)
 }
