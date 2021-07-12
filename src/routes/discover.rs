@@ -1,12 +1,13 @@
 use actix_web::{web, HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
-use wither::bson::doc;
 use wither::bson::{self, oid::ObjectId};
+use wither::bson::{doc, Bson};
 
 use crate::lib::pagination::Pagination;
 use crate::lib::serde::serialize_bson_datetime_as_iso_string;
 use crate::lib::serde::serialize_object_id_as_hex_string;
 use crate::lib::util::parse_query_string;
+use crate::lib::util::to_object_id;
 use crate::models::list;
 use crate::models::Model as ModelTrait;
 use crate::Context;
@@ -57,6 +58,18 @@ async fn discover_lists(
   if let Some(tags) = query_string.tags {
     query.insert("tags", doc! { "$in": tags });
   }
+
+  // Once we have more lists from more users in the database, we can start
+  // showing them.
+  query.insert(
+    "_id",
+    doc! {
+      "$in": [
+        Bson::ObjectId(to_object_id(String::from("60bfa87c009045b70098149f"))?), // The Missing Semester of Your CS Education (MIT)
+        Bson::ObjectId(to_object_id(String::from("6045e7da002ef30000e83201"))?), // A Computer of One’s Own
+      ]
+    },
+  );
 
   let pipeline = list::queries::create_discover_query(query, skip, limit);
   let res = ctx.models.list.aggregate::<ListResponse>(pipeline).await?;
