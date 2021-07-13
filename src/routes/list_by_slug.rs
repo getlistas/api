@@ -219,7 +219,10 @@ async fn query_resources(
     });
   }
 
-  pipeline.push(doc! { "$sort": { "position": 1 } });
+  // When querying using full text search, use the score order to sort data.
+  if qs.search_text.is_none() {
+    pipeline.push(doc! { "$sort": { "position": 1 } });
+  }
 
   if let Some(skip) = qs.skip {
     pipeline.push(doc! { "$skip": skip });
