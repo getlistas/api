@@ -186,7 +186,14 @@ async fn query_resources(
     must.push(doc! {
       "text": {
         "query": search_text,
-        "path": ["title", "description", "tags"]
+        "path": ["title", "description", "tags"],
+        // Enable fuzzy search. Find strings which are similar to the search
+        // term or terms
+        "fuzzy": {
+          // Maximum number of single-character edits required to match the
+          // specified search term. Value can be 1 or 2. The default value is 2.
+          "maxEdits": 2,
+        }
       }
     });
   }

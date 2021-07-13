@@ -145,7 +145,14 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
     must.push(doc! {
       "text": {
         "query": search_text,
-        "path": ["title", "description", "tags"]
+        "path": ["title", "description", "tags"],
+        // Enable fuzzy search. Find strings which are similar to the search
+        // term or terms
+        "fuzzy": {
+          // Maximum number of single-character edits required to match the
+          // specified search term. Value can be 1 or 2. The default value is 2.
+          "maxEdits": 2,
+        }
       }
     });
   }
@@ -160,6 +167,9 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
     }
   });
 
+  // TODO: Remove this $match stage because it can drastically slow down query
+  // results.
+  // https://docs.atlas.mongodb.com/reference/atlas-search/performance/#-match-aggregation-stage-usage
   if let Some(is_completed) = qs.completed {
     // The { item : null } query matches documents that either contain the
     // item field whose value is null or that do not contain the item field.
@@ -171,6 +181,9 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
     });
   }
 
+  // TODO: Remove this $sort stage because it can drastically slow down query
+  // results.
+  // https://docs.atlas.mongodb.com/reference/atlas-search/performance/#-sort-aggregation-stage-usage
   let sort = match qs.sort.clone().as_deref() {
     Some("position_asc") => doc! { "position": 1 },
     Some("position_des") => doc! { "position": -1 },
