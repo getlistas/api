@@ -193,7 +193,10 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
     },
   };
 
-  pipeline.push(doc! { "$sort": sort });
+  // When querying using full text search, use the score order to sort data.
+  if qs.search_text.is_none() {
+    pipeline.push(doc! { "$sort": sort });
+  }
 
   if let Some(skip) = qs.skip {
     pipeline.push(doc! { "$skip": skip });
