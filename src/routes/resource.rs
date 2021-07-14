@@ -146,12 +146,9 @@ async fn query_resources(ctx: Ctx, user_id: UserID, qs: web::Query<Query>) -> Re
       "text": {
         "query": search_text,
         "path": ["title", "description", "tags"],
-        // Enable fuzzy search. Find strings which are similar to the search
-        // term or terms
         "fuzzy": {
-          // Maximum number of single-character edits required to match the
-          // specified search term. Value can be 1 or 2. The default value is 2.
           "maxEdits": 2,
+          "prefixLength": 3
         }
       }
     });
