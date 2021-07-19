@@ -5,12 +5,13 @@ use serde::de::Deserialize;
 use slug::slugify;
 use url::Url;
 use wither::bson::oid::ObjectId;
+use actix_web::http::header::IntoHeaderValue;
 
 use crate::errors::Error;
 
 type Response = actix_web::Result<HttpResponse>;
 
-pub fn redirect_to(url: &str) -> Response {
+pub fn redirect_to<T: IntoHeaderValue>(url: T) -> Response {
   Ok(
     HttpResponse::Found()
       .header(http::header::LOCATION, url)
@@ -29,7 +30,7 @@ pub fn create_random_string(size: usize) -> String {
 
 // The slug will consist of a-z, 0-9, and '-'. Furthermore, a slug will never
 // contain more than one '-' in a row and will never start or end with '-'.
-pub fn to_slug_case(string: String) -> String {
+pub fn to_slug_case<S: AsRef<str>>(string: S) -> String {
   slugify(string)
 }
 
