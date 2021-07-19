@@ -197,10 +197,8 @@ async fn verify_user_email(ctx: web::Data<Context>, token: web::Path<String>) ->
   let user = match user {
     Some(user) => user,
     None => {
-      return util::redirect_to(&format!(
-        "{}/verify-email/failure",
-        &ctx.settings.client_url
-      ))
+      let url = format!("{}/verify-email/failure", &ctx.settings.client_url);
+      return util::redirect_to(url);
     }
   };
 
