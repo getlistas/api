@@ -13,8 +13,9 @@ pub struct Traer {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TraerResponse<T> {
-  pub can_resolve_url: bool,
-  pub result: T,
+  pub success: bool,
+  pub status: u16,
+  pub data: T,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
