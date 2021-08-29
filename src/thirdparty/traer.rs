@@ -43,7 +43,7 @@ pub struct TraerReadSomeResult {
 impl Traer {
   pub fn new(token: String) -> Self {
     Self {
-      base_url: "https://traer.herokuapp.com".to_string(),
+      base_url: "https://traer.vercel.app/api/v1".to_string(),
       token,
       client: reqwest::Client::new(),
     }
@@ -58,7 +58,7 @@ impl Traer {
 
     self
       .client
-      .post(format!("{}/read", self.base_url).as_str())
+      .post(format!("{}/parse", self.base_url).as_str())
       .json(&body)
       .header("Authentication", self.token.clone())
       .send()
