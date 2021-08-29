@@ -77,7 +77,7 @@ impl Traer {
 
     self
       .client
-      .post(format!("{}/read/some", self.base_url).as_str())
+      .post(format!("{}/parse", self.base_url).as_str())
       .json(&body)
       .header("Authentication", self.token.clone())
       .send()
