@@ -69,7 +69,7 @@ impl Traer {
       .map_err(Error::ReqwestError)
   }
 
-  pub async fn get_some_content_from_url(
+  pub async fn get_slim_content_from_url(
     &self,
     url: &Url,
   ) -> Result<TraerResponse<TraerReadSomeResult>, Error> {
@@ -79,6 +79,7 @@ impl Traer {
     self
       .client
       .post(format!("{}/parse", self.base_url).as_str())
+      .query(&[("slim", true)])
       .json(&body)
       .header("Authentication", self.token.clone())
       .send()
