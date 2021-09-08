@@ -110,8 +110,8 @@ impl Model {
       self
         .resource
         .count(doc! { "user": &user_id, "list": &list_id, "completed_at": Bson::Null }),
-      self.get_last_completed_resource(&user_id, &list_id),
-      self.get_next_resource(&user_id, &list_id)
+      self.get_last_completed_resource(user_id, list_id),
+      self.get_next_resource(user_id, list_id)
     )?;
 
     Ok(ListResourceMetadata {

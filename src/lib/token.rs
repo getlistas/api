@@ -35,11 +35,11 @@ pub fn decode_token(token: &str, private_key: &str) -> TokenResult {
   let validation = jsonwebtoken::Validation::default();
   let decoding_key = jsonwebtoken::DecodingKey::from_secret(private_key.as_ref());
 
-  jsonwebtoken::decode::<Claims>(&token, &decoding_key, &validation)
+  jsonwebtoken::decode::<Claims>(token, &decoding_key, &validation)
 }
 
 pub fn get_token_payload(token: &str) -> TokenResult {
   let validation = jsonwebtoken::Validation::default();
 
-  dangerous_insecure_decode_with_validation::<Claims>(&token, &validation)
+  dangerous_insecure_decode_with_validation::<Claims>(token, &validation)
 }

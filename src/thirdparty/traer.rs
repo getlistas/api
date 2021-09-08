@@ -66,7 +66,7 @@ impl Traer {
       .await?
       .json::<TraerResponse<TraerReadResult>>()
       .await
-      .map_err(Error::ReqwestError)
+      .map_err(Error::Reqwest)
   }
 
   pub async fn get_slim_content_from_url(
@@ -86,6 +86,6 @@ impl Traer {
       .await?
       .json::<TraerResponse<TraerReadSomeResult>>()
       .await
-      .map_err(Error::ReqwestError)
+      .map_err(Error::Reqwest)
   }
 }

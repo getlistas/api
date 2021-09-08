@@ -57,7 +57,7 @@ async fn webhook(ctx: web::Data<Context>, event: Form) -> Response {
     "subscription_cancelled" => cancell_subscription(ctx, event).await,
     _ => {
       error!("Paddle event {} not recognized", event.alert_name);
-      return Ok(HttpResponse::BadRequest().finish());
+      Ok(HttpResponse::BadRequest().finish())
     }
   }
 }
@@ -65,7 +65,7 @@ async fn webhook(ctx: web::Data<Context>, event: Form) -> Response {
 async fn create_subscription(ctx: web::Data<Context>, event: Form) -> Response {
   let user = User::find_one(&ctx.database.conn, doc! { "email": &event.email }, None)
     .await
-    .map_err(Error::WitherError)?;
+    .map_err(Error::Wither)?;
 
   let user = match user {
     Some(user) => user,
@@ -99,7 +99,7 @@ async fn create_subscription(ctx: web::Data<Context>, event: Form) -> Response {
   user
     .update(&ctx.database.conn, None, update, None)
     .await
-    .map_err(Error::WitherError)?;
+    .map_err(Error::Wither)?;
 
   let res = HttpResponse::Ok().finish();
   Ok(res)
@@ -108,7 +108,7 @@ async fn create_subscription(ctx: web::Data<Context>, event: Form) -> Response {
 async fn cancell_subscription(ctx: web::Data<Context>, event: Form) -> Response {
   let user = User::find_one(&ctx.database.conn, doc! { "email": &event.email }, None)
     .await
-    .map_err(Error::WitherError)?;
+    .map_err(Error::Wither)?;
 
   let user = match user {
     Some(user) => user,
@@ -143,7 +143,7 @@ async fn cancell_subscription(ctx: web::Data<Context>, event: Form) -> Response 
   user
     .update(&ctx.database.conn, None, update, None)
     .await
-    .map_err(Error::WitherError)?;
+    .map_err(Error::Wither)?;
 
   let res = HttpResponse::Ok().finish();
   Ok(res)

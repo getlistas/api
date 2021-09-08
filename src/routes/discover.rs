@@ -52,7 +52,7 @@ async fn discover_lists(
 ) -> Response {
   let skip = pagination.skip.unwrap_or(0);
   let limit = pagination.limit.unwrap_or(100);
-  let query_string = parse_query_string::<Query>(&req.query_string())?;
+  let query_string = parse_query_string::<Query>(req.query_string())?;
 
   let mut query = doc! { "is_public": true };
   if let Some(tags) = query_string.tags {

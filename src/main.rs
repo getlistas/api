@@ -80,7 +80,6 @@ async fn main() {
       .wrap(Cors::permissive())
       .app_data(web::Data::new(settings.clone()))
       .app_data(context.clone())
-      .service(actix_files::Files::new("/static", "."))
       .configure(routes::user::create_router)
       .configure(routes::resource::create_router)
       .configure(routes::list::create_router)

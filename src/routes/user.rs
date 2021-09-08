@@ -186,13 +186,14 @@ async fn get_metrics(ctx: Ctx, slug: web::Path<String>) -> Response {
 }
 
 async fn verify_user_email(ctx: web::Data<Context>, token: web::Path<String>) -> Response {
-  let user = User::find_one(
-    &ctx.database.conn,
-    doc! { "verification_token": token.into_inner() },
-    None,
-  )
-  .await
-  .map_err(Error::WitherError)?;
+  let user = ctx
+    .models
+    .user
+    .find_one(
+      doc! { "verification_token": token.into_inner() },
+      None
+    )
+    .await?;
 
   let user = match user {
     Some(user) => user,
@@ -390,7 +391,7 @@ async fn request_password_reset(
   user
     .save(&ctx.database.conn, None)
     .await
-    .map_err(Error::WitherError)?;
+    .map_err(Error::Wither)?;
 
   debug!("Sending password reset email to the user {}", &user.email);
   let send_from = ctx.settings.mailer.from.as_str();
@@ -407,13 +408,11 @@ async fn update_password(ctx: web::Data<Context>, body: web::Json<PasswordUpdate
   let token = body.token.clone();
   let password = body.password.clone();
 
-  let user = User::find_one(
-    &ctx.database.conn,
-    doc! { "password_reset_token": token },
-    None,
-  )
-  .await
-  .map_err(Error::WitherError)?;
+  let user = ctx
+    .models
+    .user
+    .find_one(doc! { "password_reset_token": token }, None)
+    .await?;
 
   let mut user = match user {
     Some(user) => user,
@@ -429,7 +428,7 @@ async fn update_password(ctx: web::Data<Context>, body: web::Json<PasswordUpdate
   user
     .save(&ctx.database.conn, None)
     .await
-    .map_err(Error::WitherError)?;
+    .map_err(Error::Wither)?;
 
   debug!("Returning 204 status to the user");
   let res = HttpResponse::NoContent().finish();

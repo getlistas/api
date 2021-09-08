@@ -97,7 +97,8 @@ pub async fn create_resource_from_rss_entry(
   position: i32,
 ) -> Result<(), Error> {
   let mut resource =
-    rss::Rss::create_resource_payload_from_entry(entry, &user_id, &list_id).await?;
+    rss::Rss::create_resource_payload_from_entry(entry, user_id, list_id).await?;
+
   resource.position = position;
   models.resource.create(resource).await?;
   Ok(())

@@ -73,7 +73,7 @@ pub trait Model<T: wither::Model + Send> {
     model
       .save(&db.conn, None)
       .await
-      .map_err(Error::WitherError)?;
+      .map_err(Error::Wither)?;
 
     Ok(model)
   }
@@ -85,7 +85,7 @@ pub trait Model<T: wither::Model + Send> {
     let db = self.get_database();
     T::find_one(&db.conn, doc! { "_id": id }, None)
       .await
-      .map_err(Error::WitherError)
+      .map_err(Error::Wither)
   }
 
   async fn find_one(
@@ -99,7 +99,7 @@ pub trait Model<T: wither::Model + Send> {
     let db = self.get_database();
     T::find_one(&db.conn, query, options)
       .await
-      .map_err(Error::WitherError)
+      .map_err(Error::Wither)
   }
 
   async fn find(&self, query: Document, options: Option<FindOptions>) -> Result<Vec<T>, Error>
@@ -109,10 +109,10 @@ pub trait Model<T: wither::Model + Send> {
     let db = self.get_database();
     T::find(&db.conn, query, options)
       .await
-      .map_err(Error::WitherError)?
+      .map_err(Error::Wither)?
       .try_collect::<Vec<T>>()
       .await
-      .map_err(Error::WitherError)
+      .map_err(Error::Wither)
   }
 
   async fn find_one_and_update(
@@ -127,7 +127,7 @@ pub trait Model<T: wither::Model + Send> {
     let db = self.get_database();
     T::find_one_and_update(&db.conn, query, update, options)
       .await
-      .map_err(Error::WitherError)
+      .map_err(Error::Wither)
   }
 
   async fn update_one(
@@ -143,7 +143,7 @@ pub trait Model<T: wither::Model + Send> {
     T::collection(&db.conn)
       .update_one(query, update, options)
       .await
-      .map_err(Error::MongoError)
+      .map_err(Error::Mongo)
   }
 
   async fn update_many(
@@ -159,7 +159,7 @@ pub trait Model<T: wither::Model + Send> {
     T::collection(&db.conn)
       .update_many(query, update, options)
       .await
-      .map_err(Error::MongoError)
+      .map_err(Error::Mongo)
   }
 
   async fn delete_many(&self, query: Document) -> Result<DeleteResult, Error>
@@ -169,7 +169,7 @@ pub trait Model<T: wither::Model + Send> {
     let db = self.get_database();
     T::delete_many(&db.conn, query, None)
       .await
-      .map_err(Error::WitherError)
+      .map_err(Error::Wither)
   }
 
   async fn delete_one(&self, query: Document) -> Result<DeleteResult, Error>
@@ -180,7 +180,7 @@ pub trait Model<T: wither::Model + Send> {
     T::collection(&db.conn)
       .delete_one(query, None)
       .await
-      .map_err(Error::MongoError)
+      .map_err(Error::Mongo)
   }
 
   async fn count(&self, query: Document) -> Result<i64, Error>
@@ -191,7 +191,7 @@ pub trait Model<T: wither::Model + Send> {
     T::collection(&db.conn)
       .count_documents(query, None)
       .await
-      .map_err(Error::MongoError)
+      .map_err(Error::Mongo)
   }
 
   async fn aggregate<A>(&self, pipeline: Vec<Document>) -> Result<Vec<A>, Error>
@@ -203,10 +203,10 @@ pub trait Model<T: wither::Model + Send> {
     let documents = T::collection(&db.conn)
       .aggregate(pipeline, None)
       .await
-      .map_err(Error::MongoError)?
+      .map_err(Error::Mongo)?
       .try_collect::<Vec<Document>>()
       .await
-      .map_err(Error::MongoError)?;
+      .map_err(Error::Mongo)?;
 
     let documents = documents
       .into_iter()
@@ -222,7 +222,7 @@ pub trait Model<T: wither::Model + Send> {
     T: wither::Model + Send,
   {
     let db = self.get_database();
-    T::sync(&db.conn).await.map_err(Error::WitherError)?;
+    T::sync(&db.conn).await.map_err(Error::Wither)?;
 
     Ok(())
   }

@@ -76,7 +76,7 @@ struct Cert {
 }
 
 pub async fn validate(token: &str, client_id: &str) -> Result<GoogleToken, Error> {
-  let unverified_header = jsonwebtoken::decode_header(&token).unwrap();
+  let unverified_header = jsonwebtoken::decode_header(token).unwrap();
   let kid = unverified_header.kid.unwrap();
   let certs = get_certs().await.unwrap();
 
@@ -94,7 +94,7 @@ pub async fn validate(token: &str, client_id: &str) -> Result<GoogleToken, Error
   validation.set_audience(&audiences);
 
   let token_data = jsonwebtoken::decode::<GoogleToken>(
-    &token,
+    token,
     &DecodingKey::from_rsa_components(&cert.n, &cert.e),
     &validation,
   );
@@ -111,7 +111,7 @@ pub async fn validate(token: &str, client_id: &str) -> Result<GoogleToken, Error
   if google_token.is_valid(audiences) {
     Ok(google_token)
   } else {
-    return Err(Error::GoogleAuthentication {});
+    Err(Error::GoogleAuthentication {})
   }
 }
 
