@@ -54,7 +54,7 @@ pub fn parse_query_string<'a, T>(query_string: &'a str) -> Result<T, Error>
 where
   T: Deserialize<'a>,
 {
-  serde_qs::from_str::<T>(&query_string).map_err(Error::ParseQueryString)
+  serde_qs::from_str::<T>(query_string).map_err(Error::ParseQueryString)
 }
 
 pub fn sanitize_tags(tags: Vec<String>) -> Vec<String> {

@@ -88,7 +88,7 @@ impl Rss {
       .await?
       .json::<Response<GetResponse>>()
       .await
-      .map_err(Error::ReqwestError)?;
+      .map_err(Error::Reqwest)?;
 
     match res.ok {
       true => Ok(res.result.unwrap().entries),
@@ -107,7 +107,7 @@ impl Rss {
       .await?
       .json::<Response<SubscribeResponse>>()
       .await
-      .map_err(Error::ReqwestError)?;
+      .map_err(Error::Reqwest)?;
 
     match res.ok {
       true => Ok(res.result.unwrap()),
@@ -124,7 +124,7 @@ impl Rss {
       .await?
       .json::<Response<UnsuscribeResponse>>()
       .await
-      .map_err(Error::ReqwestError)?;
+      .map_err(Error::Reqwest)?;
 
     match res.ok {
       true => Ok(()),
@@ -141,7 +141,7 @@ impl Rss {
       .await?
       .json::<Response<ValidateResponse>>()
       .await
-      .map_err(Error::ReqwestError)?;
+      .map_err(Error::Reqwest)?;
 
     match res.ok {
       true => Ok(res.result.unwrap().valid_feed),

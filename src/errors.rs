@@ -5,11 +5,11 @@ use actix_web::HttpResponse;
 use lettre_email::error::Error as LettreEmailError;
 use serde_json::json;
 use wither::bson;
-use wither::mongodb;
 use wither::mongodb::error::CommandError as MongoCommandError;
 use wither::mongodb::error::Error as MongoError;
 use wither::mongodb::error::ErrorKind as MongoErrorKind;
 use wither::WitherError;
+use reqwest::Error as ReqwestError;
 
 use crate::mailer::MailerError;
 
@@ -20,10 +20,10 @@ pub enum Error {
   ReadAppData(),
 
   #[error("{0}")]
-  WitherError(#[from] WitherError),
+  Wither(#[from] WitherError),
 
   #[error("{0}")]
-  MongoError(#[from] mongodb::error::Error),
+  Mongo(#[from] MongoError),
 
   #[error("{0}")]
   ParseObjectID(#[from] bson::oid::Error),
@@ -59,7 +59,7 @@ pub enum Error {
   BuildEmail(#[from] LettreEmailError),
 
   #[error("{0}")]
-  ReqwestError(#[from] reqwest::Error),
+  Reqwest(#[from] ReqwestError),
 }
 
 impl Error {
@@ -69,7 +69,7 @@ impl Error {
       Error::ParseURL() => (StatusCode::BAD_REQUEST, 4041),
       Error::ParseQueryString(_) => (StatusCode::BAD_REQUEST, 4042),
       Error::ParseObjectID(_) => (StatusCode::BAD_REQUEST, 4043),
-      Error::WitherError(WitherError::Mongo(MongoError { ref kind, .. })) => {
+      Error::Wither(WitherError::Mongo(MongoError { ref kind, .. })) => {
         let mongo_error = kind.as_ref();
         match mongo_error {
           MongoErrorKind::CommandError(MongoCommandError { code: 11000, .. }) => {
@@ -85,11 +85,11 @@ impl Error {
       Error::GoogleAuthentication {} => (StatusCode::UNAUTHORIZED, 4017),
 
       // 5XX
-      Error::WitherError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5001),
+      Error::Wither(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5001),
       Error::ReadAppData() => (StatusCode::INTERNAL_SERVER_ERROR, 5002),
-      Error::MongoError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5003),
+      Error::Mongo(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5003),
       Error::HashPassword(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5004),
-      Error::ReqwestError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5005),
+      Error::Reqwest(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5005),
       Error::RSSIntegration(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5006),
       Error::SendEmail(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5007),
       Error::BuildEmail(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5008),
