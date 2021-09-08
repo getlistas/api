@@ -1,15 +1,22 @@
-use actix_files::NamedFile;
-use actix_web::web;
-use std::path::PathBuf;
+use actix_web::{web, HttpResponse};
+use serde::Serialize;
+
+type Response = actix_web::Result<HttpResponse>;
 
 pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(web::resource("").route(web::get().to(index)));
 }
 
-async fn index() -> actix_web::Result<NamedFile> {
-  let path = PathBuf::from("static/index.html");
-  let html = NamedFile::open(path)?;
+#[derive(Debug, Serialize)]
+struct Status {
+  status: String,
+  version: String,
+}
 
-  debug!("Returning index.html to the client");
-  Ok(html)
+async fn index() -> Response {
+  let status = String::from("OK");
+  let version = String::from("0.1.0");
+
+  let res = HttpResponse::Ok().json(Status { status, version });
+  Ok(res)
 }
