@@ -78,7 +78,7 @@ impl Settings {
     settings.merge(config::File::with_name("config/local").required(false))?;
 
     // Merge config from the environment variables.
-    // Eg: `LOGGER_LEVEL=info ./target/listas` would set the `logger.level`
+    // Eg: `LOGGER__LEVEL=info ./target/listas` would set the `logger.level`
     // value.
     settings.merge(config::Environment::new().separator("__"))?;
 
