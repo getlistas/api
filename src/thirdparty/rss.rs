@@ -111,7 +111,7 @@ impl Rss {
 
     match res.ok {
       true => Ok(res.result.unwrap()),
-      false => return Err(Error::RSSIntegration(res.error.unwrap())),
+      false => Err(Error::RSSIntegration(res.error.unwrap())),
     }
   }
 
@@ -128,7 +128,7 @@ impl Rss {
 
     match res.ok {
       true => Ok(()),
-      false => return Err(Error::RSSIntegration(res.error.unwrap())),
+      false => Err(Error::RSSIntegration(res.error.unwrap())),
     }
   }
 
@@ -145,7 +145,7 @@ impl Rss {
 
     match res.ok {
       true => Ok(res.result.unwrap().valid_feed),
-      false => return Err(Error::RSSIntegration(res.error.unwrap())),
+      false => Err(Error::RSSIntegration(res.error.unwrap())),
     }
   }
 
@@ -188,10 +188,10 @@ impl Rss {
     user: &ObjectId,
     list: &ObjectId,
   ) -> Result<Vec<Resource>, Error> {
-    let entries = self.get_entries(&url).await?;
+    let entries = self.get_entries(url).await?;
     let resource_futures = entries
       .into_iter()
-      .map(|entry| Self::create_resource_payload_from_entry(entry, &user, &list));
+      .map(|entry| Self::create_resource_payload_from_entry(entry, user, list));
 
     try_join_all(resource_futures).await
   }

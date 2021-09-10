@@ -189,10 +189,7 @@ async fn verify_user_email(ctx: web::Data<Context>, token: web::Path<String>) ->
   let user = ctx
     .models
     .user
-    .find_one(
-      doc! { "verification_token": token.into_inner() },
-      None
-    )
+    .find_one(doc! { "verification_token": token.into_inner() }, None)
     .await?;
 
   let user = match user {

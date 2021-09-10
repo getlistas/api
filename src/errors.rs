@@ -3,13 +3,13 @@ use actix_web::error::BlockingError;
 use actix_web::http::StatusCode;
 use actix_web::HttpResponse;
 use lettre_email::error::Error as LettreEmailError;
+use reqwest::Error as ReqwestError;
 use serde_json::json;
 use wither::bson;
 use wither::mongodb::error::CommandError as MongoCommandError;
 use wither::mongodb::error::Error as MongoError;
 use wither::mongodb::error::ErrorKind as MongoErrorKind;
 use wither::WitherError;
-use reqwest::Error as ReqwestError;
 
 use crate::mailer::MailerError;
 
