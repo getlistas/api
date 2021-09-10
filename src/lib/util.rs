@@ -1,3 +1,4 @@
+use actix_web::http::header::IntoHeaderValue;
 use actix_web::{http, HttpResponse};
 use itertools::Itertools;
 use rand::Rng;
@@ -5,7 +6,6 @@ use serde::de::Deserialize;
 use slug::slugify;
 use url::Url;
 use wither::bson::oid::ObjectId;
-use actix_web::http::header::IntoHeaderValue;
 
 use crate::errors::Error;
 

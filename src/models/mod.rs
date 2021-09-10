@@ -70,10 +70,7 @@ pub trait Model<T: wither::Model + Send> {
     T: 'async_trait + wither::Model + Send,
   {
     let db = self.get_database();
-    model
-      .save(&db.conn, None)
-      .await
-      .map_err(Error::Wither)?;
+    model.save(&db.conn, None).await.map_err(Error::Wither)?;
 
     Ok(model)
   }
