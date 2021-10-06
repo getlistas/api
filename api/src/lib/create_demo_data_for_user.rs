@@ -49,7 +49,7 @@ pub async fn create(models: &Models, user: ObjectId) -> Result<(), Error> {
       user: user.clone(),
       list: list.id.clone().unwrap(),
       url: resource_url.to_owned(),
-      title: resource_title.to_owned(),
+      title: Some(resource_title.to_owned()),
       description: Some(resource_description.to_owned()),
       thumbnail: Some(resource_thumbnail.to_owned()),
       created_at: now,

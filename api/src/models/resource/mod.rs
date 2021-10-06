@@ -23,7 +23,7 @@ pub struct Resource {
   pub list: ObjectId,
   #[validate(url)]
   pub url: String,
-  pub title: String,
+  pub title: Option<String>,
   pub position: i32,
   pub description: Option<String>,
   pub thumbnail: Option<String>,
@@ -95,7 +95,7 @@ pub struct PrivateResource {
   #[serde(serialize_with = "serialize_object_id_as_hex_string")]
   pub list: ObjectId,
   pub url: String,
-  pub title: String,
+  pub title: Option<String>,
   pub position: i32,
   pub description: Option<String>,
   pub thumbnail: Option<String>,

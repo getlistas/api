@@ -35,7 +35,7 @@ struct Query {
 pub struct ResourceCreate {
   pub list: String,
   pub url: String,
-  pub title: String,
+  pub title: Option<String>,
   pub description: Option<String>,
   pub thumbnail: Option<String>,
   pub tags: Option<Vec<String>>,
