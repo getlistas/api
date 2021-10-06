@@ -338,7 +338,7 @@ async fn enrich_resource(ctx: &Ctx, mut resource: Resource) -> Result<Resource, 
   };
 
   if let Some(title) = metadata.title {
-    resource.title = title
+    resource.title = Some(title)
   }
 
   if let Some(description) = metadata.description {

@@ -166,7 +166,7 @@ impl Rss {
       position: 0,
       tags: vec!["rss".to_owned()],
       url: url.to_string(),
-      title: entry.title.clone(),
+      title: Some(entry.title.clone()),
       description: entry.description.into(),
       created_at: now,
       updated_at: now,
