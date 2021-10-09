@@ -184,7 +184,7 @@ async fn create_rss_integration(ctx: Ctx, body: RSSCreateBody, user_id: UserID) 
         "Failed to update last activity for list {}. Error {}",
         &list_id, err
       )
-    })?;
+    });
 
   debug!("Returning integration and 200 status code");
   let integration: PrivateIntegration = integration.into();
@@ -277,7 +277,7 @@ async fn create_subscription_integration(
         "Failed to update last activity for list {}. Error {}",
         &follower_list_id, err
       )
-    })?;
+    });
 
   debug!("Returning integration and 200 status code");
   let integration: PrivateIntegration = integration.into();
@@ -320,7 +320,7 @@ async fn remove_integration(ctx: Ctx, id: ID, user_id: UserID) -> Response {
         "Failed to update last activity for list {}. Error {}",
         &integration.list, err
       )
-    })?;
+    });
 
   debug!("Integration removed, returning 204 status code");
   let res = HttpResponse::NoContent().finish();

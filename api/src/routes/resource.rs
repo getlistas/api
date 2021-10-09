@@ -286,7 +286,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     .try_send(subscription::on_resource_created::ResourceCreated {
       resource_id: resource_id.clone(),
     })
-    .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
+    .map_err(|err| error!("Failed to send message to subscription actor, {}", err));
 
   ctx
     .actors
@@ -294,7 +294,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     .try_send(EnreachResourceMessage {
       resource_id: resource_id.clone(),
     })
-    .map_err(|err| error!("Failed to send message to resource actor, {}", err))?;
+    .map_err(|err| error!("Failed to send message to resource actor, {}", err));
 
   ctx
     .models
@@ -306,7 +306,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
         "Failed to update last activity for list {}. Error {}",
         &resource.list, err
       )
-    })?;
+    });
 
   debug!("Returning created resource");
   let resource: PrivateResource = resource.into();
@@ -389,7 +389,7 @@ async fn remove_resource(ctx: Ctx, id: ID, user_id: UserID) -> Response {
         "Failed to update last activity for list {}. Error {}",
         &resource.list, err
       )
-    })?;
+    });
 
   debug!("Resource removed, returning 204 status code");
   let res = HttpResponse::NoContent().finish();
