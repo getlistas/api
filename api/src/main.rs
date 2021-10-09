@@ -75,9 +75,9 @@ async fn main() {
 
   HttpServer::new(move || {
     App::new()
+      .wrap(Cors::permissive())
       .wrap(middleware::Compress::default())
       .wrap(middleware::Logger::default())
-      .wrap(Cors::permissive())
       .app_data(web::Data::new(settings.clone()))
       .app_data(context.clone())
       .configure(routes::user::create_router)

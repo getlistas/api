@@ -76,9 +76,9 @@ impl User {
   // }
 
   pub async fn hash_password(password: String) -> Result<String, Error> {
-    let hash = to_future(move || bcrypt::hash(password, bcrypt::DEFAULT_COST));
+    let hash = to_future(move || bcrypt::hash(password, bcrypt::DEFAULT_COST)).await?;
 
-    match hash.await {
+    match hash {
       Ok(hash) => Ok(hash),
       Err(err) => Err(Error::HashPassword(err)),
     }

@@ -1,4 +1,3 @@
-use actix_web::http::header::IntoHeaderValue;
 use actix_web::{http, HttpResponse};
 use itertools::Itertools;
 use rand::Rng;
@@ -11,12 +10,15 @@ use crate::errors::Error;
 
 type Response = actix_web::Result<HttpResponse>;
 
-pub fn redirect_to<T: IntoHeaderValue>(url: T) -> Response {
+// TODO: Validate that the given URL is a valid URL.
+pub fn redirect_to<T>(url: T) -> Response
+where
+  T: AsRef<str>,
+{
   Ok(
     HttpResponse::Found()
-      .header(http::header::LOCATION, url)
-      .finish()
-      .into_body(),
+      .append_header((http::header::LOCATION, url.as_ref()))
+      .finish(),
   )
 }
 
@@ -41,8 +43,8 @@ pub fn to_object_id(id: String) -> Result<ObjectId, Error> {
 pub fn parse_url(url: &str) -> Result<Url, Error> {
   let mut url = url.to_owned();
 
+  // Removes the URL trailing slashes
   while url.ends_with('/') {
-    // Removes the URL trailing slashes
     url.pop();
   }
 

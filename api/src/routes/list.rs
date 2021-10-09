@@ -169,7 +169,7 @@ async fn update_list(ctx: web::Data<Context>, id: ID, body: web::Json<ListUpdate
         id: list_id.clone(),
         title: list.title.clone(),
       })
-      .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
+      .map_err(|err| error!("Failed to send message to subscription actor, {}", err));
   }
 
   let list = ctx.models.list.to_private_schema(&list).await?;
@@ -306,7 +306,7 @@ async fn remove_list(ctx: web::Data<Context>, id: ID, user: UserID) -> Response 
       id: list_id.clone(),
       title: list.title.clone(),
     })
-    .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
+    .map_err(|err| error!("Failed to send message to subscription actor, {}", err));
 
   debug!("List removed, returning 204 status code");
   let res = HttpResponse::NoContent().finish();

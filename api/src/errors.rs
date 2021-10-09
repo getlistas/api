@@ -1,10 +1,12 @@
-use actix_web::dev::HttpResponseBuilder;
 use actix_web::error::BlockingError;
 use actix_web::http::StatusCode;
 use actix_web::HttpResponse;
+use actix_web::HttpResponseBuilder;
+use bcrypt::BcryptError;
 use lettre_email::error::Error as LettreEmailError;
 use reqwest::Error as ReqwestError;
 use serde_json::json;
+use serde_qs::Error as SerdeQsError;
 use wither::bson;
 use wither::mongodb::error::CommandError as MongoCommandError;
 use wither::mongodb::error::Error as MongoError;
@@ -41,13 +43,13 @@ pub enum Error {
   GoogleAuthentication {},
 
   #[error("{0}")]
-  HashPassword(#[from] BlockingError<bcrypt::BcryptError>),
+  HashPassword(#[from] BcryptError),
 
   #[error("Failed to parse URL")]
   ParseURL(),
 
   #[error("Failed to parse query string {0}")]
-  ParseQueryString(#[from] serde_qs::Error),
+  ParseQueryString(#[from] SerdeQsError),
 
   #[error("RSS Integration error: {0}")]
   RSSIntegration(String),
@@ -60,6 +62,9 @@ pub enum Error {
 
   #[error("{0}")]
   Reqwest(#[from] ReqwestError),
+
+  #[error("{0}")]
+  BlockingError(#[from] BlockingError),
 }
 
 impl Error {
@@ -94,6 +99,7 @@ impl Error {
       Error::SendEmail(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5007),
       Error::BuildEmail(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5008),
       Error::SerializeMongoResponse(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5009),
+      Error::BlockingError(_) => (StatusCode::INTERNAL_SERVER_ERROR, 5010),
     }
   }
 }

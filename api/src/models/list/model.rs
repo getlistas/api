@@ -223,6 +223,7 @@ impl Model {
     self.like.count(doc! { "list": list_id }).await
   }
 
+  // TODO: Make this function reactive based on what we have on the database.
   pub async fn update_last_activity_at(&self, list_id: &ObjectId) -> Result<(), Error> {
     let update = doc! {
       "$set": {

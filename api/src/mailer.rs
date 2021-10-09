@@ -11,14 +11,14 @@ use crate::settings::Settings;
 #[derive(thiserror::Error, Debug)]
 #[error("...")]
 pub enum MailerError {
-  #[error("Failed to acquire mailer transport mutex")]
+  #[error("Failed to send email: Could not acquire transport mutex")]
   LockTransport,
 
-  #[error("Failed to send email using SMTP transport {0}")]
+  #[error("Failed to send email: SMTP transport error {0}")]
   Smtp(#[from] SmtpError),
 
-  #[error("Failed to send email actix_web::web::block operation was cancelled")]
-  Canceled,
+  #[error("Failed to send email: Blocking error {0}")]
+  BlockingError(#[from] BlockingError),
 }
 
 #[derive(Clone)]
@@ -51,14 +51,13 @@ impl Mailer {
         .send(email.into())
         .map_err(MailerError::Smtp)?;
 
-      Ok(())
+      Ok::<(), MailerError>(())
     })
     .await;
 
     match sent {
       Ok(_) => Ok(()),
-      Err(BlockingError::Canceled) => Err(Error::SendEmail(MailerError::Canceled)),
-      Err(BlockingError::Error(err)) => Err(Error::SendEmail(err)),
+      Err(err) => Err(Error::SendEmail(MailerError::BlockingError(err))),
     }
   }
 }
