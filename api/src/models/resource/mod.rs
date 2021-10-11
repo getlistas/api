@@ -3,6 +3,7 @@ pub mod model;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_with::skip_serializing_none;
+use url::Url;
 use validator::Validate;
 use wither::bson::DateTime;
 use wither::bson::{doc, oid::ObjectId};
@@ -11,6 +12,7 @@ use wither::Model;
 use crate::lib::serde::serialize_bson_datetime_as_iso_string;
 use crate::lib::serde::serialize_bson_datetime_option_as_iso_string;
 use crate::lib::serde::serialize_object_id_as_hex_string;
+use crate::lib::util::parse_url;
 use crate::lib::{date, util};
 
 #[derive(Debug, Clone, Model, Validate, Serialize, Deserialize)]
@@ -39,6 +41,7 @@ pub struct Resource {
 }
 
 impl Resource {
+  // TODO: Use serde to parse this struct to JSON
   pub fn to_json(&self) -> serde_json::Value {
     let this = self.clone();
     json!({
@@ -55,6 +58,12 @@ impl Resource {
         "updated_at": date::to_rfc3339(this.updated_at),
         "completed_at": this.completed_at.map(date::to_rfc3339)
     })
+  }
+
+  pub fn get_url(&self) -> Url {
+    let url = self.url.clone();
+    let url = parse_url(url.as_str()).expect("Resource to have a valid URL");
+    url
   }
 }
 

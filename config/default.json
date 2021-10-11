@@ -24,6 +24,10 @@
     "name": "listas"
   },
 
+  "rabbit_mq": {
+    "uri": ""
+  },
+
   "mailer": {
     "from": "hi@listas.io"
   },
