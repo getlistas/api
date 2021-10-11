@@ -1,5 +1,6 @@
 use crate::actors::Actors;
 use crate::database::Database;
+use crate::jobs::Jobs;
 use crate::mailer::Mailer;
 use crate::models::Models;
 use crate::settings::Settings;
@@ -15,4 +16,5 @@ pub struct Context {
   pub actors: Actors,
   pub models: Models,
   pub traer: Traer,
+  pub jobs: Jobs,
 }

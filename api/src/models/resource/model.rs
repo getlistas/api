@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
+use wither::bson::doc;
+use wither::bson::oid::ObjectId;
 use wither::bson::Document;
 
 use crate::database;
@@ -55,5 +57,66 @@ impl Model {
     };
 
     Ok(Some(metadata))
+  }
+
+  pub async fn populate(&self, resource_id: ObjectId) -> Result<(), Error> {
+    let resource = self.find_by_id(&resource_id).await?;
+    let resource = match resource {
+      Some(resource) => resource,
+      None => {
+        // TODO: Maybe throw an error instead? Not sure yet.
+        warn!("Resource was not found when updating resource metadatas");
+        return Ok(());
+      }
+    };
+
+    let url = resource.get_url();
+    let traer_response = self.traer.get_content_from_url(&url).await?;
+
+    let metadata = match traer_response {
+      None => return Ok(()),
+      Some(metadata) => metadata,
+    };
+
+    let mut update = doc! {};
+
+    if let Some(title) = metadata.title {
+      update.insert("title", title);
+    }
+    if let Some(description) = metadata.description {
+      update.insert("description", description);
+    }
+    if let Some(image) = metadata.image {
+      update.insert("thumbnail", image);
+    }
+    if let Some(html) = metadata.html {
+      update.insert("html", html);
+    }
+    if let Some(text) = metadata.text {
+      update.insert("text", text);
+    }
+    if let Some(length) = metadata.length {
+      update.insert("length", length);
+    }
+    if let Some(publisher) = metadata.publisher {
+      update.insert("publisher", publisher);
+    }
+    if let Some(author) = metadata.author {
+      update.insert("author", author);
+    }
+
+    // Metadata was available for the specified resource but for some reason
+    // the Treaer API returned empty attributes.
+    let has_update = !update.is_empty();
+    if !has_update {
+      return Ok(());
+    }
+
+    let update = doc! { "$set": update };
+    self
+      .update_one(doc! { "_id": resource_id }, update, None)
+      .await?;
+
+    Ok(())
   }
 }

@@ -50,14 +50,11 @@ impl Traer {
     }
   }
 
-  pub async fn get_content_from_url(
-    &self,
-    url: &Url,
-  ) -> Result<TraerResponse<TraerReadResult>, Error> {
+  pub async fn get_content_from_url(&self, url: &Url) -> Result<Option<TraerReadResult>, Error> {
     let mut body = HashMap::new();
     body.insert("url".to_owned(), url.to_string());
 
-    self
+    let res = self
       .client
       .post(format!("{}/parse", self.base_url).as_str())
       .json(&body)
@@ -66,7 +63,14 @@ impl Traer {
       .await?
       .json::<TraerResponse<TraerReadResult>>()
       .await
-      .map_err(Error::Reqwest)
+      .map_err(Error::Reqwest)?;
+
+    let has_metadata = res.success;
+    if !has_metadata {
+      return Ok(None);
+    }
+
+    Ok(Some(res.data))
   }
 
   pub async fn get_slim_content_from_url(

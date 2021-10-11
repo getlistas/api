@@ -4,10 +4,12 @@ mod context;
 mod database;
 mod emails;
 mod errors;
+mod jobs;
 mod lib;
 mod logger;
 mod mailer;
 mod models;
+mod rabbit_mq;
 mod routes;
 mod settings;
 mod thirdparty;
@@ -19,8 +21,10 @@ extern crate log;
 
 use context::Context;
 use database::Database;
+use jobs::Jobs;
 use logger::Logger;
 use mailer::Mailer;
+use rabbit_mq::RabbitMQ;
 use settings::Settings;
 
 #[actix_web::main]
@@ -40,6 +44,11 @@ async fn main() {
     Err(_) => panic!("Failed to setup database connection"),
   };
 
+  let rabbit_mq = match RabbitMQ::new(&settings).await {
+    Ok(value) => value,
+    Err(_) => panic!("Failed to setup RabbitMQ connection"),
+  };
+
   let mailer = match Mailer::new(&settings) {
     Ok(value) => value,
     Err(_) => panic!("Failed to setup mailer"),
@@ -48,12 +57,9 @@ async fn main() {
   let rss = thirdparty::rss::Rss::new(settings.rss.token.clone());
   let traer = thirdparty::traer::Traer::new(settings.traer.token.clone());
   let models = models::Models::new(database.clone(), rss.clone(), traer.clone());
-  let actors = actors::Actors::new(
-    models.clone(),
-    settings.clone(),
-    mailer.clone(),
-    traer.clone(),
-  );
+  let actors = actors::Actors::new(models.clone(), settings.clone(), mailer.clone());
+
+  let jobs = Jobs::setup(rabbit_mq, models.clone()).await;
 
   let context = web::Data::new(Context {
     database: database.clone(),
@@ -63,6 +69,7 @@ async fn main() {
     traer: traer.clone(),
     actors: actors.clone(),
     models: models.clone(),
+    jobs: jobs.clone(),
   });
 
   let port = settings.server.port;

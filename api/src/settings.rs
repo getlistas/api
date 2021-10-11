@@ -53,6 +53,10 @@ pub struct Traer {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct RabbitMQ {
+  pub uri: String,
+}
+#[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
   pub environment: String,
   pub server: Server,
@@ -66,6 +70,7 @@ pub struct Settings {
   pub rss: Rss,
   pub sendgrid: Sendgrid,
   pub traer: Traer,
+  pub rabbit_mq: RabbitMQ,
 }
 
 impl Settings {

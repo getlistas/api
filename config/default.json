@@ -6,7 +6,7 @@
   },
 
   "auth": {
-    "secret": "secret"
+    "secret": "leaden-toronto-WAND-truthful-camest-@L1st2as..,aAMUSE-granola-covenant-corpora-sphere3644"
   },
 
   "oauth": {
@@ -16,12 +16,16 @@
   },
 
   "logger": {
-    "level": "debug"
+    "level": "info"
   },
 
   "database": {
-    "uri": "mongodb://localhost:27017",
+    "uri": "mongodb+srv://jk2O94zDJZ1LISV0:DV3Ca9CvLzVf27co9ann123asnaiq1@production.zmc95.mongodb.net/listas?retryWrites=true&w=majority",
     "name": "listas"
+  },
+
+  "rabbit_mq": {
+    "uri": "amqps://vwvwvynf:MyJBlOSgag21smiM97RgnlN8LTSzgykR@hornet.rmq.cloudamqp.com/vwvwvynf"
   },
 
   "mailer": {
@@ -36,6 +40,10 @@
   },
 
   "sendgrid": {
-    "token": ""
+    "token": "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"
+  },
+
+  "traer": {
+    "token": "usKpouXiVTFqMj8a2YWy4TRva9kGwHK1mmxYZj4mR6pCx0s3NbmTfiDy3c2EQR76Hasd2jg"
   }
 }

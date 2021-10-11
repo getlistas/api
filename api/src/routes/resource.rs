@@ -8,7 +8,6 @@ use wither::bson::{doc, Bson};
 use wither::mongodb;
 use wither::mongodb::options::FindOneAndUpdateOptions;
 
-use crate::actors::resource::EnreachResourceMessage;
 use crate::actors::subscription;
 use crate::auth::UserID;
 use crate::lib::id::ID;
@@ -289,12 +288,9 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     .map_err(|err| error!("Failed to send message to subscription actor, {}", err))?;
 
   ctx
-    .actors
-    .resource
-    .try_send(EnreachResourceMessage {
-      resource_id: resource_id.clone(),
-    })
-    .map_err(|err| error!("Failed to send message to resource actor, {}", err))?;
+    .jobs
+    .queue("populate-resources", vec![resource_id.clone().to_string()])
+    .await;
 
   ctx
     .models
