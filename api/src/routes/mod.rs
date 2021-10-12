@@ -8,3 +8,4 @@ pub mod resource;
 pub mod resource_metadata;
 pub mod user;
 pub mod webhooks;
+pub mod resource_import;

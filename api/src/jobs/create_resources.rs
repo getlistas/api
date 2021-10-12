@@ -3,6 +3,7 @@ use lapin::options::BasicAckOptions;
 use lapin::options::BasicConsumeOptions;
 use lapin::options::QueueDeclareOptions;
 use lapin::types::FieldTable;
+use serde::{Deserialize, Serialize};
 
 use crate::errors::Error;
 use crate::lib::util::to_object_id;
@@ -10,7 +11,7 @@ use crate::models::Models;
 use crate::rabbit_mq::RabbitMQ;
 
 pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
-  let queue_name = "populate-resources";
+  let queue_name = "create-resources";
   let channel = rabbit_mq.channel;
   let _queue = channel
     .queue_declare(
@@ -36,6 +37,7 @@ pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
     .set_delegate(move |delivery: DeliveryResult| {
       let models = models.clone();
       let delivery = delivery.expect("Error caught in in consumer");
+
       async move {
         if let Some((_channel, delivery)) = delivery {
           let payload = delivery.data.clone();
@@ -56,6 +58,13 @@ pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
     .unwrap();
 }
 
+async fn create_resources(payload: Vec<u8>, models: Models) -> Result<(), Error> {
+  let create_resources: CreateResources = bincode::deserialize(payload.as_ref()).unwrap();
+  let list_id = to_object_id(&create_resources.list_id)?;
+
+  Ok(())
+}
+
 async fn populate_resources(payload: Vec<u8>, models: Models) -> Result<(), Error> {
   let ids: Vec<String> = bincode::deserialize(payload.as_ref()).unwrap();
   // TODO: Handle resources in parallel
@@ -74,4 +83,10 @@ async fn populate_resource(resource_id: String, models: Models) -> Result<(), Er
   models.resource.populate(id).await.unwrap();
 
   Ok(())
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateResources {
+  pub list: String,
+  pub resources: Vec<String>,
 }

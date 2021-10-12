@@ -1,4 +1,5 @@
 pub mod populate_resources;
+pub mod create_resources;
 
 use crate::models::Models;
 use crate::rabbit_mq::RabbitMQ;
@@ -14,6 +15,7 @@ pub struct Jobs {
 impl Jobs {
   pub async fn setup(rabbit_mq: RabbitMQ, models: Models) -> Self {
     populate_resources::setup(rabbit_mq.clone(), models.clone()).await;
+    create_resources::setup(rabbit_mq.clone(), models.clone()).await;
 
     Self { rabbit_mq }
   }
