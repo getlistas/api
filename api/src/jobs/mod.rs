@@ -1,5 +1,5 @@
-pub mod populate_resources;
 pub mod create_resources;
+pub mod populate_resources;
 
 use crate::models::Models;
 use crate::rabbit_mq::RabbitMQ;

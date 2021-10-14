@@ -4,18 +4,20 @@ use lapin::options::BasicConsumeOptions;
 use lapin::options::QueueDeclareOptions;
 use lapin::types::FieldTable;
 use serde::{Deserialize, Serialize};
+use wither::bson::oid::ObjectId;
 
 use crate::errors::Error;
 use crate::lib::util::to_object_id;
 use crate::models::Models;
 use crate::rabbit_mq::RabbitMQ;
 
+const QUEUE_NAME: &str = "create-resources";
+
 pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
-  let queue_name = "create-resources";
   let channel = rabbit_mq.channel;
   let _queue = channel
     .queue_declare(
-      queue_name,
+      QUEUE_NAME,
       QueueDeclareOptions::default(),
       FieldTable::default(),
     )
@@ -24,7 +26,7 @@ pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
 
   let consumer = channel
     .basic_consume(
-      queue_name,
+      QUEUE_NAME,
       "api",
       BasicConsumeOptions::default(),
       FieldTable::default(),
@@ -35,14 +37,16 @@ pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
   let models = models.clone();
   consumer
     .set_delegate(move |delivery: DeliveryResult| {
+      // TODO: Add more data to this log.
+      info!("Processing create-resources job");
+
       let models = models.clone();
       let delivery = delivery.expect("Error caught in in consumer");
 
       async move {
         if let Some((_channel, delivery)) = delivery {
           let payload = delivery.data.clone();
-
-          info!("Received message: {:?}", &payload);
+          let payload: JobPayload = bincode::deserialize(payload.as_ref()).unwrap();
 
           populate_resources(payload, models)
             .await
@@ -58,35 +62,35 @@ pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
     .unwrap();
 }
 
-async fn create_resources(payload: Vec<u8>, models: Models) -> Result<(), Error> {
-  let create_resources: CreateResources = bincode::deserialize(payload.as_ref()).unwrap();
-  let list_id = to_object_id(&create_resources.list_id)?;
+async fn populate_resources(payload: JobPayload, models: Models) -> Result<(), Error> {
+  let list_id = payload.list;
+  let list_id = to_object_id(list_id)?;
+  let urls = payload.urls;
 
-  Ok(())
-}
-
-async fn populate_resources(payload: Vec<u8>, models: Models) -> Result<(), Error> {
-  let ids: Vec<String> = bincode::deserialize(payload.as_ref()).unwrap();
-  // TODO: Handle resources in parallel
-  info!("Populating resources {:?}", &ids);
-
-  for id in ids {
-    populate_resource(id, models.clone()).await.unwrap();
+  // TODO: Process this in parallel.
+  for url in urls {
+    create_resource(&list_id, url, models.clone())
+      .await
+      .unwrap();
   }
 
   Ok(())
 }
 
-async fn populate_resource(resource_id: String, models: Models) -> Result<(), Error> {
-  info!("Populating resource: {}", &resource_id);
-  let id = to_object_id(resource_id).expect("Job to receive a valid resource ID");
-  models.resource.populate(id).await.unwrap();
+async fn create_resource(list_id: &ObjectId, url: String, models: Models) -> Result<(), Error> {
+  info!(
+    "Creating resource from url {:?} to list {:?}",
+    &url, &list_id
+  );
+
+  // let id = to_object_id(resource_id).expect("Job to receive a valid resource ID");
+  // models.resource.populate(id).await.unwrap();
 
   Ok(())
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct CreateResources {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct JobPayload {
   pub list: String,
-  pub resources: Vec<String>,
+  pub urls: Vec<String>,
 }

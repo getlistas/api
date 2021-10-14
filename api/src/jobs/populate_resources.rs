@@ -9,12 +9,13 @@ use crate::lib::util::to_object_id;
 use crate::models::Models;
 use crate::rabbit_mq::RabbitMQ;
 
+const QUEUE_NAME: &str = "populate-resources";
+
 pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
-  let queue_name = "populate-resources";
   let channel = rabbit_mq.channel;
   let _queue = channel
     .queue_declare(
-      queue_name,
+      QUEUE_NAME,
       QueueDeclareOptions::default(),
       FieldTable::default(),
     )
@@ -23,7 +24,7 @@ pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
 
   let consumer = channel
     .basic_consume(
-      queue_name,
+      QUEUE_NAME,
       "api",
       BasicConsumeOptions::default(),
       FieldTable::default(),
