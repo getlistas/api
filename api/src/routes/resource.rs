@@ -54,6 +54,7 @@ type PositionUpdateBody = web::Json<PositionUpdate>;
 pub fn create_router(cfg: &mut web::ServiceConfig) {
   let auth = HttpAuthentication::bearer(auth::validator);
 
+  // TODO: Move this route to its own resource-metrics endpoint
   cfg.service(
     web::resource("/resources/metrics")
       .route(web::get().to(get_resource_metrics))
@@ -268,6 +269,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     publisher: None,
   };
 
+  // TODO: Integrate validate method into a create method.
   match resource.validate() {
     Ok(_) => (),
     Err(_err) => {
@@ -292,6 +294,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     .queue("populate-resources", vec![resource_id.clone().to_string()])
     .await;
 
+  // TODO: Last acivity should be calculated in a reactive way.
   ctx
     .models
     .list
