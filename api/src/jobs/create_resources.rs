@@ -4,7 +4,6 @@ use lapin::options::BasicConsumeOptions;
 use lapin::options::QueueDeclareOptions;
 use lapin::types::FieldTable;
 use serde::{Deserialize, Serialize};
-use wither::bson::oid::ObjectId;
 
 use crate::errors::Error;
 use crate::lib::date;

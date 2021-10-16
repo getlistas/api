@@ -35,7 +35,12 @@ async fn import_resources(ctx: Ctx, body: web::Json<RequestBody>, user: UserID) 
   let list_id = to_object_id(body.list.clone())?;
   let payload = body.payload.clone();
 
-  let list = ctx.models.list.find_by_id(&list_id).await?;
+  let list = ctx
+    .models
+    .list
+    .find_one(doc! { "_id": list_id, "user": user_id }, None)
+    .await?;
+
   let list = match list {
     Some(list) => list,
     None => return Ok(HttpResponse::NotFound().finish()),
@@ -43,9 +48,10 @@ async fn import_resources(ctx: Ctx, body: web::Json<RequestBody>, user: UserID) 
 
   let urls = parse_import_payload(payload);
   let payload = JobPayload {
-    list: body.list.clone(),
+    list: list.id.unwrap().to_string(),
     urls,
   };
+
   // TODO: Queue un batch.
   ctx.jobs.queue("create-resources", payload).await;
 

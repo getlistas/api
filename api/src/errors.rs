@@ -81,7 +81,7 @@ impl Error {
           }
           _ => (StatusCode::INTERNAL_SERVER_ERROR, 4045),
         }
-      },
+      }
       Error::ValidateModel(_) => (StatusCode::BAD_REQUEST, 4046),
 
       // 401
