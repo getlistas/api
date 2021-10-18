@@ -53,7 +53,8 @@ async fn import_resources(ctx: Ctx, body: web::Json<RequestBody>, user: UserID) 
   };
 
   // TODO: Queue un batch.
-  ctx.jobs.queue("create-resources", payload).await;
+
+  ctx.jobs.queue("create_resources", payload).await;
 
   debug!("Returning resource metadata to the client");
   let res = HttpResponse::Ok().finish();
@@ -67,6 +68,9 @@ struct ImportItem {
 }
 
 fn parse_import_payload(payload: String) -> Vec<String> {
+  // TODO: Handle errors, no unwrap.
+  let payload: String = serde_json::from_str(payload.as_str()).unwrap();
+
   payload
     .trim()
     .lines()

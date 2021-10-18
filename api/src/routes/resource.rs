@@ -291,7 +291,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
 
   ctx
     .jobs
-    .queue("populate-resources", vec![resource_id.clone().to_string()])
+    .queue("populate_resources", vec![resource_id.clone().to_string()])
     .await;
 
   // TODO: Last acivity should be calculated in a reactive way.

@@ -9,7 +9,7 @@ use crate::lib::util::to_object_id;
 use crate::models::Models;
 use crate::rabbit_mq::RabbitMQ;
 
-const QUEUE_NAME: &str = "populate-resources";
+const QUEUE_NAME: &str = "populate_resources";
 
 pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
   let channel = rabbit_mq.channel;

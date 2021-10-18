@@ -15,7 +15,7 @@ use crate::models::Model;
 use crate::models::Models;
 use crate::rabbit_mq::RabbitMQ;
 
-const QUEUE_NAME: &str = "create-resources";
+const QUEUE_NAME: &str = "create_resources";
 
 pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
   let channel = rabbit_mq.channel;
@@ -42,7 +42,7 @@ pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
   consumer
     .set_delegate(move |delivery: DeliveryResult| {
       // TODO: Add more data to this log.
-      info!("Processing create-resources job");
+      info!("Processing create_resources job");
 
       let models = models.clone();
       let delivery = delivery.expect("Error caught in in consumer");
@@ -122,8 +122,9 @@ async fn create_resource(
     completed_at: None,
   };
 
+  let resource = models.resource.build(resource).await?;
   let resource_id = resource.id.clone().unwrap();
-  models.resource.build(resource).await?;
+
   models.resource.populate(resource_id).await?;
 
   Ok(())
