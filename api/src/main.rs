@@ -74,11 +74,10 @@ async fn main() {
 
   let port = settings.server.port;
 
-  // At some point this operation should not be run on every start.
-  // models
-  //   .sync_indexes()
-  //   .await
-  //   .expect("Failed to sync model indexes with the Database");
+  models
+    .sync_indexes()
+    .await
+    .expect("Failed to sync model indexes with the Database");
 
   HttpServer::new(move || {
     App::new()
