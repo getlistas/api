@@ -475,26 +475,27 @@ async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdate
   let resource_id = id.0;
   let list_id = to_object_id(body.list.clone())?;
   let user_id = user_id.0;
+  let previus_resource_id = body.previus.clone();
 
-  let resource = ctx
+  let resource_exists = ctx
     .models
     .resource
-    .find_one(
-      doc! { "_id": &resource_id, "user": &user_id, "list": &list_id },
-      None,
-    )
+    .exists(doc! { "_id": &resource_id, "user": &user_id, "list": &list_id })
     .await?;
 
-  if resource.is_none() {
+  if !resource_exists {
     debug!("Resource not found, returning 404 status code");
     return Ok(HttpResponse::NotFound().finish());
   }
 
-  let position = match body.previus.clone() {
-    Some(previus) => {
-      let previus_id = to_object_id(previus)?;
+  let position = match previus_resource_id {
+    // If previus position is not sent, the new resource position is 0, it will
+    // be inserted at the top of the list.
+    None => 0,
+    Some(previus_resource_id) => {
+      let previus_resource_id = to_object_id(previus_resource_id)?;
       let query = doc! {
-          "_id": &previus_id,
+          "_id": &previus_resource_id,
           "user": &user_id,
           "list": &list_id,
       };
@@ -508,7 +509,6 @@ async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdate
 
       position + 1
     }
-    None => 0,
   };
 
   ctx
@@ -521,9 +521,7 @@ async fn update_position(ctx: Ctx, id: ID, user_id: UserID, body: PositionUpdate
           "list": &list_id,
           "position": doc! { "$gte": &position },
       },
-      doc! {
-          "$inc": doc! { "position": 1 }
-      },
+      doc! { "$inc": { "position": 1 } },
       None,
     )
     .await?;
