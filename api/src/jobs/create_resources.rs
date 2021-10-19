@@ -33,7 +33,7 @@ pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
   let consumer = channel
     .basic_consume(
       QUEUE_NAME,
-      "api",
+      "",
       BasicConsumeOptions::default(),
       FieldTable::default(),
     )
@@ -47,27 +47,29 @@ pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
       info!("Processing create_resources job");
 
       let models = models.clone();
-      let delivery = delivery.expect("Error caught in in consumer");
+      let delivery = delivery.expect("Error caught in consumer");
 
       async move {
-        if let Some((_channel, delivery)) = delivery {
-          let payload = delivery.data.clone();
-          let payload: JobPayload = bincode::deserialize(payload.as_ref()).unwrap();
+        let delivery = match delivery {
+          Some((_channel, delivery)) => delivery,
+          None => return (), // The consumer got canceled.
+        };
 
-          let result = create_resources(payload, models).await;
+        let payload = delivery.data.clone();
+        let payload: JobPayload = bincode::deserialize(payload.as_ref()).unwrap();
+        let result = create_resources(payload, models).await;
 
-          match result {
-            Ok(_) => delivery
-              .ack(BasicAckOptions::default())
+        match result {
+          Ok(_) => delivery
+            .ack(BasicAckOptions::default())
+            .await
+            .expect("Failed to ack"),
+          Err(err) => {
+            error!("Failed to process the create_resources job. Error: {}", err);
+            delivery
+              .nack(BasicNackOptions::default())
               .await
-              .expect("Failed to ack"),
-            Err(err) => {
-              error!("Failed to process the create_resources job. Error: {}", err);
-              delivery
-                .nack(BasicNackOptions::default())
-                .await
-                .expect("Failed to nack");
-            }
+              .expect("Failed to nack");
           }
         }
       }
@@ -93,7 +95,11 @@ async fn create_resources(payload: JobPayload, models: Models) -> Result<(), Err
   // TODO: Process this in parallel.
   for (index, url) in urls.into_iter().enumerate() {
     let position = position + (index + 1) as i32;
-    create_resource(models.clone(), &list, url, position).await?
+    let result = create_resource(models.clone(), &list, url.clone(), position).await;
+    if let Err(err) = result {
+      // TODO: Improve this error handling, should we retry this URL?
+      error!("Failed to create resource with URL {}. Error: {}", url, err);
+    }
   }
 
   Ok(())

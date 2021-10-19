@@ -25,7 +25,7 @@ pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
   let consumer = channel
     .basic_consume(
       QUEUE_NAME,
-      "api",
+      "",
       BasicConsumeOptions::default(),
       FieldTable::default(),
     )
