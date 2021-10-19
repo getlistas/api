@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
+use validator::Validate;
 use wither::bson::doc;
 use wither::bson::oid::ObjectId;
 use wither::bson::Document;
@@ -33,6 +34,13 @@ impl models::Model<Resource> for Model {
 impl Model {
   pub fn new(database: database::Database, traer: Traer) -> Self {
     Self { database, traer }
+  }
+
+  // TODO improve fn name, maybe create and model one could be called insert.
+  pub async fn build(&self, resource: Resource) -> Result<Resource, Error> {
+    resource.validate().map_err(Error::ValidateModel)?;
+
+    self.create(resource).await
   }
 
   pub async fn get_position(&self, query: Document) -> Result<Option<i32>, Error> {

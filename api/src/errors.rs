@@ -5,6 +5,7 @@ use actix_web::HttpResponse;
 use lettre_email::error::Error as LettreEmailError;
 use reqwest::Error as ReqwestError;
 use serde_json::json;
+use validator::ValidationErrors;
 use wither::bson;
 use wither::mongodb::error::CommandError as MongoCommandError;
 use wither::mongodb::error::Error as MongoError;
@@ -60,6 +61,9 @@ pub enum Error {
 
   #[error("{0}")]
   Reqwest(#[from] ReqwestError),
+
+  #[error("{0}")]
+  ValidateModel(#[from] ValidationErrors),
 }
 
 impl Error {
@@ -78,6 +82,7 @@ impl Error {
           _ => (StatusCode::INTERNAL_SERVER_ERROR, 4045),
         }
       }
+      Error::ValidateModel(_) => (StatusCode::BAD_REQUEST, 4046),
 
       // 401
       Error::Jwt(_) => (StatusCode::UNAUTHORIZED, 4015),

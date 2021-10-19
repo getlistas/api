@@ -74,7 +74,6 @@ async fn main() {
 
   let port = settings.server.port;
 
-  // At some point this operation should not be run on every start.
   models
     .sync_indexes()
     .await
@@ -88,6 +87,7 @@ async fn main() {
       .app_data(web::Data::new(settings.clone()))
       .app_data(context.clone())
       .configure(routes::user::create_router)
+      .configure(routes::resource_import::create_router)
       .configure(routes::resource::create_router)
       .configure(routes::list::create_router)
       .configure(routes::list_by_slug::create_router)

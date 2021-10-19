@@ -191,6 +191,19 @@ pub trait Model<T: wither::Model + Send> {
       .map_err(Error::Mongo)
   }
 
+  async fn exists(&self, query: Document) -> Result<bool, Error>
+  where
+    T: wither::Model + Send,
+  {
+    let db = self.get_database();
+    let count = T::collection(&db.conn)
+      .count_documents(query, None)
+      .await
+      .map_err(Error::Mongo)?;
+
+    Ok(count > 0)
+  }
+
   async fn aggregate<A>(&self, pipeline: Vec<Document>) -> Result<Vec<A>, Error>
   where
     T: wither::Model + Send,
