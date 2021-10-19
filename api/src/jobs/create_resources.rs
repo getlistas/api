@@ -1,9 +1,11 @@
 use lapin::message::DeliveryResult;
 use lapin::options::BasicAckOptions;
 use lapin::options::BasicConsumeOptions;
+use lapin::options::BasicNackOptions;
 use lapin::options::QueueDeclareOptions;
 use lapin::types::FieldTable;
 use serde::{Deserialize, Serialize};
+use wither::bson::doc;
 
 use crate::errors::Error;
 use crate::lib::date;
@@ -52,14 +54,21 @@ pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
           let payload = delivery.data.clone();
           let payload: JobPayload = bincode::deserialize(payload.as_ref()).unwrap();
 
-          create_resources(payload, models)
-            .await
-            .expect("Create resources succesfully");
+          let result = create_resources(payload, models).await;
 
-          delivery
-            .ack(BasicAckOptions::default())
-            .await
-            .expect("Failed to ack");
+          match result {
+            Ok(_) => delivery
+              .ack(BasicAckOptions::default())
+              .await
+              .expect("Failed to ack"),
+            Err(err) => {
+              error!("Failed to process the create_resources job. Error: {}", err);
+              delivery
+                .nack(BasicNackOptions::default())
+                .await
+                .expect("Failed to nack");
+            }
+          }
         }
       }
     })
@@ -102,12 +111,22 @@ async fn create_resource(
   );
 
   let url = parse_url(&url)?;
+  let list_id = list.id.clone().unwrap();
+  let resource_exists = models
+    .resource
+    .exists(doc! { "user": &list.user, "list": &list_id, "url": url.to_string() })
+    .await?;
+
+  if resource_exists {
+    return Ok(());
+  }
+
   let resource = Resource {
     id: None,
     url: url.to_string(),
     position: position,
     user: list.user.clone(),
-    list: list.id.clone().unwrap(),
+    list: list_id,
     created_at: date::now(),
     updated_at: date::now(),
     title: None,
