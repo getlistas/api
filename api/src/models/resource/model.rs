@@ -38,9 +38,7 @@ impl Model {
 
   // TODO improve fn name, maybe create and model one could be called insert.
   pub async fn build(&self, resource: Resource) -> Result<Resource, Error> {
-    resource
-      .validate()
-      .map_err(|error| Error::ValidateModel(error))?;
+    resource.validate().map_err(Error::ValidateModel)?;
 
     self.create(resource).await
   }

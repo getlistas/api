@@ -52,7 +52,7 @@ pub async fn setup(rabbit_mq: RabbitMQ, models: Models) {
       async move {
         let delivery = match delivery {
           Some((_channel, delivery)) => delivery,
-          None => return (), // The consumer got canceled.
+          None => return, // The consumer got canceled.
         };
 
         let payload = delivery.data.clone();
@@ -130,7 +130,7 @@ async fn create_resource(
   let resource = Resource {
     id: None,
     url: url.to_string(),
-    position: position,
+    position,
     user: list.user.clone(),
     list: list_id,
     created_at: date::now(),

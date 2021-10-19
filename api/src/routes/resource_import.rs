@@ -20,7 +20,7 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::resource("/import-resources")
       .route(web::post().to(import_resources))
-      .wrap(auth.clone()),
+      .wrap(auth),
   );
 }
 
@@ -76,7 +76,7 @@ fn parse_import_payload(payload: String) -> Vec<String> {
     .lines()
     .filter(|line| !line.is_empty())
     .filter_map(|line| {
-      let url = line.trim().split(' ').nth(0)?;
+      let url = line.trim().split(' ').next()?;
 
       let import_item = ImportItem {
         url: url.to_string(),
