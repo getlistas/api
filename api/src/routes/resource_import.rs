@@ -68,19 +68,16 @@ struct ImportItem {
 }
 
 fn parse_import_payload(payload: String) -> Vec<String> {
-  // TODO: Handle errors, no unwrap.
-  let payload: String = serde_json::from_str(payload.as_str()).unwrap();
-
   payload
     .trim()
     .lines()
     .filter(|line| !line.is_empty())
     .filter_map(|line| {
       let url = line.trim().split(' ').next()?;
-
       let import_item = ImportItem {
         url: url.to_string(),
       };
+
       match import_item.validate() {
         Ok(_) => Some(import_item.url),
         Err(_) => None,
