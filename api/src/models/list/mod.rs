@@ -21,7 +21,7 @@ pub struct Fork {
   pub user: ObjectId,
 }
 
-#[derive(Debug, Model, Serialize, Deserialize)]
+#[derive(Debug, Clone, Model, Serialize, Deserialize)]
 #[model(index(keys = r#"doc!{ "user": 1 }"#))]
 #[model(index(
   keys = r#"doc!{ "user": 1, "slug": 1 }"#,

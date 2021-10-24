@@ -1,3 +1,4 @@
+use futures::stream::StreamExt;
 use lapin::message::DeliveryResult;
 use lapin::options::BasicAckOptions;
 use lapin::options::BasicConsumeOptions;
@@ -92,15 +93,24 @@ async fn create_resources(payload: JobPayload, models: Models) -> Result<(), Err
 
   let position = models.list.get_position_for_new_resource(&list_id).await?;
 
-  // TODO: Process this in parallel.
-  for (index, url) in urls.into_iter().enumerate() {
+  let resource_futures = urls.into_iter().enumerate().map(|(index, url)| {
     let position = position + (index + 1) as i32;
-    let result = create_resource(models.clone(), &list, url.clone(), position).await;
-    if let Err(err) = result {
+    let models = models.clone();
+    let list = list.clone();
+
+    async move {
+      let result = create_resource(models.clone(), &list, url.clone(), position).await;
       // TODO: Improve this error handling, should we retry this URL?
-      error!("Failed to create resource with URL {}. Error: {}", url, err);
+      if let Err(err) = result {
+        error!("Failed to create resource with URL {}. Error: {}", url, err);
+      };
     }
-  }
+  });
+
+  futures::stream::iter(resource_futures)
+    .buffer_unordered(50)
+    .collect::<Vec<()>>()
+    .await;
 
   Ok(())
 }
