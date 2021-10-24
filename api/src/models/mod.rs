@@ -33,7 +33,7 @@ pub struct Models {
 
 impl Deref for Models {
   type Target = Arc<ModelsInner>;
-  fn deref(&self) -> &Arc<ModelsInner> {
+  fn deref(&self) -> &Self::Target {
     &self.inner
   }
 }
