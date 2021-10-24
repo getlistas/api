@@ -7,6 +7,8 @@ pub mod user;
 use async_trait::async_trait;
 use futures::stream::TryStreamExt;
 use serde::{de::DeserializeOwned, ser::Serialize};
+use std::ops::Deref;
+use std::sync::Arc;
 use wither::bson::doc;
 use wither::bson::from_bson;
 use wither::bson::Bson;
@@ -26,6 +28,18 @@ use crate::thirdparty::traer::Traer;
 
 #[derive(Clone)]
 pub struct Models {
+  inner: Arc<ModelsInner>,
+}
+
+impl Deref for Models {
+  type Target = Arc<ModelsInner>;
+  fn deref(&self) -> &Arc<ModelsInner> {
+    &self.inner
+  }
+}
+
+#[derive(Clone)]
+pub struct ModelsInner {
   pub user: user::model::Model,
   pub list: list::model::Model,
   pub resource: resource::model::Model,
@@ -41,13 +55,15 @@ impl Models {
     let integration = integration::model::Model::new(database.clone(), rss);
     let like = like::model::Model::new(database);
 
-    Self {
+    let inner = Arc::new(ModelsInner {
       user,
       list,
       resource,
       integration,
       like,
-    }
+    });
+
+    Self { inner }
   }
 
   pub async fn sync_indexes(&self) -> Result<(), Error> {
