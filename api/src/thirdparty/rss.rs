@@ -1,5 +1,6 @@
 use futures::future::try_join_all;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use url::Url;
 use wither::bson::oid::ObjectId;
 
@@ -8,9 +9,14 @@ use crate::lib::date;
 use crate::lib::util::parse_url;
 use crate::models::resource::Resource;
 
-// https://rssapi.net/docs
 #[derive(Clone)]
 pub struct Rss {
+  inner: Arc<RssInner>,
+}
+
+// https://rssapi.net/docs
+#[derive(Clone)]
+struct RssInner {
   pub token: String,
   pub base_url: String,
   pub client: reqwest::Client,
@@ -68,11 +74,13 @@ pub struct Response<T> {
 
 impl Rss {
   pub fn new(token: String) -> Self {
-    Self {
+    let inner = Arc::new(RssInner {
       base_url: format!("https://api.rssapi.net/v1/{}", token),
       token,
       client: reqwest::Client::new(),
-    }
+    });
+
+    Self { inner }
   }
 
   pub async fn get_entries(&self, url: &Url) -> Result<Vec<Entry>, Error> {
@@ -81,8 +89,9 @@ impl Rss {
     let url_qs = ("url", url.as_str());
 
     let res = self
+      .inner
       .client
-      .get(format!("{}/get", self.base_url).as_str())
+      .get(format!("{}/get", self.inner.base_url).as_str())
       .query(&[url_qs, limit_qs, sort_qs])
       .send()
       .await?
@@ -100,8 +109,9 @@ impl Rss {
     let url_qs = ("url", url.as_str());
 
     let res = self
+      .inner
       .client
-      .get(format!("{}/subscribe", self.base_url).as_str())
+      .get(format!("{}/subscribe", self.inner.base_url).as_str())
       .query(&[url_qs])
       .send()
       .await?
@@ -117,8 +127,9 @@ impl Rss {
 
   pub async fn unsuscribe(&self, subscription_id: &str) -> Result<(), Error> {
     let res = self
+      .inner
       .client
-      .get(format!("{}/removeSubscription", self.base_url).as_str())
+      .get(format!("{}/removeSubscription", self.inner.base_url).as_str())
       .query(&[("id", subscription_id)])
       .send()
       .await?
@@ -134,8 +145,9 @@ impl Rss {
 
   pub async fn is_valid_url(&self, url: &Url) -> Result<bool, Error> {
     let res = self
+      .inner
       .client
-      .get(format!("{}/validate", self.base_url).as_str())
+      .get(format!("{}/validate", self.inner.base_url).as_str())
       .query(&[("url", url.as_str())])
       .send()
       .await?
