@@ -1,14 +1,20 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 use url::Url;
 
 use crate::errors::Error;
 
 #[derive(Clone)]
 pub struct Traer {
-  pub token: String,
-  pub base_url: String,
-  pub client: reqwest::Client,
+  inner: Arc<TraerInner>,
+}
+
+#[derive(Clone)]
+struct TraerInner {
+  token: String,
+  base_url: String,
+  client: reqwest::Client,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -43,11 +49,13 @@ pub struct TraerReadSomeResult {
 
 impl Traer {
   pub fn new(token: String) -> Self {
-    Self {
+    let inner = Arc::new(TraerInner {
       base_url: "https://traer.vercel.app/api/v1".to_string(),
       token,
       client: reqwest::Client::new(),
-    }
+    });
+
+    Self { inner }
   }
 
   pub async fn get_content_from_url(&self, url: &Url) -> Result<Option<TraerReadResult>, Error> {
@@ -55,10 +63,11 @@ impl Traer {
     body.insert("url".to_owned(), url.to_string());
 
     let res = self
+      .inner
       .client
-      .post(format!("{}/parse", self.base_url).as_str())
+      .post(format!("{}/parse", self.inner.base_url).as_str())
       .json(&body)
-      .header("Authentication", self.token.clone())
+      .header("Authentication", self.inner.token.clone())
       .send()
       .await?
       .json::<TraerResponse<TraerReadResult>>()
@@ -81,11 +90,12 @@ impl Traer {
     body.insert("url".to_owned(), url.to_string());
 
     self
+      .inner
       .client
-      .post(format!("{}/parse", self.base_url).as_str())
+      .post(format!("{}/parse", self.inner.base_url).as_str())
       .query(&[("slim", true)])
       .json(&body)
-      .header("Authentication", self.token.clone())
+      .header("Authentication", self.inner.token.clone())
       .send()
       .await?
       .json::<TraerResponse<TraerReadSomeResult>>()
