@@ -318,19 +318,36 @@ async fn update_resource(ctx: Ctx, id: ID, body: ResourceUpdateBody, user_id: Us
   let resource_id = id.0;
   let user_id = user_id.0;
 
+  let resource = ctx
+    .models
+    .resource
+    .find_one(doc! { "_id": &resource_id, "user": &user_id }, None)
+    .await?;
+
+  let resource = match resource {
+    Some(resource) => resource,
+    None => {
+      debug!("Resource not found, returning 404 status code");
+      return Ok(HttpResponse::NotFound().finish());
+    }
+  };
+
   let mut body = body.into_inner();
   let body = ResourceUpdate::new(&mut body);
   let mut update = bson::to_document(&body).unwrap();
 
-  if let Some(list_id) = &body.list {
-    let last_position = ctx
-      .models
-      .list
-      .get_position_for_new_resource(list_id)
-      .await?;
+  match &body.list {
+    Some(list_id) if !resource.list.eq(list_id) => {
+      let last_position = ctx
+        .models
+        .list
+        .get_position_for_new_resource(list_id)
+        .await?;
 
-    update.insert("position", last_position);
-  }
+      update.insert("position", last_position);
+    }
+    _ => {}
+  };
 
   let options = FindOneAndUpdateOptions::builder()
     .return_document(mongodb::options::ReturnDocument::After)
