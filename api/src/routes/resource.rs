@@ -1,7 +1,6 @@
 use actix_web::{web, HttpResponse};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use validator::Validate;
 use wither::bson;
 use wither::bson::{doc, Bson};
@@ -19,6 +18,8 @@ use crate::models::resource::ResourceUpdate;
 use crate::models::Model as ModelTrait;
 use crate::Context;
 use crate::{auth, lib::date};
+
+type ResourceUpdateBody = web::Json<ResourceUpdate>;
 
 #[derive(Deserialize)]
 struct Query {
@@ -313,20 +314,24 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
   Ok(res)
 }
 
-async fn update_resource(
-  ctx: Ctx,
-  id: ID,
-  body: web::Json<ResourceUpdate>,
-  user_id: UserID,
-) -> Response {
+async fn update_resource(ctx: Ctx, id: ID, body: ResourceUpdateBody, user_id: UserID) -> Response {
   let resource_id = id.0;
   let user_id = user_id.0;
 
   let mut body = body.into_inner();
   let body = ResourceUpdate::new(&mut body);
-  let update = json!({ "$set": body });
+  let mut update = bson::to_document(&body).unwrap();
 
-  let update = bson::ser::to_document(&update).unwrap();
+  if let Some(list_id) = &body.list {
+    let last_position = ctx
+      .models
+      .list
+      .get_position_for_new_resource(list_id)
+      .await?;
+
+    update.insert("position", last_position);
+  }
+
   let options = FindOneAndUpdateOptions::builder()
     .return_document(mongodb::options::ReturnDocument::After)
     .build();
@@ -336,7 +341,7 @@ async fn update_resource(
     .resource
     .find_one_and_update(
       doc! { "_id": &resource_id, "user": &user_id },
-      update,
+      doc! { "$set": update },
       Some(options),
     )
     .await?;
