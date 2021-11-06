@@ -39,7 +39,6 @@ impl Model {
   // TODO improve fn name, maybe create and model one could be called insert.
   pub async fn build(&self, resource: Resource) -> Result<Resource, Error> {
     resource.validate().map_err(Error::ValidateModel)?;
-
     self.create(resource).await
   }
 
@@ -72,16 +71,17 @@ impl Model {
     let resource = match resource {
       Some(resource) => resource,
       None => {
-        // TODO: Maybe throw an error instead? Not sure yet.
-        warn!("Resource was not found when updating resource metadatas");
+        error!(
+          "Resource with ID {} not found when updating resource metadata",
+          resource_id
+        );
         return Ok(());
       }
     };
 
     let url = resource.get_url();
-    let traer_response = self.traer.get_content_from_url(&url).await?;
-
-    let metadata = match traer_response {
+    let metadata = self.traer.get_content_from_url(&url).await?;
+    let metadata = match metadata {
       None => return Ok(()),
       Some(metadata) => metadata,
     };
@@ -114,15 +114,14 @@ impl Model {
     }
 
     // Metadata was available for the specified resource but for some reason
-    // the Treaer API returned empty attributes.
+    // the Treaer API returned no attributes.
     let has_update = !update.is_empty();
     if !has_update {
       return Ok(());
     }
 
-    let update = doc! { "$set": update };
     self
-      .update_one(doc! { "_id": resource_id }, update, None)
+      .update_one(doc! { "_id": resource_id }, doc! { "$set": update }, None)
       .await?;
 
     Ok(())
