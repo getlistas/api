@@ -244,11 +244,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     return Ok(HttpResponse::BadRequest().finish());
   }
 
-  let position = ctx
-    .models
-    .list
-    .get_position_for_new_resource(&list_id)
-    .await?;
+  let position = ctx.models.list.get_next_resource_position(&list_id).await?;
 
   let resource = Resource {
     id: None,
@@ -338,11 +334,7 @@ async fn update_resource(ctx: Ctx, id: ID, body: ResourceUpdateBody, user_id: Us
 
   match &body.list {
     Some(list_id) if !resource.list.eq(list_id) => {
-      let last_position = ctx
-        .models
-        .list
-        .get_position_for_new_resource(list_id)
-        .await?;
+      let last_position = ctx.models.list.get_next_resource_position(list_id).await?;
 
       update.insert("position", last_position);
     }

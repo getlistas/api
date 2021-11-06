@@ -69,7 +69,7 @@ async fn on_resource_created(models: Models, resource_id: ObjectId) -> Result<()
     async move {
       let position = models
         .list
-        .get_position_for_new_resource(&integration.list)
+        .get_next_resource_position(&integration.list)
         .await?;
 
       models

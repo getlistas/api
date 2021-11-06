@@ -165,8 +165,7 @@ impl Model {
     Ok(())
   }
 
-  // TODO: Rename this method to "get_next_resource_position"
-  pub async fn get_position_for_new_resource(&self, list_id: &ObjectId) -> Result<i32, Error> {
+  pub async fn get_next_resource_position(&self, list_id: &ObjectId) -> Result<i32, Error> {
     let sort = doc! { "position": -1 };
     let options = FindOneOptions::builder().sort(sort).build();
     let last_resource = self
