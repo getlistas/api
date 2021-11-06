@@ -91,7 +91,7 @@ async fn create_resources(payload: JobPayload, models: Models) -> Result<(), Err
     }
   };
 
-  let position = models.list.get_position_for_new_resource(&list_id).await?;
+  let position = models.list.get_next_resource_position(&list_id).await?;
 
   let resource_futures = urls.into_iter().enumerate().map(|(index, url)| {
     let position = position + (index + 1) as i32;

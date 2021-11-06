@@ -53,7 +53,6 @@ async fn import_resources(ctx: Ctx, body: web::Json<RequestBody>, user: UserID) 
   };
 
   // TODO: Queue un batch.
-
   ctx.jobs.queue("create_resources", payload).await;
 
   debug!("Returning resource metadata to the client");

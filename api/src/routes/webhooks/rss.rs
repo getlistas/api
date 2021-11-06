@@ -61,11 +61,7 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
     return Ok(HttpResponse::Ok().finish());
   }
 
-  let next_resource_position = ctx
-    .models
-    .list
-    .get_position_for_new_resource(&list_id)
-    .await?;
+  let next_resource_position = ctx.models.list.get_next_resource_position(&list_id).await?;
 
   futures::stream::iter(body.new_entries.clone())
     .enumerate()
