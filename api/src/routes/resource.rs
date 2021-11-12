@@ -264,6 +264,7 @@ async fn create_resource(ctx: Ctx, body: ResourceCreateBody, user_id: UserID) ->
     author: None,
     length: None,
     publisher: None,
+    populated_at: None,
   };
 
   // TODO: Integrate validate method into a create method.

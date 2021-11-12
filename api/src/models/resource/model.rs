@@ -3,10 +3,12 @@ use url::Url;
 use validator::Validate;
 use wither::bson::doc;
 use wither::bson::oid::ObjectId;
+use wither::bson::Bson;
 use wither::bson::Document;
 
 use crate::database;
 use crate::errors::Error;
+use crate::lib::date;
 use crate::models;
 use crate::models::resource::Resource;
 use crate::models::Model as ModelTrait;
@@ -119,6 +121,8 @@ impl Model {
     if !has_update {
       return Ok(());
     }
+
+    update.insert("populated_at", Bson::DateTime(date::now().into()));
 
     self
       .update_one(doc! { "_id": resource_id }, doc! { "$set": update }, None)

@@ -189,6 +189,7 @@ impl Rss {
       author: None,
       length: None,
       publisher: None,
+      populated_at: None,
     };
 
     Ok(resource)
