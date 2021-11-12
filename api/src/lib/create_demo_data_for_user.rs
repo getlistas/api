@@ -60,6 +60,7 @@ pub async fn create(models: &Models, user: ObjectId) -> Result<(), Error> {
       author: None,
       length: None,
       publisher: None,
+      populated_at: None,
     })
     .await?;
 

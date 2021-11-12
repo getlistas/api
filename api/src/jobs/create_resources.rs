@@ -155,6 +155,7 @@ async fn create_resource(
     length: None,
     publisher: None,
     completed_at: None,
+    populated_at: None,
   };
 
   let resource = models.resource.build(resource).await?;

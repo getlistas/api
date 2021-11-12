@@ -39,6 +39,7 @@ pub struct Resource {
   pub created_at: DateTime,
   pub updated_at: DateTime,
   pub completed_at: Option<DateTime>,
+  pub populated_at: Option<DateTime>,
 }
 
 impl Resource {

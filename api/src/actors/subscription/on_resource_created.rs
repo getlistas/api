@@ -92,6 +92,7 @@ async fn on_resource_created(models: Models, resource_id: ObjectId) -> Result<()
           author: None,
           length: None,
           publisher: None,
+          populated_at: None,
         })
         .await?;
 
