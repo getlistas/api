@@ -11,11 +11,13 @@ mod mailer;
 mod models;
 mod rabbit_mq;
 mod routes;
+mod scripts;
 mod settings;
 mod thirdparty;
 
 use actix_cors::Cors;
 use actix_web::{middleware, web, App, HttpServer};
+use std::env;
 #[macro_use]
 extern crate log;
 
@@ -72,12 +74,18 @@ async fn main() {
     jobs: jobs.clone(),
   });
 
-  let port = settings.server.port;
+  let args = env::args().collect::<Vec<String>>();
+  if args.get(1) == Some(&String::from("cli")) {
+    scripts::run();
+    return;
+  }
 
   models
     .sync_indexes()
     .await
     .expect("Failed to sync model indexes with the Database");
+
+  let port = settings.server.port;
 
   HttpServer::new(move || {
     App::new()
