@@ -414,49 +414,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "api"
-version = "0.1.0"
-dependencies = [
- "Inflector",
- "actix",
- "actix-cors",
- "actix-web",
- "actix-web-httpauth",
- "async-trait",
- "bcrypt",
- "bincode",
- "cargo-husky",
- "chrono",
- "clap",
- "config",
- "futures",
- "futures-util",
- "itertools",
- "jsonwebtoken",
- "lapin",
- "lettre",
- "lettre_email",
- "log",
- "maud",
- "pretty_env_logger",
- "rand 0.8.4",
- "reqwest",
- "select",
- "serde 1.0.130",
- "serde_derive",
- "serde_json",
- "serde_qs",
- "serde_with",
- "slug",
- "strum",
- "thiserror",
- "tokio-amqp",
- "url",
- "validator",
- "wither",
-]
-
-[[package]]
 name = "arrayvec"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1805,6 +1762,49 @@ name = "linked-hash-map"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
+
+[[package]]
+name = "listas"
+version = "0.1.0"
+dependencies = [
+ "Inflector",
+ "actix",
+ "actix-cors",
+ "actix-web",
+ "actix-web-httpauth",
+ "async-trait",
+ "bcrypt",
+ "bincode",
+ "cargo-husky",
+ "chrono",
+ "clap",
+ "config",
+ "futures",
+ "futures-util",
+ "itertools",
+ "jsonwebtoken",
+ "lapin",
+ "lettre",
+ "lettre_email",
+ "log",
+ "maud",
+ "pretty_env_logger",
+ "rand 0.8.4",
+ "reqwest",
+ "select",
+ "serde 1.0.130",
+ "serde_derive",
+ "serde_json",
+ "serde_qs",
+ "serde_with",
+ "slug",
+ "strum",
+ "thiserror",
+ "tokio-amqp",
+ "url",
+ "validator",
+ "wither",
+]
 
 [[package]]
 name = "lock_api"
