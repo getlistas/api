@@ -76,7 +76,7 @@ async fn main() {
 
   let args = env::args().collect::<Vec<String>>();
   if args.get(1) == Some(&String::from("cli")) {
-    scripts::run();
+    scripts::run(&context).await;
     return;
   }
 

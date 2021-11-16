@@ -34,8 +34,8 @@ pub fn to_slug_case<S: AsRef<str>>(string: S) -> String {
   slugify(string)
 }
 
-pub fn to_object_id(id: String) -> Result<ObjectId, Error> {
-  ObjectId::with_string(id.as_str()).map_err(Error::ParseObjectID)
+pub fn to_object_id<S: AsRef<str>>(id: S) -> Result<ObjectId, Error> {
+  ObjectId::with_string(id.as_ref()).map_err(Error::ParseObjectID)
 }
 
 pub fn parse_url(url: &str) -> Result<Url, Error> {

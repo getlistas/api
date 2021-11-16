@@ -20,6 +20,7 @@ use wither::mongodb::options::FindOptions;
 use wither::mongodb::options::UpdateOptions;
 use wither::mongodb::results::DeleteResult;
 use wither::mongodb::results::UpdateResult;
+use wither::ModelCursor;
 
 use crate::database::Database;
 use crate::errors::Error;
@@ -124,6 +125,20 @@ pub trait Model<T: wither::Model + Send> {
       .await
       .map_err(Error::Wither)?
       .try_collect::<Vec<T>>()
+      .await
+      .map_err(Error::Wither)
+  }
+
+  async fn cursor(
+    &self,
+    query: Document,
+    options: Option<FindOptions>,
+  ) -> Result<ModelCursor<T>, Error>
+  where
+    T: wither::Model + Send,
+  {
+    let db = self.get_database();
+    T::find(&db.conn, query, options)
       .await
       .map_err(Error::Wither)
   }
