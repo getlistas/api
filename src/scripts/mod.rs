@@ -1,6 +1,8 @@
 mod populate_resources;
 
-pub fn run() {
+use crate::context::Context;
+
+pub async fn run(context: &Context) {
   let matches = clap::App::new("Listas scripts CLI")
     .subcommand(
       clap::App::new("cli")
@@ -15,6 +17,6 @@ pub fn run() {
     .expect("Failed to get cli subcommand matches");
 
   if matches.is_present("populate-resources") {
-    populate_resources::run();
+    populate_resources::run(context).await;
   }
 }
