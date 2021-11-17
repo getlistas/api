@@ -5,14 +5,19 @@ use crate::context::Context;
 use crate::lib::util::to_object_id;
 use crate::models::Model as ModelTrait;
 
-pub async fn run(ctx: &Context) {
+pub async fn run<S: AsRef<str>>(ctx: &Context, user_id: Option<S>) {
   println!("Runing populate-resources script");
 
-  let user_id = to_object_id("606385a800c7fe7c00ee5e09").expect("Failed to parse user ID");
+  let mut query = doc! {};
+  if let Some(user_id) = user_id {
+    let user_id = to_object_id(user_id.as_ref()).expect("Failed to parse user ID");
+    query.insert("user", user_id);
+  }
+
   let mut cursor = ctx
     .models
     .resource
-    .cursor(doc! { "user": user_id }, None)
+    .cursor(query, None)
     .await
     .expect("Failed to get model cursor");
 

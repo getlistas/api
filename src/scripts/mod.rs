@@ -1,12 +1,24 @@
 mod populate_resources;
 
+use clap::{App, Arg};
+
 use crate::context::Context;
 
 pub async fn run(context: &Context) {
-  let matches = clap::App::new("Listas scripts CLI")
+  let matches = App::new("Listas scripts CLI")
     .subcommand(
-      clap::App::new("cli")
-        .subcommand(clap::App::new("populate-resources").help("Populates all resources")),
+      App::new("cli").subcommand(
+        App::new("populate-resources")
+          .help("Populates all resources")
+          .arg(
+            Arg::with_name("user")
+              .short("u")
+              .long("user")
+              .value_name("user")
+              .help("Populate resource for a specific user")
+              .takes_value(true),
+          ),
+      ),
     )
     .get_matches();
 
@@ -16,7 +28,8 @@ pub async fn run(context: &Context) {
     .subcommand_matches("cli")
     .expect("Failed to get cli subcommand matches");
 
-  if matches.is_present("populate-resources") {
-    populate_resources::run(context).await;
+  if let Some(matches) = matches.subcommand_matches("populate-resources") {
+    let user = matches.value_of("user");
+    populate_resources::run(context, user).await;
   }
 }
