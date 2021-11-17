@@ -90,12 +90,22 @@ impl Model {
 
     let mut update = doc! {};
 
-    if let Some(title) = metadata.title {
-      update.insert("title", title);
-    }
-    if let Some(description) = metadata.description {
-      update.insert("description", description);
-    }
+    // Ensure that fields that the user can edit are not overwritten.
+    match metadata.title {
+      Some(title) if resource.title.is_none() => {
+        update.insert("title", title);
+      }
+      _ => (),
+    };
+
+    match metadata.description {
+      Some(description) if resource.description.is_none() => {
+        update.insert("description", description);
+      }
+      _ => (),
+    };
+
+    // Fields that are not editable by the user can be overwritten.
     if let Some(image) = metadata.image {
       update.insert("thumbnail", image);
     }
