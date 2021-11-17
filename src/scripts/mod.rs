@@ -17,6 +17,14 @@ pub async fn run(context: &Context) {
               .value_name("user")
               .help("Populate resource for a specific user")
               .takes_value(true),
+          )
+          .arg(
+            Arg::with_name("non-populated")
+              .short("n")
+              .long("non-populated")
+              .value_name("non-populated")
+              .help("Populate resource that were not previously populated")
+              .takes_value(false),
           ),
       ),
     )
@@ -30,6 +38,7 @@ pub async fn run(context: &Context) {
 
   if let Some(matches) = matches.subcommand_matches("populate-resources") {
     let user = matches.value_of("user");
-    populate_resources::run(context, user).await;
+    let non_populated = matches.is_present("non-populated");
+    populate_resources::run(context, user, non_populated).await;
   }
 }
