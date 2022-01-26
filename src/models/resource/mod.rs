@@ -56,6 +56,7 @@ impl Resource {
         "thumbnail": this.thumbnail,
         "position": this.position,
         "tags": this.tags,
+        "html": this.html,
         "created_at": date::to_rfc3339(this.created_at),
         "updated_at": date::to_rfc3339(this.updated_at),
         "completed_at": this.completed_at.map(date::to_rfc3339)

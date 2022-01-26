@@ -13,6 +13,7 @@ use crate::Context;
 // https://developer.paddle.com/webhook-reference/subscription-alerts/subscription-created
 // https://developer.paddle.com/webhook-reference/subscription-alerts/subscription-cancelled
 
+#[allow(dead_code)]
 #[derive(Clone, Deserialize)]
 struct PaddleEvent {
   pub alert_id: String,
