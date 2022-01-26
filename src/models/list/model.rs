@@ -14,7 +14,6 @@ use crate::models::list::ListResourceMetadata;
 use crate::models::list::PrivateList;
 use crate::models::resource;
 use crate::models::resource::Resource;
-use crate::models::user;
 use crate::models::Model as ModelTrait;
 use crate::thirdparty::traer::Traer;
 use crate::{database, thirdparty::rss::Rss};
@@ -23,7 +22,6 @@ use crate::{errors::Error, lib::date};
 #[derive(Clone)]
 pub struct Model {
   database: database::Database,
-  user: user::model::Model,
   resource: resource::model::Model,
   integration: integration::model::Model,
   like: like::model::Model,
@@ -38,13 +36,11 @@ impl models::Model<List> for Model {
 impl Model {
   pub fn new(database: database::Database, rss: Rss, traer: Traer) -> Self {
     let resource = resource::model::Model::new(database.clone(), traer);
-    let user = user::model::Model::new(database.clone());
     let integration = integration::model::Model::new(database.clone(), rss);
     let like = like::model::Model::new(database.clone());
 
     Self {
       database,
-      user,
       resource,
       integration,
       like,

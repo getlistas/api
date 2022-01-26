@@ -17,7 +17,6 @@ pub struct Rss {
 // https://rssapi.net/docs
 #[derive(Clone)]
 struct RssInner {
-  pub token: String,
   pub base_url: String,
   pub client: reqwest::Client,
 }
@@ -76,7 +75,6 @@ impl Rss {
   pub fn new(token: String) -> Self {
     let inner = Arc::new(RssInner {
       base_url: format!("https://api.rssapi.net/v1/{}", token),
-      token,
       client: reqwest::Client::new(),
     });
 

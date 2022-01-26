@@ -61,18 +61,10 @@ impl GoogleToken {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct CertsObject {
-  keys: Vec<Cert>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
 struct Cert {
   kid: String,
   e: String,
-  kty: String,
-  alg: String,
   n: String,
-  r#use: String,
 }
 
 pub async fn validate(token: &str, client_id: &str) -> Result<GoogleToken, Error> {
