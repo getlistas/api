@@ -113,7 +113,7 @@ impl User {
       .split('@')
       .next()
       .expect("Failed to unwrap, user email does not have an '@'");
-    let slug = to_slug_case(prefix.to_owned());
+    let slug = to_slug_case(prefix);
     let slug = to_snake_case(slug.as_str());
     let random_string = create_random_string(5).to_lowercase();
 

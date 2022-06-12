@@ -20,12 +20,12 @@ pub fn create_router(cfg: &mut web::ServiceConfig) {
 async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
   debug!("Processing RSS webhook from rssapi");
 
-  if body.new_entries.is_empty() {
+  if body.entries.is_empty() {
     debug!("RSS webhook does not contain new entries, returning 400 status code");
     return Ok(HttpResponse::BadRequest().finish());
   }
 
-  let subscription_id = body.subscription_id.clone();
+  let subscription_id = body.subscription.clone();
   let integration = ctx
     .models
     .integration
@@ -63,8 +63,12 @@ async fn webhook(ctx: web::Data<Context>, body: WebhookBody) -> Response {
 
   let next_resource_position = ctx.models.list.get_next_resource_position(&list_id).await?;
 
-  futures::stream::iter(body.new_entries.clone())
+  futures::stream::iter(body.entries.clone())
     .enumerate()
+    .filter(|(_, entry)| {
+      let has_url = entry.url.is_some();
+      async move { has_url }
+    })
     .map(|(index, entry)| {
       create_resource_from_rss_entry(
         &ctx.models,
@@ -92,7 +96,7 @@ pub async fn create_resource_from_rss_entry(
   list_id: &ObjectId,
   position: i32,
 ) -> Result<(), Error> {
-  let mut resource = rss::Rss::create_resource_payload_from_entry(entry, user_id, list_id).await?;
+  let mut resource = rss::create_resource_payload_from_entry(entry, user_id, list_id).await?;
 
   resource.position = position;
   models.resource.create(resource).await?;
