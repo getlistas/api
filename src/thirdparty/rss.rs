@@ -72,7 +72,7 @@ impl Rss {
 
   pub async fn subscribe(&self, url: &Url) -> Result<SubscribeResponse, Error> {
     let base_url = &self.inner.base_url;
-    let base_url = format!("{}/applications/{}/subscriptions", APPLICATION, base_url);
+    let base_url = format!("{}/applications/{}/subscriptions", base_url, APPLICATION);
 
     let payload = CreateSubscriptionPayload {
       url: url.to_string(),
@@ -97,7 +97,7 @@ impl Rss {
     let base_url = &self.inner.base_url;
     let base_url = format!(
       "{}/applications/{}/subscriptions/{}",
-      APPLICATION, base_url, subscription_id
+      base_url, APPLICATION, subscription_id
     );
 
     self
@@ -116,7 +116,7 @@ impl Rss {
 
   pub async fn is_valid_url(&self, url: &Url) -> Result<bool, Error> {
     let base_url = &self.inner.base_url;
-    let base_url = format!("{}/applications/{}/subscriptions", APPLICATION, base_url);
+    let base_url = format!("{}/applications/{}/subscriptions", base_url, APPLICATION);
 
     let res = self
       .inner
