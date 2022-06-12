@@ -116,7 +116,7 @@ impl Rss {
 
   pub async fn is_valid_url(&self, url: &Url) -> Result<bool, Error> {
     let base_url = &self.inner.base_url;
-    let base_url = format!("{}/applications/{}/subscriptions", base_url, APPLICATION);
+    let base_url = format!("{}/feeds", base_url);
 
     let res = self
       .inner
