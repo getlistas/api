@@ -9,7 +9,6 @@ use crate::lib::date;
 use crate::lib::util::parse_url;
 use crate::models::resource::Resource;
 
-static APPLICATION: &str = "62a3dfc09b9f7bee4fd5fa66";
 static ENDPOINT: &str = "62a553394a314dde29ceee6f";
 
 #[derive(Clone)]
@@ -62,7 +61,7 @@ pub struct ValidateResponse {
 impl Rss {
   pub fn new(token: String) -> Self {
     let inner = Arc::new(RssInner {
-      base_url: "https://therssproject.herokuapp.com".to_string(),
+      base_url: "https://api.therssproject.com/v1".to_string(),
       client: reqwest::Client::new(),
       token,
     });
@@ -72,7 +71,7 @@ impl Rss {
 
   pub async fn subscribe(&self, url: &Url) -> Result<SubscribeResponse, Error> {
     let base_url = &self.inner.base_url;
-    let base_url = format!("{}/applications/{}/subscriptions", base_url, APPLICATION);
+    let base_url = format!("{}/subscriptions", base_url);
 
     let payload = CreateSubscriptionPayload {
       url: url.to_string(),
@@ -95,10 +94,7 @@ impl Rss {
 
   pub async fn unsuscribe(&self, subscription_id: &str) -> Result<(), Error> {
     let base_url = &self.inner.base_url;
-    let base_url = format!(
-      "{}/applications/{}/subscriptions/{}",
-      base_url, APPLICATION, subscription_id
-    );
+    let base_url = format!("{}/subscriptions/{}", base_url, subscription_id);
 
     self
       .inner
