@@ -45,7 +45,6 @@ pub struct SubscribeResponse {
   pub id: String,
   pub application: String,
   pub url: String,
-  pub feed: String,
   pub endpoint: String,
   pub metadata: Option<Json>,
 }
