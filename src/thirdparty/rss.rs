@@ -9,7 +9,7 @@ use crate::lib::date;
 use crate::lib::util::parse_url;
 use crate::models::resource::Resource;
 
-static ENDPOINT: &str = "62a553394a314dde29ceee6f";
+static ENDPOINT: &str = "62f19c682f2fe03440c7e659";
 
 #[derive(Clone)]
 pub struct Rss {
